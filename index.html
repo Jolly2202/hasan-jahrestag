@@ -4,13 +4,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hasan & Jill – Unser magisches Museum</title>
-
+<title>Hasan & Jill – Unser Museum</title>
 <style>
-* {
-  box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
 body {
   margin: 0;
   background: #211b2c;
@@ -18,45 +14,27 @@ body {
   font-family: Georgia, serif;
   text-align: center;
 }
-
-header {
-  padding: 18px 10px 8px;
-}
-
+header { padding: 18px 10px 8px; }
 h1 {
   margin: 5px;
   color: #f3cf91;
   font-size: clamp(24px, 4vw, 38px);
 }
-
-header p {
-  color: #d6c1b3;
-}
-
-#game {
-  width: min(100%, 1100px);
-  margin: auto;
-}
-
+header p { color: #d6c1b3; }
+#game { width: min(100%, 1100px); margin: auto; }
 canvas {
   display: block;
   width: 100%;
   height: auto;
   border-top: 3px solid #cda66c;
   border-bottom: 3px solid #cda66c;
-  touch-action: none;
 }
-
 #help {
   padding: 12px;
   color: #e6d5bd;
   font: 13px/1.7 Arial, sans-serif;
 }
-
-#hint {
-  color: #e8c68b;
-}
-
+#hint { color: #e8c68b; }
 #popup, #finale {
   display: none;
   position: fixed;
@@ -67,11 +45,7 @@ canvas {
   padding: 20px;
   background: #100d19bb;
 }
-
-#finale {
-  z-index: 20;
-}
-
+#finale { z-index: 20; }
 .card {
   background: #fff0d8;
   color: #39283a;
@@ -82,11 +56,7 @@ canvas {
   width: 100%;
   box-shadow: 0 15px 60px #0008;
 }
-
-.card h2 {
-  color: #863c52;
-}
-
+.card h2 { color: #863c52; }
 button {
   background: #863c52;
   color: white;
@@ -96,11 +66,7 @@ button {
   cursor: pointer;
   font-size: 15px;
 }
-
-button:hover {
-  background: #6d3048;
-}
-
+button:hover { background: #6d3048; }
 #choices {
   position: relative;
   display: flex;
@@ -109,13 +75,9 @@ button:hover {
   gap: 24px;
   min-height: 75px;
 }
-
-#noButton {
-  background: #777;
-}
+#noButton { background: #777; }
 </style>
 </head>
-
 <body>
 
 <header>
@@ -160,19 +122,37 @@ button:hover {
 const canvas = document.getElementById("world");
 const ctx = canvas.getContext("2d");
 
-// Deine beiden hochgeladenen Charakterbilder
-const hasanImage = new Image();
-hasanImage.src = "hasan.png";
+// Die acht Perspektiven laden
+function loadImage(filename) {
+  const img = new Image();
+  img.src = filename;
+  return img;
+}
 
-const jillImage = new Image();
-jillImage.src = "jill.png";
+const hasanImages = {
+  front: loadImage("hasan-front.png"),
+  left: loadImage("hasan-left.png"),
+  back: loadImage("hasan-back.png"),
+  right: loadImage("hasan-right.png")
+};
 
-const hasan = { x: 500, y: 460, speed: 3.2 };
-const jill = { x: -60, y: 460 };
+const jillImages = {
+  front: loadImage("jill-front.png"),
+  left: loadImage("jill-left.png"),
+  back: loadImage("jill-back.png"),
+  right: loadImage("jill-right.png")
+};
+
+const hasan = {
+  x: 500, y: 460, speed: 3.2, direction: "front"
+};
+
+const jill = {
+  x: -80, y: 460, direction: "right"
+};
 
 const keys = {};
 const seenMemories = new Set();
-
 let opened = null;
 let finaleStarted = false;
 let finaleFinished = false;
@@ -180,35 +160,32 @@ let time = 0;
 
 const exhibits = [
   {
-    x: 245,
-    y: 205,
+    x: 245, y: 205,
     title: "Exponat 001 – Der Anfang",
     caption: "BADFISH",
     story: "Zwei Frozen Margaritas, ein erstes Date und der Anfang von etwas, das viel größer werden sollte."
   },
   {
-    x: 500,
-    y: 205,
+    x: 500, y: 205,
     title: "Exponat 002 – Unsere Welt",
     caption: "KLEINE ABENTEUER",
     story: "Die schönsten Geschichten bestehen nicht nur aus großen Reisen. Manchmal reicht ein ganz gewöhnlicher Tag zusammen."
   },
   {
-    x: 755,
-    y: 205,
+    x: 755, y: 205,
     title: "Exponat 003 – Fortsetzung folgt",
     caption: "JAHR ZWEI",
     story: "Dieses Museum ist noch lange nicht fertig. Es gibt noch so viele Orte, Abende und Erinnerungen, die auf uns warten."
   }
 ];
 
-function box(x, y, w, h, c) {
-  ctx.fillStyle = c;
+function box(x, y, w, h, color) {
+  ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
 }
 
-function line(x, y, x2, y2, c, width = 1) {
-  ctx.strokeStyle = c;
+function line(x, y, x2, y2, color, width = 1) {
+  ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.beginPath();
   ctx.moveTo(x, y);
@@ -232,7 +209,7 @@ function plant(x, y) {
     ctx.fillStyle = i % 2 ? "#8fb18b" : "#b2c995";
     ctx.beginPath();
     ctx.ellipse(
-      x + (i-2.5)*9,
+      x+(i-2.5)*9,
       y-64-Math.abs(i-2.5)*3,
       8, 22, (i-2.5)*0.3, 0, Math.PI*2
     );
@@ -242,9 +219,8 @@ function plant(x, y) {
 
 function books(x, y) {
   const colors = ["#b87558", "#526d78", "#c8a05e", "#8b5269"];
-
-  colors.forEach((c, i) => {
-    box(x+i*3, y-i*14, 65-i*6, 12, c);
+  colors.forEach((color, i) => {
+    box(x+i*3, y-i*14, 65-i*6, 12, color);
     box(x+i*3, y-i*14, 4, 12, "#e1bd80");
   });
 }
@@ -252,12 +228,10 @@ function books(x, y) {
 function candle(x, y) {
   glow(x, y-30, 65, "#f9cb7650");
   box(x-5, y-12, 10, 25, "#e6c99c");
-
   ctx.fillStyle = "#ffd789";
   ctx.beginPath();
   ctx.ellipse(x, y-17, 4, 8, 0, 0, Math.PI*2);
   ctx.fill();
-
   box(x-13, y+13, 26, 4, "#c99a62");
   box(x-9, y+17, 18, 15, "#79503e");
 }
@@ -318,31 +292,29 @@ function drawRoom() {
   candle(125, 290);
   candle(875, 290);
 
-  exhibits.forEach((e, i) => drawExhibit(e, i));
+  exhibits.forEach((exhibit, i) => drawExhibit(exhibit, i));
 
-  // Magische, funkelnde Lichtpunkte
   for (let i = 0; i < 25; i++) {
     const x = (i*173+41) % 980;
     const y = (i*79+110) % 225;
-
     ctx.fillStyle = "#f8d8a0";
     ctx.globalAlpha = 0.3 + Math.sin(time/400+i)*0.2;
     ctx.beginPath();
     ctx.arc(x, y, 1.5, 0, Math.PI*2);
     ctx.fill();
   }
-
   ctx.globalAlpha = 1;
 }
 
-function drawExhibit(e, i) {
-  const near = Math.hypot(hasan.x-e.x, hasan.y-(e.y+80)) < 115;
+function drawExhibit(exhibit, i) {
+  const near =
+    Math.hypot(hasan.x-exhibit.x, hasan.y-(exhibit.y+80)) < 115;
 
-  if (near) glow(e.x, e.y+35, 110, "#f6cb8b32");
+  if (near) glow(exhibit.x, exhibit.y+35, 110, "#f6cb8b32");
 
-  box(e.x-69, e.y-67, 138, 154, "#b7884f");
-  box(e.x-63, e.y-61, 126, 142, "#e5c18a");
-  box(e.x-57, e.y-55, 114, 130, "#39283d");
+  box(exhibit.x-69, exhibit.y-67, 138, 154, "#b7884f");
+  box(exhibit.x-63, exhibit.y-61, 126, 142, "#e5c18a");
+  box(exhibit.x-57, exhibit.y-55, 114, 130, "#39283d");
 
   const colors = [
     ["#b46b70", "#f2cb9b"],
@@ -350,44 +322,65 @@ function drawExhibit(e, i) {
     ["#8d668e", "#f4d6a2"]
   ][i];
 
-  box(e.x-51, e.y-49, 102, 118, colors[0]);
+  box(exhibit.x-51, exhibit.y-49, 102, 118, colors[0]);
 
   ctx.fillStyle = colors[1];
   ctx.beginPath();
-  ctx.arc(e.x+24, e.y-23, 15, 0, Math.PI*2);
+  ctx.arc(exhibit.x+24, exhibit.y-23, 15, 0, Math.PI*2);
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(e.x-51, e.y+15);
-  ctx.lineTo(e.x-20, e.y-8);
-  ctx.lineTo(e.x+5, e.y+15);
-  ctx.lineTo(e.x+30, e.y-4);
-  ctx.lineTo(e.x+51, e.y+18);
-  ctx.lineTo(e.x+51, e.y+69);
-  ctx.lineTo(e.x-51, e.y+69);
+  ctx.moveTo(exhibit.x-51, exhibit.y+15);
+  ctx.lineTo(exhibit.x-20, exhibit.y-8);
+  ctx.lineTo(exhibit.x+5, exhibit.y+15);
+  ctx.lineTo(exhibit.x+30, exhibit.y-4);
+  ctx.lineTo(exhibit.x+51, exhibit.y+18);
+  ctx.lineTo(exhibit.x+51, exhibit.y+69);
+  ctx.lineTo(exhibit.x-51, exhibit.y+69);
   ctx.fill();
 
   ctx.fillStyle = "#38273c";
-
   for (let j = 0; j < 2; j++) {
-    const xx = e.x-13+j*26;
+    const xx = exhibit.x-13+j*26;
     ctx.beginPath();
-    ctx.arc(xx, e.y+33, 7, 0, Math.PI*2);
+    ctx.arc(xx, exhibit.y+33, 7, 0, Math.PI*2);
     ctx.fill();
-    ctx.fillRect(xx-6, e.y+40, 12, 17);
+    ctx.fillRect(xx-6, exhibit.y+40, 12, 17);
   }
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#f6d9a4";
   ctx.font = "11px Arial";
-  ctx.fillText(e.caption, e.x, e.y+105);
+  ctx.fillText(exhibit.caption, exhibit.x, exhibit.y+105);
 
   if (near) {
-    box(e.x-65, e.y+118, 130, 25, "#f5dfb9");
+    box(exhibit.x-65, exhibit.y+118, 130, 25, "#f5dfb9");
     ctx.fillStyle = "#432b3c";
     ctx.font = "12px Arial";
-    ctx.fillText("E · ANSEHEN", e.x, e.y+135);
+    ctx.fillText("E · ANSEHEN", exhibit.x, exhibit.y+135);
   }
+}
+
+// Zeichnet die ausgewählte Perspektive.
+// Die Figuren werden etwas größer dargestellt, damit mehr Details sichtbar sind.
+function drawCharacter(images, x, y, direction, moving) {
+  const image = images[direction] || images.front;
+  const bob = moving ? Math.sin(time/40)*2 : Math.sin(time/260)*1.5;
+
+  ctx.save();
+
+  ctx.fillStyle = "#21152555";
+  ctx.beginPath();
+  ctx.ellipse(x, y+2, 32, 9, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  if (image && image.complete && image.naturalWidth > 0) {
+    const width = 120;
+    const height = 180;
+    ctx.drawImage(image, x-width/2, y-height+bob, width, height);
+  }
+
+  ctx.restore();
 }
 
 function drawHasan() {
@@ -396,61 +389,25 @@ function drawHasan() {
     keys.ArrowUp || keys.ArrowDown ||
     keys.a || keys.d || keys.w || keys.s;
 
-  const bob = moving ? Math.sin(time/40)*2 : Math.sin(time/260)*1.5;
-
-  ctx.save();
-
-  // Schatten unter Hasan
-  ctx.fillStyle = "#21152555";
-  ctx.beginPath();
-  ctx.ellipse(hasan.x, hasan.y+2, 28, 8, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Hasan als transparentes PNG
-  if (hasanImage.complete && hasanImage.naturalWidth > 0) {
-    ctx.drawImage(
-      hasanImage,
-      hasan.x-48,
-      hasan.y-150+bob,
-      96,
-      150
-    );
-  }
-
-  ctx.restore();
+  drawCharacter(
+    hasanImages, hasan.x, hasan.y,
+    hasan.direction, moving
+  );
 }
 
 function drawJill() {
   if (!finaleStarted) return;
 
-  const bob = finaleFinished ? 0 : Math.sin(time/25)*2;
-
-  ctx.save();
-
-  // Schatten unter Jill
-  ctx.fillStyle = "#21152555";
-  ctx.beginPath();
-  ctx.ellipse(jill.x, jill.y+2, 28, 8, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Jill als transparentes PNG
-  if (jillImage.complete && jillImage.naturalWidth > 0) {
-    ctx.drawImage(
-      jillImage,
-      jill.x-48,
-      jill.y-150+bob,
-      96,
-      150
-    );
-  }
-
-  ctx.restore();
+  drawCharacter(
+    jillImages, jill.x, jill.y,
+    jill.direction, !finaleFinished
+  );
 }
 
-function openMemory(e) {
-  opened = e;
-  document.getElementById("memoryTitle").textContent = e.title;
-  document.getElementById("memoryText").textContent = e.story;
+function openMemory(exhibit) {
+  opened = exhibit;
+  document.getElementById("memoryTitle").textContent = exhibit.title;
+  document.getElementById("memoryText").textContent = exhibit.story;
   document.getElementById("popup").style.display = "flex";
 }
 
@@ -467,14 +424,15 @@ function closeMemory() {
 
 function startFinale() {
   finaleStarted = true;
-  jill.x = -60;
+  finaleFinished = false;
+  jill.x = -80;
   jill.y = 460;
+  jill.direction = "right";
 }
 
 function sayYes() {
   document.getElementById("finaleText").textContent =
     "Yay! ❤️ Dann los, Schatz. Auf zu unserem nächsten Abenteuer!";
-
   document.getElementById("choices").style.display = "none";
 }
 
@@ -493,7 +451,6 @@ function dodgeNoButton() {
 document.getElementById("noButton").addEventListener(
   "pointerenter", dodgeNoButton
 );
-
 document.getElementById("noButton").addEventListener(
   "click", dodgeNoButton
 );
@@ -501,11 +458,11 @@ document.getElementById("noButton").addEventListener(
 function interact() {
   if (opened || finaleStarted) return;
 
-  const e = exhibits.find(m =>
-    Math.hypot(hasan.x-m.x, hasan.y-(m.y+80)) < 115
+  const exhibit = exhibits.find(item =>
+    Math.hypot(hasan.x-item.x, hasan.y-(item.y+80)) < 115
   );
 
-  if (e) openMemory(e);
+  if (exhibit) openMemory(exhibit);
 }
 
 function update() {
@@ -523,60 +480,65 @@ function update() {
       dy *= 0.7071;
     }
 
-    hasan.x = Math.max(35, Math.min(965, hasan.x+dx*hasan.speed));
+    // Für diagonale Bewegungen hat die zuletzt geprüfte Richtung Vorrang.
+    if (dx < 0) hasan.direction = "left";
+    else if (dx > 0) hasan.direction = "right";
+    else if (dy < 0) hasan.direction = "back";
+    else if (dy > 0) hasan.direction = "front";
+
+    hasan.x = Math.max(45, Math.min(955, hasan.x+dx*hasan.speed));
     hasan.y = Math.max(390, Math.min(585, hasan.y+dy*hasan.speed));
   }
 
   if (finaleStarted && !finaleFinished) {
     jill.x += 3.8;
+    jill.direction = "right";
 
     if (jill.x >= 410) {
       jill.x = 410;
       finaleFinished = true;
+      jill.direction = "front";
       document.getElementById("finale").style.display = "flex";
     }
   }
 
   time++;
-
   drawRoom();
   drawHasan();
   drawJill();
-
   requestAnimationFrame(update);
 }
 
-document.addEventListener("keydown", e => {
-  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(e.key)) {
-    e.preventDefault();
+document.addEventListener("keydown", event => {
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(event.key)) {
+    event.preventDefault();
   }
 
-  keys[e.key] = true;
-  keys[e.key.toLowerCase()] = true;
+  keys[event.key] = true;
+  keys[event.key.toLowerCase()] = true;
 
-  if (e.key.toLowerCase() === "e" || e.key === " ") {
+  if (event.key.toLowerCase() === "e" || event.key === " ") {
     interact();
   }
 
-  if (e.key === "Escape" && opened) {
-    closeMemory();
-  }
+  if (event.key === "Escape" && opened) closeMemory();
 });
 
-document.addEventListener("keyup", e => {
-  keys[e.key] = false;
-  keys[e.key.toLowerCase()] = false;
+document.addEventListener("keyup", event => {
+  keys[event.key] = false;
+  keys[event.key.toLowerCase()] = false;
 });
 
-canvas.addEventListener("click", e => {
+canvas.addEventListener("click", event => {
   if (opened || finaleStarted) return;
 
-  const r = canvas.getBoundingClientRect();
-  const x = (e.clientX-r.left)*canvas.width/r.width;
-  const y = (e.clientY-r.top)*canvas.height/r.height;
+  const rect = canvas.getBoundingClientRect();
+  const x = (event.clientX-rect.left)*canvas.width/rect.width;
+  const y = (event.clientY-rect.top)*canvas.height/rect.height;
 
-  const exhibit = exhibits.find(m =>
-    Math.abs(x-m.x) < 75 && y > m.y-75 && y < m.y+100
+  const exhibit = exhibits.find(item =>
+    Math.abs(x-item.x) < 75 &&
+    y > item.y-75 && y < item.y+100
   );
 
   if (exhibit) openMemory(exhibit);
@@ -584,6 +546,5 @@ canvas.addEventListener("click", e => {
 
 update();
 </script>
-
 </body>
 </html>
