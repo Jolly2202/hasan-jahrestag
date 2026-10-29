@@ -5,8 +5,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hasan & Jill – Unser magisches Museum</title>
+
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -16,7 +19,9 @@ body {
   text-align: center;
 }
 
-header { padding: 18px 10px 8px; }
+header {
+  padding: 18px 10px 8px;
+}
 
 h1 {
   margin: 5px;
@@ -24,7 +29,9 @@ h1 {
   font-size: clamp(24px, 4vw, 38px);
 }
 
-header p { color: #d6c1b3; }
+header p {
+  color: #d6c1b3;
+}
 
 #game {
   width: min(100%, 1100px);
@@ -46,7 +53,9 @@ canvas {
   font: 13px/1.7 Arial, sans-serif;
 }
 
-#hint { color: #e8c68b; }
+#hint {
+  color: #e8c68b;
+}
 
 #popup, #finale {
   display: none;
@@ -59,7 +68,9 @@ canvas {
   background: #100d19bb;
 }
 
-#finale { z-index: 20; }
+#finale {
+  z-index: 20;
+}
 
 .card {
   background: #fff0d8;
@@ -72,7 +83,9 @@ canvas {
   box-shadow: 0 15px 60px #0008;
 }
 
-.card h2 { color: #863c52; }
+.card h2 {
+  color: #863c52;
+}
 
 button {
   background: #863c52;
@@ -84,7 +97,9 @@ button {
   font-size: 15px;
 }
 
-button:hover { background: #6d3048; }
+button:hover {
+  background: #6d3048;
+}
 
 #choices {
   position: relative;
@@ -95,11 +110,14 @@ button:hover { background: #6d3048; }
   min-height: 75px;
 }
 
-#noButton { background: #777; }
+#noButton {
+  background: #777;
+}
 </style>
 </head>
 
 <body>
+
 <header>
   <h1>Das Museum unserer kleinen Welt</h1>
   <p>Ein Abenteuer für Hasan ♥</p>
@@ -142,6 +160,13 @@ button:hover { background: #6d3048; }
 const canvas = document.getElementById("world");
 const ctx = canvas.getContext("2d");
 
+// Deine beiden hochgeladenen Charakterbilder
+const hasanImage = new Image();
+hasanImage.src = "hasan.png";
+
+const jillImage = new Image();
+jillImage.src = "jill.png";
+
 const hasan = { x: 500, y: 460, speed: 3.2 };
 const jill = { x: -60, y: 460 };
 
@@ -155,533 +180,410 @@ let time = 0;
 
 const exhibits = [
   {
-    x: 245, y: 205,
+    x: 245,
+    y: 205,
     title: "Exponat 001 – Der Anfang",
     caption: "BADFISH",
     story: "Zwei Frozen Margaritas, ein erstes Date und der Anfang von etwas, das viel größer werden sollte."
   },
   {
-    x: 500, y: 205,
+    x: 500,
+    y: 205,
     title: "Exponat 002 – Unsere Welt",
     caption: "KLEINE ABENTEUER",
     story: "Die schönsten Geschichten bestehen nicht nur aus großen Reisen. Manchmal reicht ein ganz gewöhnlicher Tag zusammen."
   },
   {
-    x: 755, y: 205,
+    x: 755,
+    y: 205,
     title: "Exponat 003 – Fortsetzung folgt",
     caption: "JAHR ZWEI",
     story: "Dieses Museum ist noch lange nicht fertig. Es gibt noch so viele Orte, Abende und Erinnerungen, die auf uns warten."
   }
 ];
 
-function box(x,y,w,h,c) {
+function box(x, y, w, h, c) {
   ctx.fillStyle = c;
-  ctx.fillRect(x,y,w,h);
+  ctx.fillRect(x, y, w, h);
 }
 
-function line(x,y,x2,y2,c,width=1) {
+function line(x, y, x2, y2, c, width = 1) {
   ctx.strokeStyle = c;
   ctx.lineWidth = width;
   ctx.beginPath();
-  ctx.moveTo(x,y);
-  ctx.lineTo(x2,y2);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x2, y2);
   ctx.stroke();
 }
 
-function glow(x,y,r,color) {
-  const g = ctx.createRadialGradient(x,y,2,x,y,r);
-  g.addColorStop(0,color);
-  g.addColorStop(1,"#f8ce8b00");
-  ctx.fillStyle=g;
-  ctx.fillRect(x-r,y-r,r*2,r*2);
+function glow(x, y, r, color) {
+  const g = ctx.createRadialGradient(x, y, 2, x, y, r);
+  g.addColorStop(0, color);
+  g.addColorStop(1, "#f8ce8b00");
+  ctx.fillStyle = g;
+  ctx.fillRect(x-r, y-r, r*2, r*2);
 }
 
-function plant(x,y) {
-  box(x-20,y-45,40,45,"#a95e4d");
-  box(x-24,y-49,48,7,"#d2a36b");
+function plant(x, y) {
+  box(x-20, y-45, 40, 45, "#a95e4d");
+  box(x-24, y-49, 48, 7, "#d2a36b");
 
-  for(let i=0;i<6;i++) {
-    ctx.fillStyle=i%2 ? "#8fb18b" : "#b2c995";
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = i % 2 ? "#8fb18b" : "#b2c995";
     ctx.beginPath();
     ctx.ellipse(
-      x+(i-2.5)*9,
+      x + (i-2.5)*9,
       y-64-Math.abs(i-2.5)*3,
-      8,22,(i-2.5)*.3,0,Math.PI*2
+      8, 22, (i-2.5)*0.3, 0, Math.PI*2
     );
     ctx.fill();
   }
 }
 
-function books(x,y) {
-  const colors=["#b87558","#526d78","#c8a05e","#8b5269"];
-  colors.forEach((c,i)=>{
-    box(x+i*3,y-i*14,65-i*6,12,c);
-    box(x+i*3,y-i*14,4,12,"#e1bd80");
+function books(x, y) {
+  const colors = ["#b87558", "#526d78", "#c8a05e", "#8b5269"];
+
+  colors.forEach((c, i) => {
+    box(x+i*3, y-i*14, 65-i*6, 12, c);
+    box(x+i*3, y-i*14, 4, 12, "#e1bd80");
   });
 }
 
-function candle(x,y) {
-  glow(x,y-30,65,"#f9cb7650");
-  box(x-5,y-12,10,25,"#e6c99c");
+function candle(x, y) {
+  glow(x, y-30, 65, "#f9cb7650");
+  box(x-5, y-12, 10, 25, "#e6c99c");
 
-  ctx.fillStyle="#ffd789";
+  ctx.fillStyle = "#ffd789";
   ctx.beginPath();
-  ctx.ellipse(x,y-17,4,8,0,0,Math.PI*2);
+  ctx.ellipse(x, y-17, 4, 8, 0, 0, Math.PI*2);
   ctx.fill();
 
-  box(x-13,y+13,26,4,"#c99a62");
-  box(x-9,y+17,18,15,"#79503e");
+  box(x-13, y+13, 26, 4, "#c99a62");
+  box(x-9, y+17, 18, 15, "#79503e");
 }
 
 function drawRoom() {
-  box(0,0,1000,365,"#423047");
-  box(0,365,1000,255,"#79556a");
+  box(0, 0, 1000, 365, "#423047");
+  box(0, 365, 1000, 255, "#79556a");
 
-  glow(500,100,340,"#dba66c35");
-  glow(180,250,150,"#e9b56c22");
-  glow(820,250,150,"#e9b56c22");
+  glow(500, 100, 340, "#dba66c35");
+  glow(180, 250, 150, "#e9b56c22");
+  glow(820, 250, 150, "#e9b56c22");
 
-  for(let x=25;x<1000;x+=95) {
-    box(x,35,2,300,"#5b4158");
-    box(x+5,35,1,300,"#362b40");
+  for (let x = 25; x < 1000; x += 95) {
+    box(x, 35, 2, 300, "#5b4158");
+    box(x+5, 35, 1, 300, "#362b40");
   }
 
-  box(0,0,1000,18,"#211b2c");
-  box(0,18,1000,7,"#bd9561");
-  box(0,350,1000,15,"#bd9561");
-  box(0,365,1000,5,"#d6b17a");
+  box(0, 0, 1000, 18, "#211b2c");
+  box(0, 18, 1000, 7, "#bd9561");
+  box(0, 350, 1000, 15, "#bd9561");
+  box(0, 365, 1000, 5, "#d6b17a");
 
-  for(let y=390;y<620;y+=48)
-    line(0,y,1000,y,"#a47a78",2);
+  for (let y = 390; y < 620; y += 48) {
+    line(0, y, 1000, y, "#a47a78", 2);
+  }
 
-  for(let x=0;x<1000;x+=125)
-    line(x,365,x-35,620,"#68485d",2);
+  for (let x = 0; x < 1000; x += 125) {
+    line(x, 365, x-35, 620, "#68485d", 2);
+  }
 
-  ctx.fillStyle="#6d3048";
+  ctx.fillStyle = "#6d3048";
   ctx.beginPath();
-  ctx.ellipse(500,510,280,78,0,0,Math.PI*2);
+  ctx.ellipse(500, 510, 280, 78, 0, 0, Math.PI*2);
   ctx.fill();
 
-  ctx.strokeStyle="#dfb477";
-  ctx.lineWidth=4;
+  ctx.strokeStyle = "#dfb477";
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.ellipse(500,510,260,61,0,0,Math.PI*2);
+  ctx.ellipse(500, 510, 260, 61, 0, 0, Math.PI*2);
   ctx.stroke();
 
-  box(365,35,270,58,"#6b293b");
-  ctx.strokeStyle="#d4ad70";
-  ctx.lineWidth=2;
-  ctx.strokeRect(371,41,258,46);
+  box(365, 35, 270, 58, "#6b293b");
+  ctx.strokeStyle = "#d4ad70";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(371, 41, 258, 46);
 
-  ctx.textAlign="center";
-  ctx.fillStyle="#f4d8a5";
-  ctx.font="bold 18px Georgia";
-  ctx.fillText("UNSER MUSEUM",500,66);
-  ctx.font="11px Georgia";
-  ctx.fillText("EST. JAHR EINS",500,81);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f4d8a5";
+  ctx.font = "bold 18px Georgia";
+  ctx.fillText("UNSER MUSEUM", 500, 66);
+  ctx.font = "11px Georgia";
+  ctx.fillText("EST. JAHR EINS", 500, 81);
 
-  plant(75,355);
-  plant(925,355);
-  books(60,325);
-  books(855,325);
-  candle(125,290);
-  candle(875,290);
+  plant(75, 355);
+  plant(925, 355);
+  books(60, 325);
+  books(855, 325);
+  candle(125, 290);
+  candle(875, 290);
 
-  exhibits.forEach((e,i)=>drawExhibit(e,i));
+  exhibits.forEach((e, i) => drawExhibit(e, i));
 
-  for(let i=0;i<25;i++) {
-    const x=(i*173+41)%980;
-    const y=(i*79+110)%225;
-    ctx.fillStyle="#f8d8a0";
-    ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;
+  // Magische, funkelnde Lichtpunkte
+  for (let i = 0; i < 25; i++) {
+    const x = (i*173+41) % 980;
+    const y = (i*79+110) % 225;
+
+    ctx.fillStyle = "#f8d8a0";
+    ctx.globalAlpha = 0.3 + Math.sin(time/400+i)*0.2;
     ctx.beginPath();
-    ctx.arc(x,y,1.5,0,Math.PI*2);
+    ctx.arc(x, y, 1.5, 0, Math.PI*2);
     ctx.fill();
   }
-  ctx.globalAlpha=1;
+
+  ctx.globalAlpha = 1;
 }
 
-function drawExhibit(e,i) {
-  const near=Math.hypot(hasan.x-e.x,hasan.y-(e.y+80))<115;
+function drawExhibit(e, i) {
+  const near = Math.hypot(hasan.x-e.x, hasan.y-(e.y+80)) < 115;
 
-  if(near) glow(e.x,e.y+35,110,"#f6cb8b32");
+  if (near) glow(e.x, e.y+35, 110, "#f6cb8b32");
 
-  box(e.x-69,e.y-67,138,154,"#b7884f");
-  box(e.x-63,e.y-61,126,142,"#e5c18a");
-  box(e.x-57,e.y-55,114,130,"#39283d");
+  box(e.x-69, e.y-67, 138, 154, "#b7884f");
+  box(e.x-63, e.y-61, 126, 142, "#e5c18a");
+  box(e.x-57, e.y-55, 114, 130, "#39283d");
 
-  const colors=[
-    ["#b46b70","#f2cb9b"],
-    ["#648d91","#e8d0a3"],
-    ["#8d668e","#f4d6a2"]
+  const colors = [
+    ["#b46b70", "#f2cb9b"],
+    ["#648d91", "#e8d0a3"],
+    ["#8d668e", "#f4d6a2"]
   ][i];
 
-  box(e.x-51,e.y-49,102,118,colors[0]);
+  box(e.x-51, e.y-49, 102, 118, colors[0]);
 
-  ctx.fillStyle=colors[1];
+  ctx.fillStyle = colors[1];
   ctx.beginPath();
-  ctx.arc(e.x+24,e.y-23,15,0,Math.PI*2);
+  ctx.arc(e.x+24, e.y-23, 15, 0, Math.PI*2);
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(e.x-51,e.y+15);
-  ctx.lineTo(e.x-20,e.y-8);
-  ctx.lineTo(e.x+5,e.y+15);
-  ctx.lineTo(e.x+30,e.y-4);
-  ctx.lineTo(e.x+51,e.y+18);
-  ctx.lineTo(e.x+51,e.y+69);
-  ctx.lineTo(e.x-51,e.y+69);
+  ctx.moveTo(e.x-51, e.y+15);
+  ctx.lineTo(e.x-20, e.y-8);
+  ctx.lineTo(e.x+5, e.y+15);
+  ctx.lineTo(e.x+30, e.y-4);
+  ctx.lineTo(e.x+51, e.y+18);
+  ctx.lineTo(e.x+51, e.y+69);
+  ctx.lineTo(e.x-51, e.y+69);
   ctx.fill();
 
-  ctx.fillStyle="#38273c";
-  for(let j=0;j<2;j++) {
-    const xx=e.x-13+j*26;
+  ctx.fillStyle = "#38273c";
+
+  for (let j = 0; j < 2; j++) {
+    const xx = e.x-13+j*26;
     ctx.beginPath();
-    ctx.arc(xx,e.y+33,7,0,Math.PI*2);
+    ctx.arc(xx, e.y+33, 7, 0, Math.PI*2);
     ctx.fill();
-    ctx.fillRect(xx-6,e.y+40,12,17);
+    ctx.fillRect(xx-6, e.y+40, 12, 17);
   }
 
-  ctx.textAlign="center";
-  ctx.fillStyle="#f6d9a4";
-  ctx.font="11px Arial";
-  ctx.fillText(e.caption,e.x,e.y+105);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f6d9a4";
+  ctx.font = "11px Arial";
+  ctx.fillText(e.caption, e.x, e.y+105);
 
-  if(near) {
-    box(e.x-65,e.y+118,130,25,"#f5dfb9");
-    ctx.fillStyle="#432b3c";
-    ctx.font="12px Arial";
-    ctx.fillText("E · ANSEHEN",e.x,e.y+135);
+  if (near) {
+    box(e.x-65, e.y+118, 130, 25, "#f5dfb9");
+    ctx.fillStyle = "#432b3c";
+    ctx.font = "12px Arial";
+    ctx.fillText("E · ANSEHEN", e.x, e.y+135);
   }
 }
 
 function drawHasan() {
-  const x=hasan.x,y=hasan.y;
-  const moving=keys.ArrowLeft||keys.ArrowRight||
-    keys.ArrowUp||keys.ArrowDown||
-    keys.a||keys.d||keys.w||keys.s;
-  const bob=moving?Math.sin(time/40)*3:Math.sin(time/260)*1.5;
+  const moving =
+    keys.ArrowLeft || keys.ArrowRight ||
+    keys.ArrowUp || keys.ArrowDown ||
+    keys.a || keys.d || keys.w || keys.s;
+
+  const bob = moving ? Math.sin(time/40)*2 : Math.sin(time/260)*1.5;
 
   ctx.save();
-  ctx.translate(x,y+bob);
 
-  ctx.fillStyle="#21152555";
+  // Schatten unter Hasan
+  ctx.fillStyle = "#21152555";
   ctx.beginPath();
-  ctx.ellipse(0,3,25,9,0,0,Math.PI*2);
+  ctx.ellipse(hasan.x, hasan.y+2, 28, 8, 0, 0, Math.PI*2);
   ctx.fill();
 
-  box(-14,-5,11,8,"#362b39");
-  box(4,-5,12,8,"#362b39");
-  box(-12,-30,10,27,"#51404b");
-  box(3,-30,10,27,"#51404b");
-
-  ctx.fillStyle="#6d354d";
-  ctx.beginPath();
-  ctx.moveTo(-17,-48);
-  ctx.lineTo(-24,-12);
-  ctx.lineTo(22,-12);
-  ctx.lineTo(16,-48);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle="#292530";
-  ctx.beginPath();
-  ctx.moveTo(-12,-49);
-  ctx.lineTo(-15,-20);
-  ctx.lineTo(15,-20);
-  ctx.lineTo(12,-49);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle="#a94f60";
-  ctx.beginPath();
-  ctx.moveTo(-12,-52);
-  ctx.lineTo(12,-52);
-  ctx.lineTo(9,-43);
-  ctx.lineTo(-8,-42);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillRect(5,-45,7,22);
-
-  ctx.strokeStyle="#d2a17f";
-  ctx.lineWidth=8;
-  ctx.lineCap="round";
-  ctx.beginPath();
-  ctx.moveTo(-15,-43);
-  ctx.lineTo(-22,-24);
-  ctx.moveTo(15,-43);
-  ctx.lineTo(22,-24);
-  ctx.stroke();
-
-  box(-5,-60,10,13,"#d7a686");
-
-  ctx.fillStyle="#d7a686";
-  ctx.beginPath();
-  ctx.arc(-15,-72,6,0,Math.PI*2);
-  ctx.arc(15,-72,6,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle="#e2b493";
-  ctx.beginPath();
-  ctx.ellipse(0,-72,16,21,0,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle="#302530";
-  [
-    [-14,-83,8],[-7,-91,8],[2,-92,9],[11,-87,9],
-    [16,-79,7],[-17,-76,6],[-10,-86,7],[5,-86,8],
-    [12,-78,6],[0,-88,7],[-5,-78,6]
-  ].forEach(c=>{
-    ctx.beginPath();
-    ctx.arc(c[0],c[1],c[2],0,Math.PI*2);
-    ctx.fill();
-  });
-
-  ctx.fillStyle="#38242b";
-  ctx.beginPath();
-  ctx.arc(-6,-72,2,0,Math.PI*2);
-  ctx.arc(6,-72,2,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle="#49333a";
-  ctx.beginPath();
-  ctx.moveTo(-12,-65);
-  ctx.quadraticCurveTo(-10,-54,0,-54);
-  ctx.quadraticCurveTo(11,-54,12,-65);
-  ctx.lineTo(7,-62);
-  ctx.lineTo(0,-60);
-  ctx.lineTo(-7,-62);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle="#d7a686";
-  ctx.beginPath();
-  ctx.moveTo(-15,-76);
-  ctx.lineTo(-29,-84);
-  ctx.lineTo(-20,-65);
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(15,-76);
-  ctx.lineTo(29,-84);
-  ctx.lineTo(20,-65);
-  ctx.fill();
-
-  ctx.fillStyle="#f4d18d";
-  ctx.beginPath();
-  ctx.arc(0,-41,4,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle="#fff0d4";
-  ctx.textAlign="center";
-  ctx.font="bold 15px Arial";
-  ctx.fillText("Hasan",0,22);
+  // Hasan als transparentes PNG
+  if (hasanImage.complete && hasanImage.naturalWidth > 0) {
+    ctx.drawImage(
+      hasanImage,
+      hasan.x-48,
+      hasan.y-150+bob,
+      96,
+      150
+    );
+  }
 
   ctx.restore();
 }
 
 function drawJill() {
-  if(!finaleStarted) return;
+  if (!finaleStarted) return;
 
-  const bob=finaleFinished ? 0 : Math.sin(time/25)*4;
+  const bob = finaleFinished ? 0 : Math.sin(time/25)*2;
 
   ctx.save();
-  ctx.translate(jill.x,jill.y+bob);
 
-  ctx.fillStyle="#21152555";
+  // Schatten unter Jill
+  ctx.fillStyle = "#21152555";
   ctx.beginPath();
-  ctx.ellipse(0,3,24,8,0,0,Math.PI*2);
+  ctx.ellipse(jill.x, jill.y+2, 28, 8, 0, 0, Math.PI*2);
   ctx.fill();
 
-  box(-13,-27,10,27,"#51404b");
-  box(4,-27,10,27,"#51404b");
-  box(-17,-4,15,7,"#493044");
-  box(3,-4,15,7,"#493044");
-
-  ctx.fillStyle="#a94e79";
-  ctx.beginPath();
-  ctx.moveTo(-17,-47);
-  ctx.lineTo(-24,-13);
-  ctx.lineTo(23,-13);
-  ctx.lineTo(15,-47);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle="#edc4a4";
-  ctx.beginPath();
-  ctx.arc(0,-65,17,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle="#56364a";
-  ctx.beginPath();
-  ctx.arc(0,-71,18,Math.PI,Math.PI*2);
-  ctx.lineTo(17,-61);
-  ctx.lineTo(10,-53);
-  ctx.lineTo(-13,-54);
-  ctx.lineTo(-18,-64);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle="#edc4a4";
-  ctx.beginPath();
-  ctx.moveTo(-14,-69);
-  ctx.lineTo(-27,-79);
-  ctx.lineTo(-20,-59);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(14,-69);
-  ctx.lineTo(27,-79);
-  ctx.lineTo(20,-59);
-  ctx.fill();
-
-  ctx.fillStyle="#39283a";
-  ctx.beginPath();
-  ctx.arc(-6,-65,2,0,Math.PI*2);
-  ctx.arc(6,-65,2,0,Math.PI*2);
-  ctx.fill();
-
-  ctx.strokeStyle="#a45c65";
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.arc(0,-61,5,0.2,Math.PI-0.2);
-  ctx.stroke();
-
-  ctx.fillStyle="#fff0d4";
-  ctx.textAlign="center";
-  ctx.font="bold 15px Arial";
-  ctx.fillText("Jill",0,22);
+  // Jill als transparentes PNG
+  if (jillImage.complete && jillImage.naturalWidth > 0) {
+    ctx.drawImage(
+      jillImage,
+      jill.x-48,
+      jill.y-150+bob,
+      96,
+      150
+    );
+  }
 
   ctx.restore();
 }
 
 function openMemory(e) {
-  opened=e;
-  document.getElementById("memoryTitle").textContent=e.title;
-  document.getElementById("memoryText").textContent=e.story;
-  document.getElementById("popup").style.display="flex";
+  opened = e;
+  document.getElementById("memoryTitle").textContent = e.title;
+  document.getElementById("memoryText").textContent = e.story;
+  document.getElementById("popup").style.display = "flex";
 }
 
 function closeMemory() {
-  if(opened) seenMemories.add(opened);
+  if (opened) seenMemories.add(opened);
 
-  opened=null;
-  document.getElementById("popup").style.display="none";
+  opened = null;
+  document.getElementById("popup").style.display = "none";
 
-  if(seenMemories.size===exhibits.length && !finaleStarted) {
+  if (seenMemories.size === exhibits.length && !finaleStarted) {
     startFinale();
   }
 }
 
 function startFinale() {
-  finaleStarted=true;
-  jill.x=-60;
-  jill.y=460;
+  finaleStarted = true;
+  jill.x = -60;
+  jill.y = 460;
 }
 
 function sayYes() {
   document.getElementById("finaleText").textContent =
     "Yay! ❤️ Dann los, Schatz. Auf zu unserem nächsten Abenteuer!";
-  document.getElementById("choices").style.display="none";
+
+  document.getElementById("choices").style.display = "none";
 }
 
 function dodgeNoButton() {
-  const button=document.getElementById("noButton");
-  const area=document.getElementById("choices");
+  const button = document.getElementById("noButton");
+  const area = document.getElementById("choices");
 
-  const maxX=Math.max(0,area.clientWidth-button.offsetWidth);
-  const maxY=Math.max(0,area.clientHeight-button.offsetHeight);
+  const maxX = Math.max(0, area.clientWidth-button.offsetWidth);
+  const maxY = Math.max(0, area.clientHeight-button.offsetHeight);
 
-  button.style.position="absolute";
-  button.style.left=Math.random()*maxX+"px";
-  button.style.top=Math.random()*maxY+"px";
+  button.style.position = "absolute";
+  button.style.left = Math.random()*maxX + "px";
+  button.style.top = Math.random()*maxY + "px";
 }
 
 document.getElementById("noButton").addEventListener(
-  "pointerenter",dodgeNoButton
+  "pointerenter", dodgeNoButton
 );
+
 document.getElementById("noButton").addEventListener(
-  "click",dodgeNoButton
+  "click", dodgeNoButton
 );
 
 function interact() {
-  if(opened || finaleStarted) return;
+  if (opened || finaleStarted) return;
 
-  const e=exhibits.find(m=>
-    Math.hypot(hasan.x-m.x,hasan.y-(m.y+80))<115
+  const e = exhibits.find(m =>
+    Math.hypot(hasan.x-m.x, hasan.y-(m.y+80)) < 115
   );
 
-  if(e) openMemory(e);
+  if (e) openMemory(e);
 }
 
 function update() {
-  if(!opened && !finaleStarted) {
-    let dx=0,dy=0;
+  if (!opened && !finaleStarted) {
+    let dx = 0;
+    let dy = 0;
 
-    if(keys.ArrowLeft||keys.a) dx--;
-    if(keys.ArrowRight||keys.d) dx++;
-    if(keys.ArrowUp||keys.w) dy--;
-    if(keys.ArrowDown||keys.s) dy++;
+    if (keys.ArrowLeft || keys.a) dx--;
+    if (keys.ArrowRight || keys.d) dx++;
+    if (keys.ArrowUp || keys.w) dy--;
+    if (keys.ArrowDown || keys.s) dy++;
 
-    if(dx&&dy) {
-      dx*=0.7071;
-      dy*=0.7071;
+    if (dx && dy) {
+      dx *= 0.7071;
+      dy *= 0.7071;
     }
 
-    hasan.x=Math.max(35,Math.min(965,hasan.x+dx*hasan.speed));
-    hasan.y=Math.max(390,Math.min(585,hasan.y+dy*hasan.speed));
+    hasan.x = Math.max(35, Math.min(965, hasan.x+dx*hasan.speed));
+    hasan.y = Math.max(390, Math.min(585, hasan.y+dy*hasan.speed));
   }
 
-  if(finaleStarted && !finaleFinished) {
-    jill.x+=3.8;
+  if (finaleStarted && !finaleFinished) {
+    jill.x += 3.8;
 
-    if(jill.x>=410) {
-      jill.x=410;
-      finaleFinished=true;
-      document.getElementById("finale").style.display="flex";
+    if (jill.x >= 410) {
+      jill.x = 410;
+      finaleFinished = true;
+      document.getElementById("finale").style.display = "flex";
     }
   }
 
   time++;
+
   drawRoom();
   drawHasan();
   drawJill();
+
   requestAnimationFrame(update);
 }
 
-document.addEventListener("keydown",e=>{
-  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)) {
+document.addEventListener("keydown", e => {
+  if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", " "].includes(e.key)) {
     e.preventDefault();
   }
 
-  keys[e.key]=true;
-  keys[e.key.toLowerCase()]=true;
+  keys[e.key] = true;
+  keys[e.key.toLowerCase()] = true;
 
-  if(e.key.toLowerCase()==="e"||e.key===" ") interact();
-  if(e.key==="Escape") {
-    if(opened) closeMemory();
+  if (e.key.toLowerCase() === "e" || e.key === " ") {
+    interact();
+  }
+
+  if (e.key === "Escape" && opened) {
+    closeMemory();
   }
 });
 
-document.addEventListener("keyup",e=>{
-  keys[e.key]=false;
-  keys[e.key.toLowerCase()]=false;
+document.addEventListener("keyup", e => {
+  keys[e.key] = false;
+  keys[e.key.toLowerCase()] = false;
 });
 
-canvas.addEventListener("click",e=>{
-  if(opened || finaleStarted) return;
+canvas.addEventListener("click", e => {
+  if (opened || finaleStarted) return;
 
-  const r=canvas.getBoundingClientRect();
-  const x=(e.clientX-r.left)*canvas.width/r.width;
-  const y=(e.clientY-r.top)*canvas.height/r.height;
+  const r = canvas.getBoundingClientRect();
+  const x = (e.clientX-r.left)*canvas.width/r.width;
+  const y = (e.clientY-r.top)*canvas.height/r.height;
 
-  const exhibit=exhibits.find(m=>
-    Math.abs(x-m.x)<75 && y>m.y-75 && y<m.y+100
+  const exhibit = exhibits.find(m =>
+    Math.abs(x-m.x) < 75 && y > m.y-75 && y < m.y+100
   );
 
-  if(exhibit) openMemory(exhibit);
+  if (exhibit) openMemory(exhibit);
 });
 
 update();
 </script>
+
 </body>
 </html>
