@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hasan & Jill – Unser Museum</title>
+<title>Unser Museum – Hasan & Jill</title>
 <style>
 * { box-sizing: border-box; }
 body {
@@ -14,12 +14,8 @@ body {
   font-family: Georgia, serif;
   text-align: center;
 }
-header { padding: 18px 10px 8px; }
-h1 {
-  margin: 5px;
-  color: #f3cf91;
-  font-size: clamp(24px, 4vw, 38px);
-}
+header { padding: 14px 8px; }
+h1 { color: #f3cf91; margin: 4px; }
 header p { color: #d6c1b3; }
 #game { width: min(100%, 1100px); margin: auto; }
 canvas {
@@ -29,13 +25,9 @@ canvas {
   border-top: 3px solid #cda66c;
   border-bottom: 3px solid #cda66c;
 }
-#help {
-  padding: 12px;
-  color: #e6d5bd;
-  font: 13px/1.7 Arial, sans-serif;
-}
+#help { padding: 12px; font: 14px/1.7 Arial, sans-serif; color: #e6d5bd; }
 #hint { color: #e8c68b; }
-#popup, #finale {
+.overlay {
   display: none;
   position: fixed;
   inset: 0;
@@ -51,7 +43,7 @@ canvas {
   color: #39283a;
   border: 4px solid #c79c63;
   border-radius: 14px;
-  padding: 26px;
+  padding: 24px;
   max-width: 440px;
   width: 100%;
   box-shadow: 0 15px 60px #0008;
@@ -66,12 +58,11 @@ button {
   cursor: pointer;
   font-size: 15px;
 }
-button:hover { background: #6d3048; }
 #choices {
   position: relative;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 24px;
   min-height: 75px;
 }
@@ -91,20 +82,21 @@ button:hover { background: #6d3048; }
 
 <div id="help">
   <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
-  Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.
+  Gehe zu einem Bilderrahmen und drücke E oder die Leertaste.
   <div id="hint">✦ Drei Erinnerungen warten darauf, entdeckt zu werden.</div>
+  <div id="imageStatus"></div>
 </div>
 
-<div id="popup">
+<div id="popup" class="overlay">
   <div class="card">
     <div style="font-size:28px">✦</div>
     <h2 id="memoryTitle"></h2>
     <p id="memoryText" style="line-height:1.8"></p>
-    <button onclick="closeMemory()">Zurück ins Museum</button>
+    <button id="closeMemory">Zurück ins Museum</button>
   </div>
 </div>
 
-<div id="finale">
+<div id="finale" class="overlay">
   <div class="card">
     <div style="font-size:32px">♥</div>
     <h2>Jill ist da!</h2>
@@ -112,47 +104,55 @@ button:hover { background: #6d3048; }
       Hallo Schatz, ich habe Hunger. Wollen wir etwas essen gehen?
     </p>
     <div id="choices">
-      <button id="yesButton" onclick="sayYes()">Ja ❤️</button>
-      <button id="noButton" type="button">Nein</button>
+      <button id="yesButton">Ja ❤️</button>
+      <button id="noButton">Nein</button>
     </div>
   </div>
 </div>
 
 <script>
+"use strict";
+
 const canvas = document.getElementById("world");
 const ctx = canvas.getContext("2d");
+const imageStatus = document.getElementById("imageStatus");
 
-// Die acht Perspektiven laden
-function loadImage(filename) {
-  const img = new Image();
-  img.src = filename;
-  return img;
+// Alle Bilddateien liegen neben index.html.
+function loadCharacterImages(prefix) {
+  const images = {};
+  for (const direction of ["front", "left", "back", "right"]) {
+    const img = new Image();
+    img.src = `${prefix}-${direction}.png`;
+    img.onload = updateImageStatus;
+    img.onerror = updateImageStatus;
+    images[direction] = img;
+  }
+  return images;
 }
 
-const hasanImages = {
-  front: loadImage("hasan-front.png"),
-  left: loadImage("hasan-left.png"),
-  back: loadImage("hasan-back.png"),
-  right: loadImage("hasan-right.png")
-};
+const hasanImages = loadCharacterImages("hasan");
+const jillImages = loadCharacterImages("jill");
 
-const jillImages = {
-  front: loadImage("jill-front.png"),
-  left: loadImage("jill-left.png"),
-  back: loadImage("jill-back.png"),
-  right: loadImage("jill-right.png")
-};
+function updateImageStatus() {
+  const allImages = [...Object.values(hasanImages), ...Object.values(jillImages)];
+  const loaded = allImages.filter(img => img.complete && img.naturalWidth > 0).length;
+  const failed = allImages.filter(img => img.complete && img.naturalWidth === 0).length;
 
-const hasan = {
-  x: 500, y: 460, speed: 3.2, direction: "front"
-};
+  if (loaded === 8) {
+    imageStatus.textContent = "Alle 8 Figurenbilder wurden geladen.";
+  } else if (failed > 0) {
+    imageStatus.textContent =
+      `${loaded} von 8 Bildern geladen. Bitte Dateinamen und Speicherort prüfen.`;
+  } else {
+    imageStatus.textContent = "Figurenbilder werden geladen …";
+  }
+}
 
-const jill = {
-  x: -80, y: 460, direction: "right"
-};
-
+const hasan = { x: 500, y: 460, speed: 3.2, direction: "front" };
+const jill = { x: -100, y: 460, direction: "right" };
 const keys = {};
 const seenMemories = new Set();
+
 let opened = null;
 let finaleStarted = false;
 let finaleFinished = false;
@@ -179,150 +179,78 @@ const exhibits = [
   }
 ];
 
-function box(x, y, w, h, color) {
+function rect(x, y, w, h, color) {
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
 }
 
-function line(x, y, x2, y2, color, width = 1) {
+function line(x1, y1, x2, y2, color, width = 1) {
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.beginPath();
-  ctx.moveTo(x, y);
+  ctx.moveTo(x1, y1);
   ctx.lineTo(x2, y2);
   ctx.stroke();
 }
 
 function glow(x, y, r, color) {
-  const g = ctx.createRadialGradient(x, y, 2, x, y, r);
-  g.addColorStop(0, color);
-  g.addColorStop(1, "#f8ce8b00");
-  ctx.fillStyle = g;
+  const gradient = ctx.createRadialGradient(x, y, 2, x, y, r);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(1, "#f8ce8b00");
+  ctx.fillStyle = gradient;
   ctx.fillRect(x-r, y-r, r*2, r*2);
 }
 
-function plant(x, y) {
-  box(x-20, y-45, 40, 45, "#a95e4d");
-  box(x-24, y-49, 48, 7, "#d2a36b");
-
+function drawPlant(x, y) {
+  rect(x-20, y-45, 40, 45, "#a95e4d");
+  rect(x-24, y-49, 48, 7, "#d2a36b");
   for (let i = 0; i < 6; i++) {
     ctx.fillStyle = i % 2 ? "#8fb18b" : "#b2c995";
     ctx.beginPath();
-    ctx.ellipse(
-      x+(i-2.5)*9,
-      y-64-Math.abs(i-2.5)*3,
-      8, 22, (i-2.5)*0.3, 0, Math.PI*2
-    );
+    ctx.ellipse(x+(i-2.5)*9, y-64-Math.abs(i-2.5)*3,
+      8, 22, (i-2.5)*0.3, 0, Math.PI*2);
     ctx.fill();
   }
 }
 
-function books(x, y) {
+function drawBooks(x, y) {
   const colors = ["#b87558", "#526d78", "#c8a05e", "#8b5269"];
   colors.forEach((color, i) => {
-    box(x+i*3, y-i*14, 65-i*6, 12, color);
-    box(x+i*3, y-i*14, 4, 12, "#e1bd80");
+    rect(x+i*3, y-i*14, 65-i*6, 12, color);
+    rect(x+i*3, y-i*14, 4, 12, "#e1bd80");
   });
 }
 
-function candle(x, y) {
+function drawCandle(x, y) {
   glow(x, y-30, 65, "#f9cb7650");
-  box(x-5, y-12, 10, 25, "#e6c99c");
+  rect(x-5, y-12, 10, 25, "#e6c99c");
   ctx.fillStyle = "#ffd789";
   ctx.beginPath();
   ctx.ellipse(x, y-17, 4, 8, 0, 0, Math.PI*2);
   ctx.fill();
-  box(x-13, y+13, 26, 4, "#c99a62");
-  box(x-9, y+17, 18, 15, "#79503e");
+  rect(x-13, y+13, 26, 4, "#c99a62");
+  rect(x-9, y+17, 18, 15, "#79503e");
 }
 
-function drawRoom() {
-  box(0, 0, 1000, 365, "#423047");
-  box(0, 365, 1000, 255, "#79556a");
-
-  glow(500, 100, 340, "#dba66c35");
-  glow(180, 250, 150, "#e9b56c22");
-  glow(820, 250, 150, "#e9b56c22");
-
-  for (let x = 25; x < 1000; x += 95) {
-    box(x, 35, 2, 300, "#5b4158");
-    box(x+5, 35, 1, 300, "#362b40");
-  }
-
-  box(0, 0, 1000, 18, "#211b2c");
-  box(0, 18, 1000, 7, "#bd9561");
-  box(0, 350, 1000, 15, "#bd9561");
-  box(0, 365, 1000, 5, "#d6b17a");
-
-  for (let y = 390; y < 620; y += 48) {
-    line(0, y, 1000, y, "#a47a78", 2);
-  }
-
-  for (let x = 0; x < 1000; x += 125) {
-    line(x, 365, x-35, 620, "#68485d", 2);
-  }
-
-  ctx.fillStyle = "#6d3048";
-  ctx.beginPath();
-  ctx.ellipse(500, 510, 280, 78, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  ctx.strokeStyle = "#dfb477";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.ellipse(500, 510, 260, 61, 0, 0, Math.PI*2);
-  ctx.stroke();
-
-  box(365, 35, 270, 58, "#6b293b");
-  ctx.strokeStyle = "#d4ad70";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(371, 41, 258, 46);
-
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#f4d8a5";
-  ctx.font = "bold 18px Georgia";
-  ctx.fillText("UNSER MUSEUM", 500, 66);
-  ctx.font = "11px Georgia";
-  ctx.fillText("EST. JAHR EINS", 500, 81);
-
-  plant(75, 355);
-  plant(925, 355);
-  books(60, 325);
-  books(855, 325);
-  candle(125, 290);
-  candle(875, 290);
-
-  exhibits.forEach((exhibit, i) => drawExhibit(exhibit, i));
-
-  for (let i = 0; i < 25; i++) {
-    const x = (i*173+41) % 980;
-    const y = (i*79+110) % 225;
-    ctx.fillStyle = "#f8d8a0";
-    ctx.globalAlpha = 0.3 + Math.sin(time/400+i)*0.2;
-    ctx.beginPath();
-    ctx.arc(x, y, 1.5, 0, Math.PI*2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawExhibit(exhibit, i) {
-  const near =
-    Math.hypot(hasan.x-exhibit.x, hasan.y-(exhibit.y+80)) < 115;
+function drawExhibit(exhibit, index) {
+  const near = Math.hypot(
+    hasan.x-exhibit.x,
+    hasan.y-(exhibit.y+80)
+  ) < 115;
 
   if (near) glow(exhibit.x, exhibit.y+35, 110, "#f6cb8b32");
 
-  box(exhibit.x-69, exhibit.y-67, 138, 154, "#b7884f");
-  box(exhibit.x-63, exhibit.y-61, 126, 142, "#e5c18a");
-  box(exhibit.x-57, exhibit.y-55, 114, 130, "#39283d");
+  rect(exhibit.x-69, exhibit.y-67, 138, 154, "#b7884f");
+  rect(exhibit.x-63, exhibit.y-61, 126, 142, "#e5c18a");
+  rect(exhibit.x-57, exhibit.y-55, 114, 130, "#39283d");
 
   const colors = [
     ["#b46b70", "#f2cb9b"],
     ["#648d91", "#e8d0a3"],
     ["#8d668e", "#f4d6a2"]
-  ][i];
+  ][index];
 
-  box(exhibit.x-51, exhibit.y-49, 102, 118, colors[0]);
+  rect(exhibit.x-51, exhibit.y-49, 102, 118, colors[0]);
 
   ctx.fillStyle = colors[1];
   ctx.beginPath();
@@ -354,53 +282,112 @@ function drawExhibit(exhibit, i) {
   ctx.fillText(exhibit.caption, exhibit.x, exhibit.y+105);
 
   if (near) {
-    box(exhibit.x-65, exhibit.y+118, 130, 25, "#f5dfb9");
+    rect(exhibit.x-65, exhibit.y+118, 130, 25, "#f5dfb9");
     ctx.fillStyle = "#432b3c";
     ctx.font = "12px Arial";
     ctx.fillText("E · ANSEHEN", exhibit.x, exhibit.y+135);
   }
 }
 
-// Zeichnet die ausgewählte Perspektive.
-// Die Figuren werden etwas größer dargestellt, damit mehr Details sichtbar sind.
+function drawRoom() {
+  rect(0, 0, 1000, 365, "#423047");
+  rect(0, 365, 1000, 255, "#79556a");
+
+  glow(500, 100, 340, "#dba66c35");
+  glow(180, 250, 150, "#e9b56c22");
+  glow(820, 250, 150, "#e9b56c22");
+
+  for (let x = 25; x < 1000; x += 95) {
+    rect(x, 35, 2, 300, "#5b4158");
+    rect(x+5, 35, 1, 300, "#362b40");
+  }
+
+  rect(0, 0, 1000, 18, "#211b2c");
+  rect(0, 18, 1000, 7, "#bd9561");
+  rect(0, 350, 1000, 15, "#bd9561");
+  rect(0, 365, 1000, 5, "#d6b17a");
+
+  for (let y = 390; y < 620; y += 48) {
+    line(0, y, 1000, y, "#a47a78", 2);
+  }
+  for (let x = 0; x < 1000; x += 125) {
+    line(x, 365, x-35, 620, "#68485d", 2);
+  }
+
+  ctx.fillStyle = "#6d3048";
+  ctx.beginPath();
+  ctx.ellipse(500, 510, 280, 78, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.strokeStyle = "#dfb477";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.ellipse(500, 510, 260, 61, 0, 0, Math.PI*2);
+  ctx.stroke();
+
+  rect(365, 35, 270, 58, "#6b293b");
+  ctx.strokeStyle = "#d4ad70";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(371, 41, 258, 46);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f4d8a5";
+  ctx.font = "bold 18px Georgia";
+  ctx.fillText("UNSER MUSEUM", 500, 66);
+  ctx.font = "11px Georgia";
+  ctx.fillText("EST. JAHR EINS", 500, 81);
+
+  drawPlant(75, 355);
+  drawPlant(925, 355);
+  drawBooks(60, 325);
+  drawBooks(855, 325);
+  drawCandle(125, 290);
+  drawCandle(875, 290);
+
+  exhibits.forEach(drawExhibit);
+
+  for (let i = 0; i < 25; i++) {
+    const x = (i*173+41) % 980;
+    const y = (i*79+110) % 225;
+    ctx.fillStyle = "#f8d8a0";
+    ctx.globalAlpha = 0.3 + Math.sin(time/400+i)*0.2;
+    ctx.beginPath();
+    ctx.arc(x, y, 1.5, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Wählt die PNG-Datei anhand der Richtung aus.
 function drawCharacter(images, x, y, direction, moving) {
-  const image = images[direction] || images.front;
-  const bob = moving ? Math.sin(time/40)*2 : Math.sin(time/260)*1.5;
+  const img = images[direction] || images.front;
+  const bob = moving ? Math.sin(time/40)*2 : 0;
 
   ctx.save();
 
   ctx.fillStyle = "#21152555";
   ctx.beginPath();
-  ctx.ellipse(x, y+2, 32, 9, 0, 0, Math.PI*2);
+  ctx.ellipse(x, y+2, 30, 8, 0, 0, Math.PI*2);
   ctx.fill();
 
-  if (image && image.complete && image.naturalWidth > 0) {
-    const width = 120;
-    const height = 180;
-    ctx.drawImage(image, x-width/2, y-height+bob, width, height);
+  if (img && img.complete && img.naturalWidth > 0) {
+    // Seitenverhältnis der hochformatigen PNGs beibehalten.
+    const height = 165;
+    const width = height * img.naturalWidth / img.naturalHeight;
+    ctx.drawImage(img, x-width/2, y-height+bob, width, height);
   }
 
   ctx.restore();
 }
 
-function drawHasan() {
-  const moving =
-    keys.ArrowLeft || keys.ArrowRight ||
-    keys.ArrowUp || keys.ArrowDown ||
-    keys.a || keys.d || keys.w || keys.s;
-
-  drawCharacter(
-    hasanImages, hasan.x, hasan.y,
-    hasan.direction, moving
-  );
+function drawHasan(moving) {
+  drawCharacter(hasanImages, hasan.x, hasan.y, hasan.direction, moving);
 }
 
 function drawJill() {
   if (!finaleStarted) return;
-
   drawCharacter(
-    jillImages, jill.x, jill.y,
-    jill.direction, !finaleFinished
+    jillImages, jill.x, jill.y, jill.direction, !finaleFinished
   );
 }
 
@@ -413,22 +400,18 @@ function openMemory(exhibit) {
 
 function closeMemory() {
   if (opened) seenMemories.add(opened);
-
   opened = null;
   document.getElementById("popup").style.display = "none";
 
   if (seenMemories.size === exhibits.length && !finaleStarted) {
-    startFinale();
+    finaleStarted = true;
+    finaleFinished = false;
+    jill.x = -100;
+    jill.direction = "right";
   }
 }
 
-function startFinale() {
-  finaleStarted = true;
-  finaleFinished = false;
-  jill.x = -80;
-  jill.y = 460;
-  jill.direction = "right";
-}
+document.getElementById("closeMemory").addEventListener("click", closeMemory);
 
 function sayYes() {
   document.getElementById("finaleText").textContent =
@@ -439,21 +422,15 @@ function sayYes() {
 function dodgeNoButton() {
   const button = document.getElementById("noButton");
   const area = document.getElementById("choices");
-
   const maxX = Math.max(0, area.clientWidth-button.offsetWidth);
   const maxY = Math.max(0, area.clientHeight-button.offsetHeight);
-
   button.style.position = "absolute";
   button.style.left = Math.random()*maxX + "px";
   button.style.top = Math.random()*maxY + "px";
 }
 
-document.getElementById("noButton").addEventListener(
-  "pointerenter", dodgeNoButton
-);
-document.getElementById("noButton").addEventListener(
-  "click", dodgeNoButton
-);
+document.getElementById("noButton").addEventListener("pointerenter", dodgeNoButton);
+document.getElementById("noButton").addEventListener("click", dodgeNoButton);
 
 function interact() {
   if (opened || finaleStarted) return;
@@ -461,11 +438,12 @@ function interact() {
   const exhibit = exhibits.find(item =>
     Math.hypot(hasan.x-item.x, hasan.y-(item.y+80)) < 115
   );
-
   if (exhibit) openMemory(exhibit);
 }
 
 function update() {
+  let moving = false;
+
   if (!opened && !finaleStarted) {
     let dx = 0;
     let dy = 0;
@@ -476,15 +454,17 @@ function update() {
     if (keys.ArrowDown || keys.s) dy++;
 
     if (dx && dy) {
-      dx *= 0.7071;
-      dy *= 0.7071;
+      dx *= Math.SQRT1_2;
+      dy *= Math.SQRT1_2;
     }
 
-    // Für diagonale Bewegungen hat die zuletzt geprüfte Richtung Vorrang.
-    if (dx < 0) hasan.direction = "left";
-    else if (dx > 0) hasan.direction = "right";
-    else if (dy < 0) hasan.direction = "back";
+    moving = dx !== 0 || dy !== 0;
+
+    // Vertikale Bewegung hat bei diagonalem Laufen Vorrang.
+    if (dy < 0) hasan.direction = "back";
     else if (dy > 0) hasan.direction = "front";
+    else if (dx < 0) hasan.direction = "left";
+    else if (dx > 0) hasan.direction = "right";
 
     hasan.x = Math.max(45, Math.min(955, hasan.x+dx*hasan.speed));
     hasan.y = Math.max(390, Math.min(585, hasan.y+dy*hasan.speed));
@@ -504,7 +484,7 @@ function update() {
 
   time++;
   drawRoom();
-  drawHasan();
+  drawHasan(moving);
   drawJill();
   requestAnimationFrame(update);
 }
@@ -517,10 +497,7 @@ document.addEventListener("keydown", event => {
   keys[event.key] = true;
   keys[event.key.toLowerCase()] = true;
 
-  if (event.key.toLowerCase() === "e" || event.key === " ") {
-    interact();
-  }
-
+  if (event.key.toLowerCase() === "e" || event.key === " ") interact();
   if (event.key === "Escape" && opened) closeMemory();
 });
 
@@ -532,15 +509,13 @@ document.addEventListener("keyup", event => {
 canvas.addEventListener("click", event => {
   if (opened || finaleStarted) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const x = (event.clientX-rect.left)*canvas.width/rect.width;
-  const y = (event.clientY-rect.top)*canvas.height/rect.height;
+  const bounds = canvas.getBoundingClientRect();
+  const x = (event.clientX-bounds.left)*canvas.width/bounds.width;
+  const y = (event.clientY-bounds.top)*canvas.height/bounds.height;
 
   const exhibit = exhibits.find(item =>
-    Math.abs(x-item.x) < 75 &&
-    y > item.y-75 && y < item.y+100
+    Math.abs(x-item.x) < 75 && y > item.y-75 && y < item.y+100
   );
-
   if (exhibit) openMemory(exhibit);
 });
 
