@@ -1,1 +1,443 @@
 
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jill & Hasan – Unser magisches Museum</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #211c32;
+  color: #fff2df;
+  font-family: Georgia, serif;
+  text-align: center;
+}
+
+header { padding: 24px 12px 12px; }
+
+h1 {
+  color: #f6d7a8;
+  font-size: clamp(25px, 5vw, 39px);
+  margin-bottom: 8px;
+}
+
+p { line-height: 1.6; }
+
+.game {
+  width: min(960px, 96vw);
+  margin: 12px auto;
+  position: relative;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  border: 3px solid #d7b887;
+  border-radius: 8px;
+  background: #302741;
+  touch-action: none;
+}
+
+.controls {
+  color: #e4d6c7;
+  font: 13px Arial, sans-serif;
+  line-height: 1.8;
+  padding: 10px;
+}
+
+#message {
+  display: none;
+  position: fixed;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(400px, 88vw);
+  padding: 26px;
+  background: #fff4e3;
+  color: #38283b;
+  border: 3px solid #c99c70;
+  border-radius: 14px;
+  box-shadow: 0 15px 80px #0009;
+}
+
+button {
+  border: 0;
+  border-radius: 7px;
+  padding: 12px 20px;
+  background: #8f435c;
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+button:hover { background: #6d3048; }
+
+.small { font-size: 13px; color: #d7c5d8; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Das Museum unserer kleinen Welt ✨</h1>
+  <p>Ein magisches Abenteuer von Jill & Hasan</p>
+</header>
+
+<div class="game">
+  <canvas id="world" width="960" height="570"></canvas>
+</div>
+
+<div class="controls">
+  <b>Jill:</b> WASD &nbsp; · &nbsp;
+  <b>Hasan:</b> Pfeiltasten<br>
+  Lauft zu den goldenen Bilderrahmen und klickt sie an.
+  <div class="small">Tipp: Ihr könnt euch unabhängig voneinander bewegen.</div>
+</div>
+
+<div id="message">
+  <h2 id="memoryTitle">Eine Erinnerung</h2>
+  <p id="memoryText"></p>
+  <button onclick="closeMemory()">Zurück ins Museum ♥</button>
+</div>
+
+<script>
+const canvas = document.getElementById("world");
+const ctx = canvas.getContext("2d");
+
+const jill = { x: 365, y: 415, color: "#d987a9",
+               hair: "#56364a", name: "Jill" };
+const hasan = { x: 570, y: 415, color: "#76b6b0",
+                hair: "#40313c", name: "Hasan" };
+
+const keys = {};
+const memories = [
+  {
+    x: 230, title: "Exponat 001: Der Anfang",
+    text: "Badfish. Frozen Margaritas. Und der Anfang unserer gemeinsamen Geschichte."
+  },
+  {
+    x: 480, title: "Exponat 002: Unsere kleinen Eigenheiten",
+    text: "Zwei Menschen, tausend Unterschiede und ganz viele Dinge, die nur wir verstehen."
+  },
+  {
+    x: 730, title: "Exponat 003: Unser erstes Jahr",
+    text: "Das Schönste an diesem Jahr waren nicht nur die großen Momente, sondern all die kleinen Augenblicke mit dir."
+  }
+];
+
+function rect(x,y,w,h,color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x,y,w,h);
+}
+
+function drawRoom() {
+  // Magische Wände
+  rect(0,0,960,570,"#30273e");
+  rect(0,0,960,330,"#48344e");
+
+  // Wandvertäfelung
+  for (let x=25; x<960; x+=90) {
+    rect(x,25,2,270,"#594158");
+  }
+
+  // Sternchen
+  for (let i=0; i<45; i++) {
+    const x=(i*137+37)%950;
+    const y=(i*71+19)%280;
+    ctx.fillStyle="#f9dba3";
+    ctx.globalAlpha=0.35+(i%4)*0.15;
+    ctx.beginPath();
+    ctx.arc(x,y,1.5+(i%3),0,Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  // Boden
+  rect(0,330,960,240,"#76516b");
+  rect(0,330,960,8,"#d4a975");
+
+  for(let x=0;x<960;x+=120) {
+    rect(x,340,2,230,"#90657c");
+  }
+  for(let y=390;y<570;y+=60) {
+    rect(0,y,960,2,"#90657c");
+  }
+
+  // Teppich
+  ctx.fillStyle="#b86e81";
+  ctx.beginPath();
+  ctx.ellipse(480,485,240,62,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#edc99a";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.ellipse(480,485,220,49,0,0,Math.PI*2);
+  ctx.stroke();
+
+  // Pflanzen
+  drawPlant(65,330);
+  drawPlant(875,330);
+
+  // Bilderrahmen
+  memories.forEach((m,i)=>{
+    // Lichtschein
+    const glow=ctx.createRadialGradient(m.x,145,8,m.x,145,85);
+    glow.addColorStop(0,"#f8d49b30");
+    glow.addColorStop(1,"#f8d49b00");
+    ctx.fillStyle=glow;
+    ctx.fillRect(m.x-85,60,170,170);
+
+    // Rahmen
+    rect(m.x-59,81,118,137,"#c89b60");
+    rect(m.x-52,88,104,123,"#392e49");
+
+    // Bildmotiv
+    const palettes=[
+      ["#9c718b","#e6b8a3"],
+      ["#6b9a96","#e8c68e"],
+      ["#9c739d","#f2d7ac"]
+    ];
+    const p=palettes[i];
+
+    rect(m.x-45,95,90,109,p[0]);
+
+    // Hügel im Bild
+    ctx.fillStyle=p[1];
+    ctx.beginPath();
+    ctx.moveTo(m.x-45,180);
+    ctx.quadraticCurveTo(m.x-5,130,m.x+45,179);
+    ctx.lineTo(m.x+45,204);
+    ctx.lineTo(m.x-45,204);
+    ctx.fill();
+
+    // Kleine Herzen im Bild
+    heart(m.x-12,130,9,"#fff0d1");
+    heart(m.x+15,148,6,"#fff0d1");
+
+    ctx.fillStyle="#fce8c6";
+    ctx.font="12px Georgia";
+    ctx.textAlign="center";
+    ctx.fillText("ERINNERUNG "+(i+1),m.x,235);
+
+    // Funkelnder Klickpunkt
+    ctx.fillStyle="#ffe3a4";
+    ctx.beginPath();
+    ctx.arc(m.x,260,5+Math.sin(Date.now()/300+i)*1.5,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  // Überschrift an der Wand
+  ctx.fillStyle="#f7d7a6";
+  ctx.textAlign="center";
+  ctx.font="italic 23px Georgia";
+  ctx.fillText("Unser kleines Universum",480,48);
+}
+
+function drawPlant(x,y) {
+  // Blumentopf
+  rect(x-17,y-26,34,26,"#b87668");
+  rect(x-21,y-30,42,7,"#e3b38a");
+
+  // Blätter
+  ctx.fillStyle="#9dc09b";
+  for(let i=0;i<5;i++) {
+    ctx.beginPath();
+    ctx.ellipse(x+(i-2)*9,y-42-Math.abs(i-2)*2,8,19,
+      (i-2)*0.35,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // Leuchtende Blüte
+  ctx.fillStyle="#f4d79c";
+  ctx.beginPath();
+  ctx.arc(x,y-59,6,0,Math.PI*2);
+  ctx.fill();
+}
+
+function heart(x,y,size,color) {
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(size/15,size/15);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(0,6);
+  ctx.bezierCurveTo(-16,-4,-8,-13,0,-5);
+  ctx.bezierCurveTo(8,-13,16,-4,0,6);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCharacter(c, isJill) {
+  const bob=Math.sin(Date.now()/180+c.x/20)*2;
+
+  ctx.save();
+  ctx.translate(c.x,c.y+bob);
+
+  // Schatten
+  ctx.fillStyle="#211a2c66";
+  ctx.beginPath();
+  ctx.ellipse(0,4,25,9,0,0,Math.PI*2);
+  ctx.fill();
+
+  // Füße
+  rect(-15,-2,12,8,"#48313f");
+  rect(4,-2,12,8,"#48313f");
+
+  // Körper
+  ctx.fillStyle=c.color;
+  ctx.beginPath();
+  ctx.ellipse(0,-24,21,25,0,0,Math.PI*2);
+  ctx.fill();
+
+  // Kleiner Umhang
+  ctx.fillStyle=isJill?"#a84d79":"#3d7f87";
+  ctx.beginPath();
+  ctx.moveTo(-16,-35);
+  ctx.lineTo(-25,-5);
+  ctx.lineTo(20,-5);
+  ctx.lineTo(14,-35);
+  ctx.closePath();
+  ctx.fill();
+
+  // Kopf
+  ctx.fillStyle="#edc4a4";
+  ctx.beginPath();
+  ctx.arc(0,-53,19,0,Math.PI*2);
+  ctx.fill();
+
+  // Haare
+  ctx.fillStyle=c.hair;
+  ctx.beginPath();
+  ctx.arc(0,-59,20,Math.PI,Math.PI*2);
+  ctx.lineTo(19,-48);
+  if(isJill) ctx.lineTo(13,-34);
+  ctx.lineTo(7,-47);
+  ctx.lineTo(-5,-43);
+  ctx.lineTo(-18,-48);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fantasy-Ohren
+  ctx.fillStyle=c.color;
+  ctx.beginPath();
+  ctx.moveTo(-15,-61);
+  ctx.lineTo(-29,-76);
+  ctx.lineTo(-24,-53);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(15,-61);
+  ctx.lineTo(29,-76);
+  ctx.lineTo(24,-53);
+  ctx.fill();
+
+  // Kleine Hörner
+  ctx.fillStyle="#f1d59e";
+  ctx.beginPath();
+  ctx.moveTo(-10,-70);
+  ctx.lineTo(-13,-82);
+  ctx.lineTo(-2,-72);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(8,-70);
+  ctx.lineTo(13,-82);
+  ctx.lineTo(3,-72);
+  ctx.fill();
+
+  // Augen
+  ctx.fillStyle="#342638";
+  ctx.beginPath();
+  ctx.arc(-6,-54,2.4,0,Math.PI*2);
+  ctx.arc(6,-54,2.4,0,Math.PI*2);
+  ctx.fill();
+
+  // Lächeln
+  ctx.strokeStyle="#9a5556";
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.arc(0,-49,5,0.2,Math.PI-0.2);
+  ctx.stroke();
+
+  // Flügel
+  ctx.fillStyle=isJill?"#eab7d5":"#a8dfd7";
+  ctx.globalAlpha=0.85;
+  ctx.beginPath();
+  ctx.ellipse(-22,-29,10,18,-0.5,0,Math.PI*2);
+  ctx.ellipse(22,-29,10,18,0.5,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+
+  // Name
+  ctx.fillStyle="#fff1d9";
+  ctx.font="bold 14px Arial";
+  ctx.textAlign="center";
+  ctx.fillText(c.name,0,24);
+
+  ctx.restore();
+}
+
+function draw() {
+  drawRoom();
+  drawCharacter(jill,true);
+  drawCharacter(hasan,false);
+  requestAnimationFrame(draw);
+}
+
+function moveCharacter(c, up, down, left, right) {
+  const speed=2.8;
+
+  if(keys[up]) c.y-=speed;
+  if(keys[down]) c.y+=speed;
+  if(keys[left]) c.x-=speed;
+  if(keys[right]) c.x+=speed;
+
+  c.x=Math.max(35,Math.min(925,c.x));
+  c.y=Math.max(320,Math.min(525,c.y));
+}
+
+function update() {
+  moveCharacter(jill,"w","s","a","d");
+  moveCharacter(hasan,"ArrowUp","ArrowDown","ArrowLeft","ArrowRight");
+  requestAnimationFrame(update);
+}
+
+document.addEventListener("keydown",e=>{
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) {
+    e.preventDefault();
+  }
+  keys[e.key]=true;
+  keys[e.key.toLowerCase()]=true;
+});
+
+document.addEventListener("keyup",e=>{
+  keys[e.key]=false;
+  keys[e.key.toLowerCase()]=false;
+});
+
+canvas.addEventListener("click",e=>{
+  const r=canvas.getBoundingClientRect();
+  const x=(e.clientX-r.left)*canvas.width/r.width;
+  const y=(e.clientY-r.top)*canvas.height/r.height;
+
+  const m=memories.find(item=>
+    Math.abs(x-item.x)<65 && y>75 && y<280
+  );
+
+  if(m) {
+    document.getElementById("memoryTitle").textContent=m.title;
+    document.getElementById("memoryText").textContent=m.text;
+    document.getElementById("message").style.display="block";
+  }
+});
+
+function closeMemory() {
+  document.getElementById("message").style.display="none";
+}
+
+draw();
+update();
+</script>
+</body>
+</html>
