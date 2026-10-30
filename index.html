@@ -90,6 +90,7 @@ function drawRoom(){
  box(365,35,270,58,"#6b293b");ctx.strokeStyle="#d4ad70";ctx.lineWidth=2;ctx.strokeRect(371,41,258,46);ctx.textAlign="center";ctx.fillStyle="#f4d8a5";ctx.font="bold 18px Georgia";ctx.fillText("UNSER MUSEUM",500,66);ctx.font="11px Georgia";ctx.fillText("EST. JAHR EINS",500,81);
  plant(75,355);plant(925,355);books(60,325);books(855,325);candle(125,290);candle(875,290);exhibits.forEach(drawExhibit);
  for(let i=0;i<25;i++){const x=(i*173+41)%980,y=(i*79+110)%225;ctx.fillStyle="#f8d8a0";ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+ // Kleines, anklickbares Herz unten links: direkter Einstieg ins Fahrradspiel.
  ctx.save();ctx.globalAlpha=.78;ctx.fillStyle="#e58b9b";ctx.beginPath();
  ctx.moveTo(31,589);ctx.bezierCurveTo(8,574,15,558,26,565);ctx.bezierCurveTo(30,568,31,572,31,572);
  ctx.bezierCurveTo(35,562,49,560,52,572);ctx.bezierCurveTo(55,581,43,589,31,598);
@@ -118,22 +119,27 @@ document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButto
 function interact(){if(opened||finaleStarted||scene!=="museum")return;const e=exhibits.find(item=>Math.hypot(hasan.x-item.x,hasan.y-(item.y+80))<115);if(e)openMemory(e)}
 function drawBike(x,y,color,hair,name){
  ctx.save();ctx.translate(x,y);
+ // Räder mit Reifen, Felge und Speichen
  for(const wy of [-25,25]){
   ctx.fillStyle="#20232a";ctx.beginPath();ctx.ellipse(0,wy,12,18,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle="#b9c4c7";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,wy,8.5,14,0,0,Math.PI*2);ctx.stroke();
   ctx.strokeStyle="#7f898d";ctx.lineWidth=1;
   for(let a=0;a<8;a++){const ang=a*Math.PI/4;line(Math.cos(ang)*2,wy+Math.sin(ang)*3,Math.cos(ang)*8,wy+Math.sin(ang)*13,"#7f898d",.8)}
  }
+ // Rahmen, Gabel, Lenker und Sattel
  ctx.strokeStyle="#d9b77e";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();
  ctx.moveTo(0,-25);ctx.lineTo(-10,0);ctx.lineTo(0,25);ctx.lineTo(10,0);ctx.closePath();ctx.stroke();
  ctx.strokeStyle=color;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(0,-9);ctx.lineTo(-10,0);ctx.lineTo(0,25);ctx.stroke();
  ctx.strokeStyle="#d5d9d7";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-27);ctx.lineTo(12,-27);ctx.stroke();
  ctx.fillStyle="#24252a";ctx.beginPath();ctx.roundRect(-6,-13,12,9,3);ctx.fill();
+ // Beine und Schuhe seitlich am Rahmen
  ctx.strokeStyle="#252a34";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-6,7);ctx.lineTo(-14,14);ctx.lineTo(-10,19);ctx.moveTo(6,7);ctx.lineTo(14,14);ctx.lineTo(10,19);ctx.stroke();
  ctx.fillStyle="#e6e1d6";ctx.beginPath();ctx.ellipse(-10,20,5,3,0,0,Math.PI*2);ctx.ellipse(10,20,5,3,0,0,Math.PI*2);ctx.fill();
+ // Oberkörper mit Jacke, Schultern und Armen am Lenker
  ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,-2,11,15,0,0,Math.PI*2);ctx.fill();
  ctx.strokeStyle="#e8c7a7";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-7,-8);ctx.lineTo(-12,-22);ctx.lineTo(-8,-28);ctx.moveTo(7,-8);ctx.lineTo(12,-22);ctx.lineTo(8,-28);ctx.stroke();
  ctx.fillStyle="#e8b18b";ctx.beginPath();ctx.arc(-8,-28,3,0,Math.PI*2);ctx.arc(8,-28,3,0,Math.PI*2);ctx.fill();
+ // Kopf, Haare und gut erkennbarer Fahrradhelm
  ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,-15,10,0,Math.PI*2);ctx.fill();
  ctx.fillStyle="#e7ad83";ctx.beginPath();ctx.arc(0,-15,6.5,0,Math.PI*2);ctx.fill();
  ctx.fillStyle="#e7c66f";ctx.beginPath();ctx.ellipse(0,-17,11,8,0,0,Math.PI*2);ctx.fill();
@@ -153,7 +159,8 @@ function drawHeart(x,y,size,number){
  ctx.restore();
 }
 function drawObstacle(o){
- const x=o.x,y=o.y;ctx.save();ctx.translate(x,y);
+ const x=o.x,y=o.y;
+ ctx.save();ctx.translate(x,y);
  if(o.type==="syringe"){
   ctx.rotate(-.42);ctx.fillStyle="#d9e4e5";ctx.strokeStyle="#53636b";ctx.lineWidth=1.5;
   ctx.beginPath();ctx.roundRect(-17,-5,29,10,2);ctx.fill();ctx.stroke();
@@ -192,14 +199,14 @@ function spawnThings(){
  const t=performance.now()-bikeStart;
  if(t-lastObstacleAt>570){
   lastObstacleAt=t;
-  const laneY=115+Math.random()*420, roll=Math.random();
+  const laneX=145+Math.random()*710, roll=Math.random();
   let type=roll<.20?"syringe":roll<.39?"bottle":roll<.58?"puddle":roll<.76?"scooter":roll<.90?"construction":"dogpoop";
-  obstacles.push({x:W+35,y:laneY,type,r:type==="puddle"?25:type==="construction"?25:19});
+  obstacles.push({x:laneX,y:-35,type,r:type==="puddle"?25:type==="construction"?25:19});
  }
  const target=Math.min(52,Math.floor(t/1080)+1);
  while(heartsSpawned<target){
   heartsSpawned++;
-  collectibles.push({x:W+45+((heartsSpawned%3)*30),y:115+Math.random()*420,r:15,number:heartsSpawned});
+  collectibles.push({x:145+Math.random()*710,y:-35,r:15,number:heartsSpawned});
  }
 }
 function drawBikeScene(now){
@@ -208,8 +215,7 @@ function drawBikeScene(now){
  box(0,0,70,H,"#536d50");box(930,0,70,H,"#536d50");
  for(let y=-40+(roadOffset%100);y<H;y+=100){box(105,y,790,3,"#77717a");box(482,y,5,48,"#e3c98f")}
  for(let i=0;i<10;i++){const y=((i*83+roadOffset*1.5)%(H+60))-30;ctx.fillStyle=i%2?"#77936b":"#a2b77c";ctx.beginPath();ctx.arc(32,y,13,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(965,y+22,15,0,Math.PI*2);ctx.fill()}
- if(!restaurantReached){
-  spawnThings();const speed=3.4;
+ if(!restaurantReached){spawnThings();const speed=3.4;
   for(const p of Object.values(bikePlayers)){
    let dx=0,dy=0;
    if(p===bikePlayers.hasan){if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++}
@@ -218,8 +224,8 @@ function drawBikeScene(now){
    p.x=Math.max(125,Math.min(875,p.x+dx*speed));p.y=Math.max(95,Math.min(555,p.y+dy*speed));
   }
   const scroll=4.4;roadOffset+=scroll;
-  obstacles.forEach(o=>o.x-=scroll);collectibles.forEach(c=>c.x-=scroll);
-  obstacles=obstacles.filter(o=>o.x>-50);collectibles=collectibles.filter(c=>c.x>-50);
+  obstacles.forEach(o=>o.y+=scroll);collectibles.forEach(c=>c.y+=scroll);
+  obstacles=obstacles.filter(o=>o.y<H+55);collectibles=collectibles.filter(c=>c.y<H+55);
   for(const o of obstacles){
    drawObstacle(o);
    if(!o.hitPlayers)o.hitPlayers={};
@@ -241,17 +247,81 @@ function drawBikeScene(now){
   if(progress>.78){const a=(progress-.78)/.22;ctx.globalAlpha=Math.min(1,a);box(260,45,480,80,"#6b293b");ctx.strokeStyle="#e2bd7d";ctx.lineWidth=4;ctx.strokeRect(270,55,460,60);ctx.fillStyle="#ffe0a5";ctx.font="bold 27px Georgia";ctx.textAlign="center";ctx.fillText("RESTAURANT",500,88);ctx.font="13px Georgia";ctx.fillText("NOCH "+Math.ceil(60-bikeElapsed)+" SEKUNDEN",500,106);ctx.globalAlpha=1}
   drawBike(bikePlayers.hasan.x,bikePlayers.hasan.y,bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
   drawBike(bikePlayers.jill.x,bikePlayers.jill.y,bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
-  ctx.fillStyle="#fff0d5";ctx.font="bold 18px Arial";ctx.textAlign="left";ctx.fillText("♥ "+score+" / 52",25,32);ctx.textAlign="right";ctx.fillText(Math.max(0,60-Math.floor(bikeElapsed))+" s",975,32);
-  if(elapsed>=60000)restaurantReached=true;
+  ctx.fillStyle="#fff0d5";ctx.font="bold 18px Arial";ctx.textAlign="left";ctx.fillText(Math.max(0,60-Math.floor(bikeElapsed))+" s",25,32);
+  ctx.textAlign="right";ctx.fillText("♥ "+score+" / 52",975,32);
+  drawHeart(30,584,25,null);
+  ctx.fillStyle="#fff0d5";ctx.font="10px Arial";ctx.textAlign="left";ctx.fillText("SKIP",48,588);
+  if(score>=52)restaurantReached=true;
  }else drawRestaurant();
 }
 function drawRestaurant(){
- box(0,0,W,H,"#354b3c");for(let i=0;i<18;i++){ctx.fillStyle=i%2?"#4b674a":"#597652";ctx.beginPath();ctx.arc((i*137)%W,(i*79)%H,25,0,Math.PI*2);ctx.fill()}
- box(250,125,500,390,"#8e5a4b");box(275,150,450,335,"#f0d4a2");box(300,175,400,285,"#6b293b");
- box(350,210,300,170,"#e5b96f");box(365,225,270,140,"#4d3947");
- ctx.fillStyle="#f9dca4";ctx.textAlign="center";ctx.font="bold 35px Georgia";ctx.fillText("RESTAURANT",500,270);ctx.font="21px Georgia";ctx.fillText("Unser nächstes Kapitel ♥",500,315);
- ctx.font="16px Arial";ctx.fillText(score>=52?"Ihr habt alle 52 Wochen-Herzen gesammelt!":"Eure gemeinsame Tour ist geschafft!",500,420);ctx.font="14px Arial";ctx.fillText("Eure Wochen-Herzen: "+score+" / 52",500,450);
- drawBike(440,550,bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");drawBike(560,550,bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
+ box(0,0,W,H,"#b9a18a");
+ // Altbaufassade und Kopfsteinpflaster
+ box(0,0,W,390,"#c9c2b2");
+ for(let x=0;x<W;x+=115){box(x,0,4,390,"#b5ad9e");for(let y=0;y<390;y+=92)line(x,y,x+115,y,"#b9b2a4",2)}
+ // Backsteinhaus links
+ box(0,0,205,390,"#a95745");
+ for(let y=12;y<390;y+=28)for(let x=(y%56?0:28);x<205;x+=56)line(x,y,x+48,y,"#d18a70",2);
+ for(let x=24;x<180;x+=65){box(x,45,36,92,"#493b38");box(x+5,50,26,82,"#b7c5bd");line(x+18,50,x+18,132,"#65564b",3);line(x+5,90,x+31,90,"#65564b",3)}
+ // Sandfarbene Fassade des Weinblatt-Hauses
+ box(205,0,795,390,"#d1c9b7");box(205,0,795,22,"#b8ad9b");box(205,22,795,9,"#eee0c6");
+ for(let x=260;x<950;x+=190){box(x,35,100,112,"#62534b");box(x+7,42,86,98,"#b8c8c1");box(x+12,48,76,85,"#d7dfd5");line(x+50,43,x+50,140,"#66594e",5);line(x+9,91,x+94,91,"#66594e",4);box(x-8,143,116,8,"#e5d6bd")}
+ // Weinrote Ladenfassade
+ box(235,155,735,235,"#702b3d");box(250,169,705,221,"#8d3545");
+ // Gestreifte Markise
+ box(230,145,750,45,"#752b3c");
+ for(let x=230;x<980;x+=50){ctx.fillStyle=(Math.floor((x-230)/50)%2===0)?"#8b3446":"#e4d0b7";ctx.beginPath();ctx.moveTo(x,145);ctx.lineTo(x+50,145);ctx.lineTo(x+45,190);ctx.lineTo(x+5,190);ctx.closePath();ctx.fill()}
+ ctx.fillStyle="#f4e5d0";ctx.font="italic bold 27px Georgia";ctx.textAlign="center";ctx.fillText("Weinblatt",610,177);
+ // Schaufenster und Feinkost
+ box(520,205,255,145,"#332d2b");box(528,213,239,129,"#d9a45d");box(538,223,219,108,"#b85e32");box(548,232,199,92,"#e6b86e");
+ box(548,237,199,5,"#5b3d30");box(548,286,199,5,"#5b3d30");
+ for(let i=0;i<9;i++){const x=557+i*21,h=27+(i%3)*8;box(x,258-h,10,h,"#315746");box(x+2,250-h,6,8,"#d2c29a");box(x,302,10,22,"#8d553d")}
+ ctx.fillStyle="#f7d79a";ctx.font="bold 12px Arial";ctx.fillText("Feinkost · Wein · Antipasti",650,337);
+ // Eingang
+ box(795,194,145,196,"#392d2a");box(803,202,129,180,"#5c4236");box(812,211,111,163,"#292a28");box(818,217,99,151,"#a8754d");box(824,223,87,137,"#46342e");box(830,229,75,125,"#b58b60");
+ line(867,229,867,354,"#5b4033",4);ctx.fillStyle="#e6c17b";ctx.beginPath();ctx.arc(895,292,4,0,Math.PI*2);ctx.fill();
+ // Kreidetafeln
+ box(260,205,105,132,"#292b2b");box(267,212,91,118,"#393a35");
+ ctx.fillStyle="#f1e6d0";ctx.textAlign="center";ctx.font="italic 12px Georgia";ctx.fillText("Antipasti",312,235);
+ ctx.font="10px Georgia";ctx.fillText("Oliven · Käse",312,254);ctx.fillText("Pasta",312,273);ctx.fillText("Dolci",312,291);ctx.fillText("Vino",312,309);
+ box(375,218,115,108,"#292b2b");ctx.fillStyle="#f1e6d0";ctx.font="italic 11px Georgia";ctx.fillText("Täglich frisch",432,243);
+ ctx.font="10px Georgia";ctx.fillText("Hausgemacht",432,263);ctx.fillText("aus der Küche",432,280);ctx.fillText("Buon appetito!",432,302);
+ // Kopfsteinpflaster vor dem Lokal
+ box(0,390,W,230,"#77716a");
+ for(let y=395;y<620;y+=35){line(0,y,W,y,"#a59a89",2);for(let x=(y%70?0:45);x<W;x+=95)line(x,y,x-30,y+35,"#625f5b",2)}
+ // Rot-weiß karierte Bistro-Tische
+ function cafeTable(x,y,scale=1){
+  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+  line(-42,8,-48,75,"#29282a",6);line(42,8,48,75,"#29282a",6);
+  ctx.fillStyle="#eee1cf";ctx.fillRect(-55,-4,110,55);
+  ctx.save();ctx.beginPath();ctx.rect(-55,-4,110,55);ctx.clip();
+  for(let xx=-55;xx<60;xx+=18)for(let yy=-4;yy<55;yy+=18){ctx.fillStyle=((Math.floor((xx+55)/18)+Math.floor((yy+4)/18))%2===0)?"#8e3545":"#f1e5d4";ctx.fillRect(xx,yy,18,18)}
+  ctx.restore();ctx.strokeStyle="#5a2d32";ctx.lineWidth=2;ctx.strokeRect(-55,-4,110,55);
+  ctx.fillStyle="#d8e5dc";ctx.fillRect(-5,5,9,17);ctx.fillStyle="#e6d4a5";ctx.beginPath();ctx.arc(0,3,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#66804e";ctx.fillRect(18,4,3,14);ctx.fillStyle="#d8a36c";ctx.beginPath();ctx.arc(19,1,5,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+ }
+ cafeTable(180,495,.85);cafeTable(455,505,.9);cafeTable(835,500,.9);
+ // Schwarze Bistrostühle
+ function chair(x,y){
+  ctx.strokeStyle="#252629";ctx.lineWidth=7;ctx.lineCap="round";ctx.beginPath();
+  ctx.moveTo(x-18,y);ctx.lineTo(x-18,y+53);ctx.moveTo(x+18,y);ctx.lineTo(x+18,y+53);
+  ctx.moveTo(x-18,y+5);ctx.lineTo(x+18,y+5);ctx.moveTo(x-18,y+22);ctx.lineTo(x+18,y+22);ctx.stroke();
+  ctx.fillStyle="#71303d";ctx.fillRect(x-20,y-10,40,23);
+ }
+ chair(115,530);chair(240,535);chair(390,550);chair(520,552);chair(780,535);chair(900,540);
+ // Warmes Licht und Begrüßungstafel
+ glow(650,255,95,"#ffd58b38");glow(860,270,80,"#ffd58b25");
+ ctx.fillStyle="#1e1d1c";ctx.fillRect(25,405,140,62);ctx.strokeStyle="#c9a66c";ctx.lineWidth=3;ctx.strokeRect(25,405,140,62);
+ ctx.fillStyle="#f4e5d0";ctx.font="italic 16px Georgia";ctx.textAlign="center";ctx.fillText("Willkommen!",95,431);
+ ctx.font="11px Georgia";ctx.fillText("WEINBLATT",95,451);
+ // Ankunftstitel
+ ctx.fillStyle="#211b2ce8";ctx.fillRect(0,0,W,78);
+ ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 34px Georgia";ctx.fillText("WEINBLATT",500,39);
+ ctx.font="14px Arial";ctx.fillText("Geschafft – ihr seid angekommen! ♥",500,62);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 16px Arial";ctx.fillText("Eure 52 Wochen-Herzen: "+score+" / 52",500,603);
+ drawBike(445,360,bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
+ drawBike(555,360,bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
 }
 function drawFall(now){
  drawRoom();drawHasan();drawJill();const t=(now-transitionStart)/1000;
@@ -295,16 +365,17 @@ document.addEventListener("keydown",e=>{
 });
 document.addEventListener("keyup",e=>{keys[e.key]=false;keys[e.key.toLowerCase()]=false});
 canvas.addEventListener("click",e=>{
- if(opened||finaleStarted||scene!=="museum")return;
  const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*canvas.width/r.width,y=(e.clientY-r.top)*canvas.height/r.height;
+ if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){restaurantReached=true;return}
+ if(opened||finaleStarted||scene!=="museum")return;
  if(x>=8&&x<=62&&y>=552&&y<=605){sayYes();return}
  const ex=exhibits.find(item=>Math.abs(x-item.x)<75&&y>item.y-75&&y<item.y+100);
  if(ex)openMemory(ex)
 });
 canvas.addEventListener("mousemove",e=>{
- if(scene!=="museum")return;
  const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*canvas.width/r.width,y=(e.clientY-r.top)*canvas.height/r.height;
- canvas.style.cursor=(x>=8&&x<=62&&y>=552&&y<=605)?"pointer":"default";
+ const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
+ canvas.style.cursor=(overHeart&&(scene==="museum"||scene==="bikes"))?"pointer":"default";
 });
 update();
 </script>
