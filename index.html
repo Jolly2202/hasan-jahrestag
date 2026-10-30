@@ -65,7 +65,7 @@ const bikePlayers={
  hasan:{x:380,y:530,vx:0,vy:0,color:"#243e65",hair:"#38251f",name:"Hasan",keys:["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"]},
  jill:{x:450,y:530,vx:0,vy:0,color:"#6d3048",hair:"#4b241c",name:"Jill",keys:["a","d","w","s"]}
 };
-let obstacles=[],collectibles=[],score=0,lastObstacleAt=0,roadOffset=0;
+let obstacles=[],collectibles=[],score=0,heartsSpawned=0,lastObstacleAt=0,roadOffset=0;
 function box(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
 function line(x,y,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
 function glow(x,y,r,color){const g=ctx.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,color);g.addColorStop(1,"#f8ce8b00");ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2)}
@@ -90,7 +90,6 @@ function drawRoom(){
  box(365,35,270,58,"#6b293b");ctx.strokeStyle="#d4ad70";ctx.lineWidth=2;ctx.strokeRect(371,41,258,46);ctx.textAlign="center";ctx.fillStyle="#f4d8a5";ctx.font="bold 18px Georgia";ctx.fillText("UNSER MUSEUM",500,66);ctx.font="11px Georgia";ctx.fillText("EST. JAHR EINS",500,81);
  plant(75,355);plant(925,355);books(60,325);books(855,325);candle(125,290);candle(875,290);exhibits.forEach(drawExhibit);
  for(let i=0;i<25;i++){const x=(i*173+41)%980,y=(i*79+110)%225;ctx.fillStyle="#f8d8a0";ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
- // Kleines, anklickbares Herz unten links: direkter Einstieg ins Fahrradspiel.
  ctx.save();ctx.globalAlpha=.78;ctx.fillStyle="#e58b9b";ctx.beginPath();
  ctx.moveTo(31,589);ctx.bezierCurveTo(8,574,15,558,26,565);ctx.bezierCurveTo(30,568,31,572,31,572);
  ctx.bezierCurveTo(35,562,49,560,52,572);ctx.bezierCurveTo(55,581,43,589,31,598);
@@ -111,7 +110,7 @@ function sayYes(){
  document.getElementById("pageSubtitle").textContent="Zwei Fahrräder, ein Ziel und ganz viel Wir ♥";
  document.getElementById("controlsTitle").textContent="Steuerung:";
  document.getElementById("help").innerHTML='<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>Ihr spielt zusammen! Weicht Berliner Hindernissen aus und sammelt gemeinsam 52 Wochen-Herzen in 60 Sekunden!<div id="hint">🚲 Gemeinsam ans Ziel!</div>';
- bikeStart=performance.now();bikeElapsed=0;score=0;restaurantReached=false;obstacles=[];collectibles=[];lastObstacleAt=0;
+ bikeStart=performance.now();bikeElapsed=0;score=0;heartsSpawned=0;restaurantReached=false;obstacles=[];collectibles=[];lastObstacleAt=0;
  bikePlayers.hasan.x=375;bikePlayers.hasan.y=500;bikePlayers.jill.x=575;bikePlayers.jill.y=500;
 }
 function dodgeNoButton(){const b=document.getElementById("noButton"),a=document.getElementById("choices"),maxX=Math.max(0,a.clientWidth-b.offsetWidth),maxY=Math.max(0,a.clientHeight-b.offsetHeight);b.style.position="absolute";b.style.left=Math.random()*maxX+"px";b.style.top=Math.random()*maxY+"px"}
@@ -119,45 +118,98 @@ document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButto
 function interact(){if(opened||finaleStarted||scene!=="museum")return;const e=exhibits.find(item=>Math.hypot(hasan.x-item.x,hasan.y-(item.y+80))<115);if(e)openMemory(e)}
 function drawBike(x,y,color,hair,name){
  ctx.save();ctx.translate(x,y);
- // Fahrrad in Draufsicht
- ctx.strokeStyle="#d8c8ad";ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,-20,12,19,0,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.ellipse(0,20,12,19,0,0,Math.PI*2);ctx.stroke();
- ctx.strokeStyle=color;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(-10,3);ctx.lineTo(0,20);ctx.lineTo(10,3);ctx.closePath();ctx.stroke();
- ctx.strokeStyle="#d9b77e";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-10,3);ctx.lineTo(10,3);ctx.moveTo(-8,-7);ctx.lineTo(8,-7);ctx.stroke();
- // Kopf und Oberkörper von oben, damit die Figur zur Vogelperspektive passt
- ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,0,10,13,0,0,Math.PI*2);ctx.fill();
- ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,-9,9,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#e7ad83";ctx.beginPath();ctx.arc(0,-9,5,0,Math.PI*2);ctx.fill();
- // Fahrradhelm: klar sichtbare Schale und Kinnriemen
- ctx.fillStyle="#e7c66f";ctx.beginPath();ctx.ellipse(0,-13,10,7,0,Math.PI,Math.PI*2);ctx.fill();
- ctx.strokeStyle="#f5e6c4";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-7,-10);ctx.lineTo(-4,-4);ctx.moveTo(7,-10);ctx.lineTo(4,-4);ctx.stroke();
- ctx.fillStyle="#fff0d5";ctx.font="bold 11px Arial";ctx.textAlign="center";ctx.fillText(name,0,51);
+ for(const wy of [-25,25]){
+  ctx.fillStyle="#20232a";ctx.beginPath();ctx.ellipse(0,wy,12,18,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#b9c4c7";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,wy,8.5,14,0,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle="#7f898d";ctx.lineWidth=1;
+  for(let a=0;a<8;a++){const ang=a*Math.PI/4;line(Math.cos(ang)*2,wy+Math.sin(ang)*3,Math.cos(ang)*8,wy+Math.sin(ang)*13,"#7f898d",.8)}
+ }
+ ctx.strokeStyle="#d9b77e";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();
+ ctx.moveTo(0,-25);ctx.lineTo(-10,0);ctx.lineTo(0,25);ctx.lineTo(10,0);ctx.closePath();ctx.stroke();
+ ctx.strokeStyle=color;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(0,-9);ctx.lineTo(-10,0);ctx.lineTo(0,25);ctx.stroke();
+ ctx.strokeStyle="#d5d9d7";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-27);ctx.lineTo(12,-27);ctx.stroke();
+ ctx.fillStyle="#24252a";ctx.beginPath();ctx.roundRect(-6,-13,12,9,3);ctx.fill();
+ ctx.strokeStyle="#252a34";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-6,7);ctx.lineTo(-14,14);ctx.lineTo(-10,19);ctx.moveTo(6,7);ctx.lineTo(14,14);ctx.lineTo(10,19);ctx.stroke();
+ ctx.fillStyle="#e6e1d6";ctx.beginPath();ctx.ellipse(-10,20,5,3,0,0,Math.PI*2);ctx.ellipse(10,20,5,3,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,-2,11,15,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#e8c7a7";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-7,-8);ctx.lineTo(-12,-22);ctx.lineTo(-8,-28);ctx.moveTo(7,-8);ctx.lineTo(12,-22);ctx.lineTo(8,-28);ctx.stroke();
+ ctx.fillStyle="#e8b18b";ctx.beginPath();ctx.arc(-8,-28,3,0,Math.PI*2);ctx.arc(8,-28,3,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,-15,10,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#e7ad83";ctx.beginPath();ctx.arc(0,-15,6.5,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#e7c66f";ctx.beginPath();ctx.ellipse(0,-17,11,8,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#fff0c4";ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(-9,-16);ctx.quadraticCurveTo(0,-28,9,-16);ctx.moveTo(-7,-11);ctx.lineTo(-4,-5);ctx.moveTo(7,-11);ctx.lineTo(4,-5);ctx.stroke();
+ ctx.fillStyle="#fff0d5";ctx.font="bold 11px Arial";ctx.textAlign="center";ctx.fillText(name,0,53);
+ ctx.restore();
+}
+function drawHeart(x,y,size,number){
+ ctx.save();ctx.translate(x,y);ctx.scale(size/24,size/24);
+ ctx.shadowColor="#ff6b91";ctx.shadowBlur=12;
+ ctx.fillStyle="#f04f78";ctx.beginPath();ctx.moveTo(0,9);
+ ctx.bezierCurveTo(-5,5,-15,-2,-12,-10);ctx.bezierCurveTo(-10,-17,-2,-17,0,-10);
+ ctx.bezierCurveTo(3,-18,12,-16,13,-9);ctx.bezierCurveTo(16,-1,6,6,0,9);ctx.fill();
+ ctx.shadowBlur=0;ctx.strokeStyle="#ffd7df";ctx.lineWidth=1.4;ctx.stroke();
+ ctx.fillStyle="#ffb2c3";ctx.beginPath();ctx.ellipse(-5,-9,2.3,4,-.5,0,Math.PI*2);ctx.fill();
+ if(number){ctx.fillStyle="#fff7ed";ctx.font="bold 7px Arial";ctx.textAlign="center";ctx.fillText(String(number),0,19)}
+ ctx.restore();
+}
+function drawObstacle(o){
+ const x=o.x,y=o.y;ctx.save();ctx.translate(x,y);
+ if(o.type==="syringe"){
+  ctx.rotate(-.42);ctx.fillStyle="#d9e4e5";ctx.strokeStyle="#53636b";ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.roundRect(-17,-5,29,10,2);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#79bdc5";ctx.fillRect(-10,-4,15,8);
+  ctx.strokeStyle="#e9eff0";ctx.lineWidth=2;for(let k=-7;k<8;k+=5){ctx.beginPath();ctx.moveTo(k,-4);ctx.lineTo(k,4);ctx.stroke()}
+  ctx.strokeStyle="#d9e4e5";ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(23,0);ctx.moveTo(-19,-8);ctx.lineTo(-19,8);ctx.stroke();
+ }else if(o.type==="bottle"){
+  ctx.rotate(.3);ctx.fillStyle="#285d43";ctx.beginPath();ctx.roundRect(-17,-7,28,14,4);ctx.fill();
+  ctx.fillStyle="#3e8059";ctx.fillRect(7,-4,11,8);ctx.fillStyle="#c6b67b";ctx.fillRect(-5,-6,7,12);
+  ctx.fillStyle="#b6d1a5";ctx.fillRect(15,-3,5,6);ctx.strokeStyle="#183e30";ctx.lineWidth=1.5;ctx.stroke();
+ }else if(o.type==="puddle"){
+  ctx.fillStyle="#252d39";ctx.beginPath();ctx.ellipse(0,2,27,16,-.1,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#9bbbc7";ctx.lineWidth=2;ctx.stroke();
+  ctx.strokeStyle="#d0e7e9";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(-7,-2,10,4,-.2,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle="#657e89";ctx.beginPath();ctx.ellipse(13,7,5,2,.2,0,Math.PI*2);ctx.fill();
+ }else if(o.type==="scooter"){
+  ctx.rotate(-.18);ctx.fillStyle="#20262b";ctx.beginPath();ctx.roundRect(-20,-5,39,10,4);ctx.fill();
+  ctx.fillStyle="#aeb9bd";ctx.fillRect(12,-17,4,15);ctx.fillRect(8,-19,12,3);
+  ctx.fillStyle="#15191e";ctx.beginPath();ctx.arc(-15,7,5,0,Math.PI*2);ctx.arc(15,7,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#d5dadd";ctx.fillRect(-5,-3,10,3);
+ }else if(o.type==="construction"){
+  ctx.fillStyle="#34343a";ctx.fillRect(-25,11,50,6);ctx.fillRect(-21,8,5,8);ctx.fillRect(16,8,5,8);
+  ctx.fillStyle="#ed743c";ctx.beginPath();ctx.roundRect(-23,-12,46,23,3);ctx.fill();
+  ctx.save();ctx.beginPath();ctx.roundRect(-23,-12,46,23,3);ctx.clip();
+  ctx.strokeStyle="#fff0d5";ctx.lineWidth=7;for(let k=-35;k<45;k+=18){ctx.beginPath();ctx.moveTo(k,12);ctx.lineTo(k-15,-12);ctx.stroke()}ctx.restore();
+  ctx.fillStyle="#f5d36e";ctx.beginPath();ctx.arc(0,-16,4,0,Math.PI*2);ctx.fill();
+ }else{
+  ctx.fillStyle="#4e6948";ctx.beginPath();ctx.moveTo(-19,9);ctx.lineTo(-14,1);ctx.lineTo(-10,8);ctx.lineTo(-4,-1);ctx.lineTo(1,8);ctx.lineTo(8,0);ctx.lineTo(17,9);ctx.fill();
+  ctx.fillStyle="#79513b";ctx.beginPath();ctx.ellipse(0,5,13,8,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-6,0,6,0,Math.PI*2);ctx.arc(2,-3,7,0,Math.PI*2);ctx.arc(8,3,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#a87954";ctx.beginPath();ctx.arc(2,-7,2.5,0,Math.PI*2);ctx.fill();
+ }
  ctx.restore();
 }
 function spawnThings(){
  const t=performance.now()-bikeStart;
- // Dichtere Hindernisse: ungefähr alle 570 Millisekunden ein neues Hindernis.
  if(t-lastObstacleAt>570){
   lastObstacleAt=t;
   const laneY=115+Math.random()*420, roll=Math.random();
   let type=roll<.20?"syringe":roll<.39?"bottle":roll<.58?"puddle":roll<.76?"scooter":roll<.90?"construction":"dogpoop";
   obstacles.push({x:W+35,y:laneY,type,r:type==="puddle"?25:type==="construction"?25:19});
  }
- // 52 Herzen – eins pro gemeinsamer Woche.
  const target=Math.min(52,Math.floor(t/1080)+1);
- while(collectibles.length+score<target){
-  const n=collectibles.length+score+1;
-  collectibles.push({x:W+45+((n%3)*30),y:115+Math.random()*420,r:12,number:n});
+ while(heartsSpawned<target){
+  heartsSpawned++;
+  collectibles.push({x:W+45+((heartsSpawned%3)*30),y:115+Math.random()*420,r:15,number:heartsSpawned});
  }
 }
 function drawBikeScene(now){
  const elapsed=now-bikeStart;bikeElapsed=Math.min(60,elapsed/1000);const progress=Math.min(1,elapsed/60000);
- // Straße scrollt nach unten: optischer Eindruck, dass beide nach oben fahren
  box(0,0,W,H,"#3b5b49");box(70,0,860,H,"#5e5c65");box(90,0,820,H,"#4a4954");
  box(0,0,70,H,"#536d50");box(930,0,70,H,"#536d50");
  for(let y=-40+(roadOffset%100);y<H;y+=100){box(105,y,790,3,"#77717a");box(482,y,5,48,"#e3c98f")}
- // Baum-/Gartenpunkte am Straßenrand
  for(let i=0;i<10;i++){const y=((i*83+roadOffset*1.5)%(H+60))-30;ctx.fillStyle=i%2?"#77936b":"#a2b77c";ctx.beginPath();ctx.arc(32,y,13,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(965,y+22,15,0,Math.PI*2);ctx.fill()}
- if(!restaurantReached){spawnThings();const speed=3.4;
+ if(!restaurantReached){
+  spawnThings();const speed=3.4;
   for(const p of Object.values(bikePlayers)){
    let dx=0,dy=0;
    if(p===bikePlayers.hasan){if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++}
@@ -169,43 +221,19 @@ function drawBikeScene(now){
   obstacles.forEach(o=>o.x-=scroll);collectibles.forEach(c=>c.x-=scroll);
   obstacles=obstacles.filter(o=>o.x>-50);collectibles=collectibles.filter(c=>c.x>-50);
   for(const o of obstacles){
-   if(o.type==="syringe"){
-    ctx.save();ctx.translate(o.x,o.y);ctx.rotate(-.42);
-    ctx.strokeStyle="#d9e5e8";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(10,0);ctx.stroke();
-    ctx.strokeStyle="#7fc0c8";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-7,-4);ctx.lineTo(-7,4);ctx.moveTo(-1,-4);ctx.lineTo(-1,4);ctx.moveTo(5,-4);ctx.lineTo(5,4);ctx.stroke();
-    ctx.strokeStyle="#f4d9a2";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(20,0);ctx.stroke();ctx.restore();
-   }else if(o.type==="bottle"){
-    ctx.save();ctx.translate(o.x,o.y);ctx.rotate(.25);
-    ctx.fillStyle="#5b8b58";ctx.beginPath();ctx.roundRect(-17,-6,29,12,4);ctx.fill();
-    ctx.fillStyle="#6fa46a";ctx.fillRect(7,-4,10,8);ctx.fillStyle="#b9d8a0";ctx.fillRect(15,-3,5,6);
-    ctx.fillStyle="#e7d7a0";ctx.fillRect(-5,-5,7,10);ctx.restore();
-   }else if(o.type==="puddle"){
-    ctx.fillStyle="#30333d";ctx.beginPath();ctx.ellipse(o.x,o.y,o.r,o.r*.58,0,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle="#8c9fa6";ctx.lineWidth=2;ctx.stroke();
-    ctx.strokeStyle="#9fb8bd";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(o.x-5,o.y-2,8,3,-.2,0,Math.PI*2);ctx.stroke();
-   }else if(o.type==="scooter"){
-    ctx.save();ctx.translate(o.x,o.y);ctx.rotate(-.18);
-    ctx.strokeStyle="#242b30";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-18,5);ctx.lineTo(15,5);ctx.stroke();
-    ctx.strokeStyle="#b7c2c3";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(10,5);ctx.lineTo(17,-13);ctx.lineTo(23,-13);ctx.stroke();
-    ctx.fillStyle="#20252a";ctx.beginPath();ctx.arc(-15,8,5,0,Math.PI*2);ctx.arc(15,8,5,0,Math.PI*2);ctx.fill();ctx.restore();
-   }else if(o.type==="construction"){
-    ctx.save();ctx.translate(o.x,o.y);
-    box(-23,-8,46,16,"#e67d45");box(-15,-8,8,16,"#fff0d5");box(2,-8,8,16,"#fff0d5");box(-20,9,40,4,"#34313b");ctx.restore();
-   }else{
-    ctx.fillStyle="#79533e";ctx.beginPath();ctx.ellipse(o.x,o.y+3,13,8,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.arc(o.x-5,o.y-2,6,0,Math.PI*2);ctx.arc(o.x+3,o.y-4,7,0,Math.PI*2);ctx.fill();
-   }
+   drawObstacle(o);
+   if(!o.hitPlayers)o.hitPlayers={};
    for(const p of Object.values(bikePlayers)){
-    if(Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
+    if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
+     o.hitPlayers[p.name]=true;
      p.x=Math.max(125,p.x-30);p.y=Math.max(95,Math.min(555,p.y+(p.y<o.y?-27:27)));
      bikeStart-=450;
     }
    }
   }
   for(const c of collectibles){
-   ctx.fillStyle="#f8d28c";ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,Math.PI*2);ctx.fill();
-   ctx.fillStyle="#9c3d55";ctx.font="bold 15px Arial";ctx.textAlign="center";ctx.fillText("♥",c.x,c.y+5);
-   ctx.fillStyle="#6b293b";ctx.font="bold 8px Arial";ctx.fillText(String(c.number),c.x,c.y+19);
+   ctx.fillStyle="#f8d28c";ctx.beginPath();ctx.arc(c.x,c.y,19,0,Math.PI*2);ctx.fill();
+   drawHeart(c.x,c.y-2,25,c.number);
    for(const p of Object.values(bikePlayers)){
     if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<27){c.x=-100;score++;break}
    }
@@ -233,10 +261,14 @@ function drawFall(now){
 }
 function drawLanding(now){
  box(0,0,W,H,"#3b5b49");box(70,0,860,H,"#5e5c65");box(90,0,820,H,"#4a4954");
- box(135,72,730,180,"#6b293b");ctx.strokeStyle="#e2bd7d";ctx.lineWidth=4;ctx.strokeRect(148,85,704,154);
- ctx.fillStyle="#ffe0a5";ctx.textAlign="center";ctx.font="bold 31px Georgia";ctx.fillText("Auf zum Restaurant!",500,130);
- ctx.font="bold 21px Georgia";ctx.fillText("Sei aber vorsichtig beim Fahrradfahren!",500,170);
- ctx.font="16px Arial";ctx.fillText("Hasan: Pfeiltasten   ·   Jill: W A S D",500,207);
+ box(105,48,790,290,"#6b293b");ctx.strokeStyle="#e2bd7d";ctx.lineWidth=4;ctx.strokeRect(118,61,764,264);
+ ctx.fillStyle="#ffe0a5";ctx.textAlign="center";ctx.font="bold 31px Georgia";ctx.fillText("Auf zum Restaurant!",500,105);
+ ctx.font="bold 18px Arial";ctx.fillText("Passt auf im Berliner Straßenverkehr!",500,145);
+ ctx.font="15px Arial";ctx.fillText("Weicht den Berliner Hindernissen aus – Baustellen,",500,180);
+ ctx.fillText("E-Scootern, Flaschen, Pfützen und mehr.",500,203);
+ ctx.fillText("Sammelt gemeinsam 52 Herzen: eins für jede Woche,",500,237);
+ ctx.fillText("die ihr schon zusammen seid. ♥",500,260);
+ ctx.font="bold 15px Arial";ctx.fillText("Hasan: Pfeiltasten   ·   Jill: W A S D",500,297);
  const t=(now-transitionStart)/1000;
  drawBike(390,360,"#243e65","#38251f","HASAN");drawBike(610,360,"#6d3048","#4b241c","JILL");
  let countLabel="",countColor="#fff0d5";
