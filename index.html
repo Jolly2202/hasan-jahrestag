@@ -4,22 +4,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hasan & Jill – Unser Museum</title>
+<title>Hasan & Jill – Unser Abenteuer</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#211b2c;color:#fff0d5;font-family:Georgia,serif;text-align:center}
-header{padding:18px 10px 8px}
-h1{margin:5px;color:#f3cf91;font-size:clamp(24px,4vw,38px)}
-header p{color:#d6c1b3}
+header{padding:14px 10px 6px}
+h1{margin:5px;color:#f3cf91;font-size:clamp(23px,4vw,36px)}
+header p{color:#d6c1b3;margin:5px}
 #game{width:min(100%,1100px);margin:auto}
-canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c}
+canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c;touch-action:none}
 #help{padding:12px;color:#e6d5bd;font:13px/1.7 Arial,sans-serif}
 #hint{color:#e8c68b}
-#popup,#finale{display:none;position:fixed;inset:0;z-index:10;align-items:center;justify-content:center;padding:20px;background:#100d19bb}
-#finale{z-index:20}
-.card{background:#fff0d8;color:#39283a;border:4px solid #c79c63;border-radius:14px;padding:26px;max-width:440px;width:100%;box-shadow:0 15px 60px #0008}
-.card h2{color:#863c52}
-button{background:#863c52;color:white;border:0;padding:12px 20px;border-radius:6px;cursor:pointer;font-size:15px}
+#popup,#finale,#dialogue,#foodIntro,#result{
+ display:none;position:fixed;inset:0;z-index:10;align-items:center;
+ justify-content:center;padding:20px;background:#100d19bb
+}
+#finale,#dialogue,#foodIntro,#result{z-index:20}
+.card{background:#fff0d8;color:#39283a;border:4px solid #c79c63;border-radius:14px;
+ padding:25px;max-width:490px;width:100%;box-shadow:0 15px 60px #0008}
+.card h2{color:#863c52;margin-top:5px}
+.card p{line-height:1.7}
+button{background:#863c52;color:white;border:0;padding:12px 22px;border-radius:6px;
+ cursor:pointer;font-size:16px}
 button:hover{background:#6d3048}
 #choices{position:relative;display:flex;align-items:center;justify-content:center;gap:24px;min-height:75px}
 #noButton{background:#777}
@@ -27,463 +33,1687 @@ button:hover{background:#6d3048}
 </head>
 <body>
 <header>
-<h1 id="pageTitle">Das Museum unserer kleinen Welt</h1>
-<p id="pageSubtitle">Ein Abenteuer für Hasan ♥</p>
+ <h1 id="pageTitle">Das Museum unserer kleinen Welt</h1>
+ <p id="pageSubtitle">Ein Abenteuer für Hasan ♥</p>
 </header>
+
 <div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
-<div id="help">
-<b id="controlsTitle">Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
-Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.
-<div id="hint">✦ Drei Erinnerungen warten darauf, entdeckt zu werden.</div>
-</div>
-<div id="popup"><div class="card">
-<div style="font-size:28px">✦</div><h2 id="memoryTitle"></h2>
-<p id="memoryText" style="line-height:1.8"></p>
-<button onclick="closeMemory()">Zurück ins Museum</button>
-</div></div>
-<div id="finale"><div class="card">
-<div style="font-size:32px">♥</div><h2>Jill ist da!</h2>
-<p id="finaleText" style="line-height:1.8">Hallo Schatz, ich habe Hunger. Wollen wir etwas essen gehen?</p>
-<div id="choices"><button id="yesButton" onclick="sayYes()">Ja ❤️</button><button id="noButton" type="button">Nein</button></div>
-</div></div>
 
-<div id="failure" style="display:none;position:fixed;inset:0;z-index:30;background:#100d19dd;align-items:center;justify-content:center;padding:18px">
-<div class="card" style="max-width:520px">
-<div style="font-size:34px">💔</div>
-<h2>Oh nein!</h2>
-<p style="line-height:1.7;font-size:17px">Mist. Ihr habt nicht genügend Herzen eingesammelt und euch beide den Ellenbogen gebrochen. Probiert es erneut!</p>
-<svg viewBox="0 0 420 190" role="img" aria-label="Hasan mit Schiene am rechten Arm und Jill mit Schiene am linken Arm" style="width:100%;height:auto;max-height:190px">
-<g transform="translate(105 10)">
-<ellipse cx="0" cy="166" rx="49" ry="8" fill="#cbb99d"/>
-<path d="M-25 75 Q0 58 25 75 L31 137 L-31 137Z" fill="#243e65"/>
-<circle cx="0" cy="43" r="25" fill="#d99c75"/>
-<path d="M-25 40 Q-23 10 0 14 Q25 12 26 40 L18 30 Q0 21 -18 34Z" fill="#38251f"/>
-<path d="M-23 82 L-48 116 L-38 140" fill="none" stroke="#d99c75" stroke-width="12" stroke-linecap="round"/>
-<path d="M23 82 L48 108 L40 135" fill="none" stroke="#d99c75" stroke-width="12" stroke-linecap="round"/>
-<path d="M40 107 L52 118 L45 145 L32 141Z" fill="#f3eee5" stroke="#8d8790" stroke-width="2"/>
-<path d="M-15 137 L-20 169 M15 137 L20 169" stroke="#333" stroke-width="12" stroke-linecap="round"/>
-<text x="0" y="186" font-size="13" text-anchor="middle" fill="#39283a">Hasan · rechter Arm</text>
-</g>
-<g transform="translate(315 10)">
-<ellipse cx="0" cy="166" rx="49" ry="8" fill="#cbb99d"/>
-<path d="M-25 75 Q0 58 25 75 L31 137 L-31 137Z" fill="#6d3048"/>
-<circle cx="0" cy="43" r="25" fill="#e0ad88"/>
-<path d="M-26 43 Q-29 9 0 10 Q30 11 27 52 L20 78 L13 59 L17 32 Q0 20 -18 33 L-20 70Z" fill="#4b241c"/>
-<path d="M-23 82 L-48 108 L-40 135" fill="none" stroke="#e0ad88" stroke-width="12" stroke-linecap="round"/>
-<path d="M23 82 L48 116 L38 140" fill="none" stroke="#e0ad88" stroke-width="12" stroke-linecap="round"/>
-<path d="M-40 108 L-52 119 L-45 145 L-32 141Z" fill="#f3eee5" stroke="#8d8790" stroke-width="2"/>
-<path d="M-15 137 L-20 169 M15 137 L20 169" stroke="#333" stroke-width="12" stroke-linecap="round"/>
-<text x="0" y="186" font-size="13" text-anchor="middle" fill="#39283a">Jill · linker Arm</text>
-</g>
-</svg>
-<button onclick="retryBike()">Nochmal versuchen ❤️</button>
+<div id="help">
+ <b id="controlsTitle">Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
+ Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.
+ <div id="hint">✦ Drei Erinnerungen warten darauf, entdeckt zu werden.</div>
 </div>
+
+<div id="popup">
+ <div class="card">
+  <div style="font-size:28px">✦</div>
+  <h2 id="memoryTitle"></h2>
+  <p id="memoryText"></p>
+  <button onclick="closeMemory()">Zurück ins Museum</button>
+ </div>
+</div>
+
+<div id="finale">
+ <div class="card">
+  <div style="font-size:32px">♥</div>
+  <h2>Jill ist da!</h2>
+  <p>Hallo Schatz, ich habe Hunger. Wollen wir etwas essen gehen?</p>
+  <div id="choices">
+   <button onclick="sayYes()">Ja ❤️</button>
+   <button id="noButton" type="button">Nein</button>
+  </div>
+ </div>
+</div>
+
+<div id="dialogue">
+ <div class="card">
+  <div style="font-size:30px">🍷</div>
+  <h2 id="dialogueTitle">Willkommen im Weinblatt!</h2>
+  <p id="dialogueText">Wie schön, dass ihr da seid! Soll ich euch einfach etwas Leckeres an unserer Frischetheke zusammenstellen?</p>
+  <button id="dialogueButton" onclick="acceptFood()">Ja, das klingt gut. So machen wir das!</button>
+ </div>
+</div>
+
+<div id="foodIntro">
+ <div class="card">
+  <div style="font-size:34px">🥖 🧀 🍅</div>
+  <h2>Einmal quer durch die Frischetheke!</h2>
+  <p>
+   Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.
+  </p>
+  <p>
+   Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links.
+   Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.
+  </p>
+  <p>
+   <b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht.
+   Weicht ihr unbedingt aus.
+  </p>
+  <p>
+   <b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen.
+  </p>
+  <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
+  <button onclick="startFoodGame()">Start</button>
+ </div>
+</div>
+
+<div id="result">
+ <div class="card">
+  <div id="resultEmoji" style="font-size:40px">🎉</div>
+  <h2 id="resultTitle">Geschafft!</h2>
+  <p id="resultText"></p>
+  <button id="resultButton" onclick="restartFoodGame()">Nochmal spielen</button>
+ </div>
 </div>
 
 <script>
-const canvas=document.getElementById("world"),ctx=canvas.getContext("2d");
+const canvas=document.getElementById("world");
+const ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
-function loadImage(filename){const img=new Image();img.src=filename;return img}
-const hasanImages={front:loadImage("hasan-front.png"),left:loadImage("hasan-left.png"),back:loadImage("hasan-back.png"),right:loadImage("hasan-right.png")};
-const jillImages={front:loadImage("jill-front.png"),left:loadImage("jill-left.png"),back:loadImage("jill-back.png"),right:loadImage("jill-right.png")};
+
+function loadImage(filename){
+ const img=new Image();
+ img.src=filename;
+ return img;
+}
+
+const hasanImages={
+ front:loadImage("hasan-front.png"),
+ left:loadImage("hasan-left.png"),
+ back:loadImage("hasan-back.png"),
+ right:loadImage("hasan-right.png")
+};
+const jillImages={
+ front:loadImage("jill-front.png"),
+ left:loadImage("jill-left.png"),
+ back:loadImage("jill-back.png"),
+ right:loadImage("jill-right.png")
+};
+
 const hasan={x:500,y:460,speed:3.2,direction:"front"};
 const jill={x:-80,y:460,direction:"right"};
 const keys={};
 const seenMemories=new Set();
+
 let opened=null,finaleStarted=false,finaleFinished=false,time=0;
+let scene="museum",transitionStart=0;
+let bikeStart=0,bikeElapsed=0,restaurantReached=false;
+let countdownStart=0;
+let bikeFailed=false;
+
 const exhibits=[
-{x:245,y:205,title:"Exponat 001 – Der Anfang",caption:"BADFISH",story:"Zwei Frozen Margaritas, ein erstes Date und der Anfang von etwas, das viel größer werden sollte."},
-{x:500,y:205,title:"Exponat 002 – Unsere Welt",caption:"KLEINE ABENTEUER",story:"Die schönsten Geschichten bestehen nicht nur aus großen Reisen. Manchmal reicht ein ganz gewöhnlicher Tag zusammen."},
-{x:755,y:205,title:"Exponat 003 – Fortsetzung folgt",caption:"JAHR ZWEI",story:"Dieses Museum ist noch lange nicht fertig. Es gibt noch so viele Orte, Abende und Erinnerungen, die auf uns warten."}
+ {x:245,y:205,title:"Exponat 001 – Der Anfang",caption:"BADFISH",
+  story:"Zwei Frozen Margaritas, ein erstes Date und der Anfang von etwas, das viel größer werden sollte."},
+ {x:500,y:205,title:"Exponat 002 – Unsere Welt",caption:"KLEINE ABENTEUER",
+  story:"Die schönsten Geschichten bestehen nicht nur aus großen Reisen. Manchmal reicht ein ganz gewöhnlicher Tag zusammen."},
+ {x:755,y:205,title:"Exponat 003 – Fortsetzung folgt",caption:"JAHR ZWEI",
+  story:"Dieses Museum ist noch lange nicht fertig. Es gibt noch so viele Orte, Abende und Erinnerungen, die auf uns warten."}
 ];
 
-let scene="museum",transitionStart=0,bikeStart=0,bikeElapsed=0,restaurantReached=false,countdownStart=0,countdownStarted=false,bikeFailed=false;
 const bikePlayers={
-hasan:{x:380,y:530,vx:0,vy:0,color:"#243e65",hair:"#38251f",name:"Hasan",keys:["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"]},
-jill:{x:450,y:530,vx:0,vy:0,color:"#6d3048",hair:"#4b241c",name:"Jill",keys:["a","d","w","s"]}
+ hasan:{x:575,y:500,color:"#243e65",hair:"#38251f",name:"Hasan"},
+ jill:{x:375,y:500,color:"#6d3048",hair:"#4b241c",name:"Jill"}
 };
+
 let obstacles=[],collectibles=[],score=0,heartsSpawned=0,lastObstacleAt=0,roadOffset=0;
 
-function box(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(x,y,w,h)}
-function line(x,y,x2,y2,color,width=1){ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke()}
-function glow(x,y,r,color){const g=ctx.createRadialGradient(x,y,2,x,y,r);g.addColorStop(0,color);g.addColorStop(1,"#f8ce8b00");ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2)}
-function plant(x,y){box(x-20,y-45,40,45,"#a95e4d");box(x-24,y-49,48,7,"#d2a36b");for(let i=0;i<6;i++){ctx.fillStyle=i%2?"#8fb18b":"#b2c995";ctx.beginPath();ctx.ellipse(x+(i-2.5)*9,y-64-Math.abs(i-2.5)*3,8,22,(i-2.5)*.3,0,Math.PI*2);ctx.fill()}}
-function books(x,y){["#b87558","#526d78","#c8a05e","#8b5269"].forEach((c,i)=>{box(x+i*3,y-i*14,65-i*6,12,c);box(x+i*3,y-i*14,4,12,"#e1bd80")})}
-function candle(x,y){glow(x,y-30,65,"#f9cb7650");box(x-5,y-12,10,25,"#e6c99c");ctx.fillStyle="#ffd789";ctx.beginPath();ctx.ellipse(x,y-17,4,8,0,0,Math.PI*2);ctx.fill();box(x-13,y+13,26,4,"#c99a62");box(x-9,y+17,18,15,"#79503e")}
+// Essensspiel
+const FOOD_COLUMNS=8;
+const FOOD_X=Array.from({length:FOOD_COLUMNS},(_,i)=>110+i*(780/7));
+let foodPlayers={
+ hasan:{column:7,x:7,y:535,color:"#243e65",hair:"#38251f",name:"Hasan"},
+ jill:{column:0,x:0,y:535,color:"#6d3048",hair:"#4b241c",name:"Jill"}
+};
+let fallingFood=[];
+let deliciousCount=0;
+let greenSauceHits=0;
+let foodStart=0;
+let lastFoodSpawn=0;
+let foodFinished=false;
+
+// --------------------------------------------------
+// Hilfsfunktionen und Museum
+// --------------------------------------------------
+
+function box(x,y,w,h,color){
+ ctx.fillStyle=color;
+ ctx.fillRect(x,y,w,h);
+}
+function line(x,y,x2,y2,color,width=1){
+ ctx.strokeStyle=color;
+ ctx.lineWidth=width;
+ ctx.beginPath();
+ ctx.moveTo(x,y);
+ ctx.lineTo(x2,y2);
+ ctx.stroke();
+}
+function glow(x,y,r,color){
+ const g=ctx.createRadialGradient(x,y,2,x,y,r);
+ g.addColorStop(0,color);
+ g.addColorStop(1,"#f8ce8b00");
+ ctx.fillStyle=g;
+ ctx.fillRect(x-r,y-r,r*2,r*2);
+}
+function plant(x,y){
+ box(x-20,y-45,40,45,"#a95e4d");
+ box(x-24,y-49,48,7,"#d2a36b");
+ for(let i=0;i<6;i++){
+  ctx.fillStyle=i%2?"#8fb18b":"#b2c995";
+  ctx.beginPath();
+  ctx.ellipse(x+(i-2.5)*9,y-64-Math.abs(i-2.5)*3,8,22,(i-2.5)*.3,0,Math.PI*2);
+  ctx.fill();
+ }
+}
+function books(x,y){
+ ["#b87558","#526d78","#c8a05e","#8b5269"].forEach((c,i)=>{
+  box(x+i*3,y-i*14,65-i*6,12,c);
+  box(x+i*3,y-i*14,4,12,"#e1bd80");
+ });
+}
+function candle(x,y){
+ glow(x,y-30,65,"#f9cb7650");
+ box(x-5,y-12,10,25,"#e6c99c");
+ ctx.fillStyle="#ffd789";
+ ctx.beginPath();
+ ctx.ellipse(x,y-17,4,8,0,0,Math.PI*2);
+ ctx.fill();
+ box(x-13,y+13,26,4,"#c99a62");
+ box(x-9,y+17,18,15,"#79503e");
+}
 
 function drawExhibit(exhibit,i){
-const near=Math.hypot(hasan.x-exhibit.x,hasan.y-(exhibit.y+80))<115;
-if(near)glow(exhibit.x,exhibit.y+35,110,"#f6cb8b32");
-box(exhibit.x-69,exhibit.y-67,138,154,"#b7884f");box(exhibit.x-63,exhibit.y-61,126,142,"#e5c18a");box(exhibit.x-57,exhibit.y-55,114,130,"#39283d");
-const colors=[["#b46b70","#f2cb9b"],["#648d91","#e8d0a3"],["#8d668e","#f4d6a2"]][i];
-box(exhibit.x-51,exhibit.y-49,102,118,colors[0]);
-ctx.fillStyle=colors[1];ctx.beginPath();ctx.arc(exhibit.x+24,exhibit.y-23,15,0,Math.PI*2);ctx.fill();
-ctx.beginPath();ctx.moveTo(exhibit.x-51,exhibit.y+15);ctx.lineTo(exhibit.x-20,exhibit.y-8);ctx.lineTo(exhibit.x+5,exhibit.y+15);ctx.lineTo(exhibit.x+30,exhibit.y-4);ctx.lineTo(exhibit.x+51,exhibit.y+18);ctx.lineTo(exhibit.x+51,exhibit.y+69);ctx.lineTo(exhibit.x-51,exhibit.y+69);ctx.fill();
-ctx.fillStyle="#38273c";
-for(let j=0;j<2;j++){const xx=exhibit.x-13+j*26;ctx.beginPath();ctx.arc(xx,exhibit.y+33,7,0,Math.PI*2);ctx.fill();ctx.fillRect(xx-6,exhibit.y+40,12,17)}
-ctx.textAlign="center";ctx.fillStyle="#f6d9a4";ctx.font="11px Arial";ctx.fillText(exhibit.caption,exhibit.x,exhibit.y+105);
-if(near){box(exhibit.x-65,exhibit.y+118,130,25,"#f5dfb9");ctx.fillStyle="#432b3c";ctx.font="12px Arial";ctx.fillText("E · ANSEHEN",exhibit.x,exhibit.y+135)}
+ const near=Math.hypot(hasan.x-exhibit.x,hasan.y-(exhibit.y+80))<115;
+ if(near)glow(exhibit.x,exhibit.y+35,110,"#f6cb8b32");
+
+ box(exhibit.x-69,exhibit.y-67,138,154,"#b7884f");
+ box(exhibit.x-63,exhibit.y-61,126,142,"#e5c18a");
+ box(exhibit.x-57,exhibit.y-55,114,130,"#39283d");
+
+ const colors=[
+  ["#b46b70","#f2cb9b"],
+  ["#648d91","#e8d0a3"],
+  ["#8d668e","#f4d6a2"]
+ ][i];
+
+ box(exhibit.x-51,exhibit.y-49,102,118,colors[0]);
+ ctx.fillStyle=colors[1];
+ ctx.beginPath();
+ ctx.arc(exhibit.x+24,exhibit.y-23,15,0,Math.PI*2);
+ ctx.fill();
+ ctx.beginPath();
+ ctx.moveTo(exhibit.x-51,exhibit.y+15);
+ ctx.lineTo(exhibit.x-20,exhibit.y-8);
+ ctx.lineTo(exhibit.x+5,exhibit.y+15);
+ ctx.lineTo(exhibit.x+30,exhibit.y-4);
+ ctx.lineTo(exhibit.x+51,exhibit.y+18);
+ ctx.lineTo(exhibit.x+51,exhibit.y+69);
+ ctx.lineTo(exhibit.x-51,exhibit.y+69);
+ ctx.fill();
+
+ ctx.fillStyle="#38273c";
+ for(let j=0;j<2;j++){
+  const xx=exhibit.x-13+j*26;
+  ctx.beginPath();
+  ctx.arc(xx,exhibit.y+33,7,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(xx-6,exhibit.y+40,12,17);
+ }
+
+ ctx.textAlign="center";
+ ctx.fillStyle="#f6d9a4";
+ ctx.font="11px Arial";
+ ctx.fillText(exhibit.caption,exhibit.x,exhibit.y+105);
+
+ if(near){
+  box(exhibit.x-65,exhibit.y+118,130,25,"#f5dfb9");
+  ctx.fillStyle="#432b3c";
+  ctx.font="12px Arial";
+  ctx.fillText("E · ANSEHEN",exhibit.x,exhibit.y+135);
+ }
 }
 
 function drawRoom(){
-box(0,0,W,365,"#423047");box(0,365,W,255,"#79556a");
-glow(500,100,340,"#dba66c35");glow(180,250,150,"#e9b56c22");glow(820,250,150,"#e9b56c22");
-for(let x=25;x<1000;x+=95){box(x,35,2,300,"#5b4158");box(x+5,35,1,300,"#362b40")}
-box(0,0,W,18,"#211b2c");box(0,18,W,7,"#bd9561");box(0,350,W,15,"#bd9561");box(0,365,W,5,"#d6b17a");
-for(let y=390;y<620;y+=48)line(0,y,W,y,"#a47a78",2);
-for(let x=0;x<W;x+=125)line(x,365,x-35,620,"#68485d",2);
-ctx.fillStyle="#6d3048";ctx.beginPath();ctx.ellipse(500,510,280,78,0,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle="#dfb477";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(500,510,260,61,0,0,Math.PI*2);ctx.stroke();
-box(365,35,270,58,"#6b293b");ctx.strokeStyle="#d4ad70";ctx.lineWidth=2;ctx.strokeRect(371,41,258,46);
-ctx.textAlign="center";ctx.fillStyle="#f4d8a5";ctx.font="bold 18px Georgia";ctx.fillText("UNSER MUSEUM",500,66);ctx.font="11px Georgia";ctx.fillText("EST. JAHR EINS",500,81);
-plant(75,355);plant(925,355);books(60,325);books(855,325);candle(125,290);candle(875,290);
-exhibits.forEach(drawExhibit);
-for(let i=0;i<25;i++){const x=(i*173+41)%980,y=(i*79+110)%225;ctx.fillStyle="#f8d8a0";ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill()}
-ctx.globalAlpha=1;
-ctx.save();ctx.globalAlpha=.78;ctx.fillStyle="#e58b9b";ctx.beginPath();
-ctx.moveTo(31,589);ctx.bezierCurveTo(8,574,15,558,26,565);ctx.bezierCurveTo(30,568,31,572,31,572);
-ctx.bezierCurveTo(35,562,49,560,52,572);ctx.bezierCurveTo(55,581,43,589,31,598);ctx.fill();ctx.restore();
+ box(0,0,W,365,"#423047");
+ box(0,365,W,255,"#79556a");
+ glow(500,100,340,"#dba66c35");
+ glow(180,250,150,"#e9b56c22");
+ glow(820,250,150,"#e9b56c22");
+
+ for(let x=25;x<1000;x+=95){
+  box(x,35,2,300,"#5b4158");
+  box(x+5,35,1,300,"#362b40");
+ }
+
+ box(0,0,W,18,"#211b2c");
+ box(0,18,W,7,"#bd9561");
+ box(0,350,W,15,"#bd9561");
+ box(0,365,W,5,"#d6b17a");
+
+ for(let y=390;y<620;y+=48)line(0,y,W,y,"#a47a78",2);
+ for(let x=0;x<W;x+=125)line(x,365,x-35,620,"#68485d",2);
+
+ ctx.fillStyle="#6d3048";
+ ctx.beginPath();
+ ctx.ellipse(500,510,280,78,0,0,Math.PI*2);
+ ctx.fill();
+ ctx.strokeStyle="#dfb477";
+ ctx.lineWidth=4;
+ ctx.beginPath();
+ ctx.ellipse(500,510,260,61,0,0,Math.PI*2);
+ ctx.stroke();
+
+ box(365,35,270,58,"#6b293b");
+ ctx.strokeStyle="#d4ad70";
+ ctx.lineWidth=2;
+ ctx.strokeRect(371,41,258,46);
+ ctx.textAlign="center";
+ ctx.fillStyle="#f4d8a5";
+ ctx.font="bold 18px Georgia";
+ ctx.fillText("UNSER MUSEUM",500,66);
+ ctx.font="11px Georgia";
+ ctx.fillText("EST. JAHR EINS",500,81);
+
+ plant(75,355);
+ plant(925,355);
+ books(60,325);
+ books(855,325);
+ candle(125,290);
+ candle(875,290);
+ exhibits.forEach(drawExhibit);
+
+ for(let i=0;i<25;i++){
+  const x=(i*173+41)%980,y=(i*79+110)%225;
+  ctx.fillStyle="#f8d8a0";
+  ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;
+  ctx.beginPath();
+  ctx.arc(x,y,1.5,0,Math.PI*2);
+  ctx.fill();
+ }
+ ctx.globalAlpha=1;
+
+ // Kleines Herz unten links: direkter Einstieg ins Fahrradspiel
+ ctx.save();
+ ctx.globalAlpha=.78;
+ ctx.fillStyle="#e58b9b";
+ ctx.beginPath();
+ ctx.moveTo(31,589);
+ ctx.bezierCurveTo(8,574,15,558,26,565);
+ ctx.bezierCurveTo(30,568,31,572,31,572);
+ ctx.bezierCurveTo(35,562,49,560,52,572);
+ ctx.bezierCurveTo(55,581,43,589,31,598);
+ ctx.fill();
+ ctx.restore();
 }
 
 function drawCharacter(images,x,y,direction,moving){
-const image=images[direction]||images.front,bob=moving?Math.sin(time/40)*2:Math.sin(time/260)*1.5;
-ctx.fillStyle="#21152555";ctx.beginPath();ctx.ellipse(x,y+2,32,9,0,0,Math.PI*2);ctx.fill();
-if(image&&image.complete&&image.naturalWidth>0)ctx.drawImage(image,x-60,y-180+bob,120,180)
+ const image=images[direction]||images.front;
+ const bob=moving?Math.sin(time/40)*2:Math.sin(time/260)*1.5;
+ ctx.fillStyle="#21152555";
+ ctx.beginPath();
+ ctx.ellipse(x,y+2,32,9,0,0,Math.PI*2);
+ ctx.fill();
+
+ if(image&&image.complete&&image.naturalWidth>0){
+  ctx.drawImage(image,x-60,y-180+bob,120,180);
+ }
 }
-function drawHasan(){const moving=keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown||keys.a||keys.d||keys.w||keys.s;drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,moving)}
-function drawJill(){if(!finaleStarted)return;drawCharacter(jillImages,jill.x,jill.y,jill.direction,!finaleFinished)}
-function openMemory(exhibit){opened=exhibit;document.getElementById("memoryTitle").textContent=exhibit.title;document.getElementById("memoryText").textContent=exhibit.story;document.getElementById("popup").style.display="flex"}
-function closeMemory(){if(opened)seenMemories.add(opened);opened=null;document.getElementById("popup").style.display="none";if(seenMemories.size===exhibits.length&&!finaleStarted)startFinale()}
-function startFinale(){finaleStarted=true;finaleFinished=false;jill.x=-80;jill.y=460;jill.direction="right"}
+
+function drawHasan(){
+ const moving=keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown||
+ keys.a||keys.d||keys.w||keys.s;
+ drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,moving);
+}
+function drawJill(){
+ if(!finaleStarted)return;
+ drawCharacter(jillImages,jill.x,jill.y,jill.direction,!finaleFinished);
+}
+
+function openMemory(exhibit){
+ opened=exhibit;
+ document.getElementById("memoryTitle").textContent=exhibit.title;
+ document.getElementById("memoryText").textContent=exhibit.story;
+ document.getElementById("popup").style.display="flex";
+}
+function closeMemory(){
+ if(opened)seenMemories.add(opened);
+ opened=null;
+ document.getElementById("popup").style.display="none";
+ if(seenMemories.size===exhibits.length&&!finaleStarted)startFinale();
+}
+function startFinale(){
+ finaleStarted=true;
+ finaleFinished=false;
+ jill.x=-80;
+ jill.y=460;
+ jill.direction="right";
+}
 
 function sayYes(){
-document.getElementById("finale").style.display="none";
-const music=document.getElementById("bikeMusic");
-if(music){music.volume=0.55;music.currentTime=0;music.play().catch(()=>{document.getElementById("hint").textContent="Wenn die Musik nicht startet, klicke einmal auf die Spielseite."});}
-scene="fall";transitionStart=performance.now();
-document.getElementById("pageTitle").textContent="Unser nächstes Abenteuer";
-document.getElementById("pageSubtitle").textContent="Zwei Fahrräder, ein Ziel und ganz viel Wir ♥";
-document.getElementById("controlsTitle").textContent="Steuerung:";
-document.getElementById("help").innerHTML='<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>Ihr spielt zusammen! Weicht Berliner Hindernissen aus und sammelt gemeinsam mindestens 52 Wochen-Herzen. Insgesamt liegen 250 Herzen auf eurem Weg!<div id="hint">🚲 Gemeinsam ans Ziel!</div>';
-bikeElapsed=0;score=0;heartsSpawned=0;restaurantReached=false;bikeFailed=false;obstacles=[];collectibles=[];lastObstacleAt=0;roadOffset=0;
-bikePlayers.hasan.x=375;bikePlayers.hasan.y=500;bikePlayers.jill.x=575;bikePlayers.jill.y=500;
-countdownStarted=false;scene="landing";transitionStart=performance.now();
+ document.getElementById("finale").style.display="none";
+ const music=document.getElementById("bikeMusic");
+ if(music){
+  music.volume=.55;
+  music.currentTime=0;
+  music.play().catch(()=>{});
+ }
+ scene="fall";
+ transitionStart=performance.now();
+
+ document.getElementById("pageTitle").textContent="Unser nächstes Abenteuer";
+ document.getElementById("pageSubtitle").textContent="Zwei Fahrräder, ein Ziel und ganz viel Wir ♥";
+ document.getElementById("controlsTitle").textContent="Steuerung:";
+ document.getElementById("help").innerHTML=
+ '<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>'+
+ 'Sammelt gemeinsam 52 Herzen in 60 Sekunden und weicht den Hindernissen aus!'+
+ '<div id="hint">🚲 Gemeinsam ans Ziel!</div>';
+
+ resetBikeGame();
 }
 
-function retryBike(){
-document.getElementById("failure").style.display="none";
-score=0;heartsSpawned=0;bikeElapsed=0;restaurantReached=false;bikeFailed=false;
-obstacles=[];collectibles=[];lastObstacleAt=0;roadOffset=0;
-bikePlayers.hasan.x=375;bikePlayers.hasan.y=500;bikePlayers.jill.x=575;bikePlayers.jill.y=500;
-countdownStarted=false;scene="landing";transitionStart=performance.now();
+function resetBikeGame(){
+ bikeStart=0;
+ bikeElapsed=0;
+ restaurantReached=false;
+ bikeFailed=false;
+ score=0;
+ heartsSpawned=0;
+ obstacles=[];
+ collectibles=[];
+ lastObstacleAt=0;
+ roadOffset=0;
+
+ // Hasan rechts, Jill links
+ bikePlayers.hasan.x=735;
+ bikePlayers.hasan.y=500;
+ bikePlayers.jill.x=265;
+ bikePlayers.jill.y=500;
 }
 
-function dodgeNoButton(){
-const b=document.getElementById("noButton"),a=document.getElementById("choices");
-const maxX=Math.max(0,a.clientWidth-b.offsetWidth),maxY=Math.max(0,a.clientHeight-b.offsetHeight);
-b.style.position="absolute";b.style.left=Math.random()*maxX+"px";b.style.top=Math.random()*maxY+"px";
-}
-document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButton);
-document.getElementById("noButton").addEventListener("click",dodgeNoButton);
-function interact(){if(opened||finaleStarted||scene!=="museum")return;const e=exhibits.find(item=>Math.hypot(hasan.x-item.x,hasan.y-(item.y+80))<115);if(e)openMemory(e)}
+// --------------------------------------------------
+// Fahrradspiel
+// --------------------------------------------------
 
 function drawBike(x,y,color,hair,name){
-ctx.save();ctx.translate(x,y);
-for(const wy of [-25,25]){
-ctx.fillStyle="#20232a";ctx.beginPath();ctx.ellipse(0,wy,12,18,0,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle="#b9c4c7";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,wy,8.5,14,0,0,Math.PI*2);ctx.stroke();
-ctx.strokeStyle="#7f898d";ctx.lineWidth=1;
-for(let a=0;a<8;a++){const ang=a*Math.PI/4;line(Math.cos(ang)*2,wy+Math.sin(ang)*3,Math.cos(ang)*8,wy+Math.sin(ang)*13,"#7f898d",.8)}
-}
-ctx.strokeStyle="#d9b77e";ctx.lineWidth=4;ctx.lineCap="round";ctx.beginPath();
-ctx.moveTo(0,-25);ctx.lineTo(-10,0);ctx.lineTo(0,25);ctx.lineTo(10,0);ctx.closePath();ctx.stroke();
-ctx.strokeStyle=color;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-25);ctx.lineTo(0,-9);ctx.lineTo(-10,0);ctx.lineTo(0,25);ctx.stroke();
-ctx.strokeStyle="#d5d9d7";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-27);ctx.lineTo(12,-27);ctx.stroke();
-ctx.fillStyle="#24252a";ctx.beginPath();ctx.roundRect(-6,-13,12,9,3);ctx.fill();
-ctx.strokeStyle="#252a34";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-6,7);ctx.lineTo(-14,14);ctx.lineTo(-10,19);ctx.moveTo(6,7);ctx.lineTo(14,14);ctx.lineTo(10,19);ctx.stroke();
-ctx.fillStyle="#e6e1d6";ctx.beginPath();ctx.ellipse(-10,20,5,3,0,0,Math.PI*2);ctx.ellipse(10,20,5,3,0,0,Math.PI*2);ctx.fill();
-ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,-2,11,15,0,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle="#e8c7a7";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-7,-8);ctx.lineTo(-12,-22);ctx.lineTo(-8,-28);ctx.moveTo(7,-8);ctx.lineTo(12,-22);ctx.lineTo(8,-28);ctx.stroke();
-ctx.fillStyle="#e8b18b";ctx.beginPath();ctx.arc(-8,-28,3,0,Math.PI*2);ctx.arc(8,-28,3,0,Math.PI*2);ctx.fill();
-ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,-15,10,0,Math.PI*2);ctx.fill();
-ctx.fillStyle="#e7ad83";ctx.beginPath();ctx.arc(0,-15,6.5,0,Math.PI*2);ctx.fill();
-ctx.fillStyle="#e7c66f";ctx.beginPath();ctx.ellipse(0,-17,11,8,0,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle="#fff0c4";ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(-9,-16);ctx.quadraticCurveTo(0,-28,9,-16);ctx.moveTo(-7,-11);ctx.lineTo(-4,-5);ctx.moveTo(7,-11);ctx.lineTo(4,-5);ctx.stroke();
-ctx.fillStyle="#fff0d5";ctx.font="bold 11px Arial";ctx.textAlign="center";ctx.fillText(name,0,53);
-ctx.restore();
+ ctx.save();
+ ctx.translate(x,y);
+
+ for(const wy of [-25,25]){
+  ctx.fillStyle="#20232a";
+  ctx.beginPath();
+  ctx.ellipse(0,wy,12,18,0,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.strokeStyle="#b9c4c7";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.ellipse(0,wy,8.5,14,0,0,Math.PI*2);
+  ctx.stroke();
+
+  for(let a=0;a<8;a++){
+   const ang=a*Math.PI/4;
+   line(Math.cos(ang)*2,wy+Math.sin(ang)*3,
+        Math.cos(ang)*8,wy+Math.sin(ang)*13,"#7f898d",.8);
+  }
+ }
+
+ ctx.strokeStyle="#d9b77e";
+ ctx.lineWidth=4;
+ ctx.lineCap="round";
+ ctx.beginPath();
+ ctx.moveTo(0,-25);
+ ctx.lineTo(-10,0);
+ ctx.lineTo(0,25);
+ ctx.lineTo(10,0);
+ ctx.closePath();
+ ctx.stroke();
+
+ ctx.strokeStyle=color;
+ ctx.lineWidth=5;
+ ctx.beginPath();
+ ctx.moveTo(0,-25);
+ ctx.lineTo(0,-9);
+ ctx.lineTo(-10,0);
+ ctx.lineTo(0,25);
+ ctx.stroke();
+
+ ctx.strokeStyle="#d5d9d7";
+ ctx.lineWidth=3;
+ ctx.beginPath();
+ ctx.moveTo(-12,-27);
+ ctx.lineTo(12,-27);
+ ctx.stroke();
+
+ ctx.fillStyle="#24252a";
+ ctx.beginPath();
+ ctx.roundRect(-6,-13,12,9,3);
+ ctx.fill();
+
+ ctx.strokeStyle="#252a34";
+ ctx.lineWidth=5;
+ ctx.beginPath();
+ ctx.moveTo(-6,7);
+ ctx.lineTo(-14,14);
+ ctx.lineTo(-10,19);
+ ctx.moveTo(6,7);
+ ctx.lineTo(14,14);
+ ctx.lineTo(10,19);
+ ctx.stroke();
+
+ ctx.fillStyle="#e6e1d6";
+ ctx.beginPath();
+ ctx.ellipse(-10,20,5,3,0,0,Math.PI*2);
+ ctx.ellipse(10,20,5,3,0,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.fillStyle=color;
+ ctx.beginPath();
+ ctx.ellipse(0,-2,11,15,0,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.strokeStyle="#e8c7a7";
+ ctx.lineWidth=4;
+ ctx.beginPath();
+ ctx.moveTo(-7,-8);
+ ctx.lineTo(-12,-22);
+ ctx.lineTo(-8,-28);
+ ctx.moveTo(7,-8);
+ ctx.lineTo(12,-22);
+ ctx.lineTo(8,-28);
+ ctx.stroke();
+
+ ctx.fillStyle="#e8b18b";
+ ctx.beginPath();
+ ctx.arc(-8,-28,3,0,Math.PI*2);
+ ctx.arc(8,-28,3,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.fillStyle=hair;
+ ctx.beginPath();
+ ctx.arc(0,-15,10,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.fillStyle="#e7ad83";
+ ctx.beginPath();
+ ctx.arc(0,-15,6.5,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.fillStyle="#e7c66f";
+ ctx.beginPath();
+ ctx.ellipse(0,-17,11,8,0,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.strokeStyle="#fff0c4";
+ ctx.lineWidth=1.8;
+ ctx.beginPath();
+ ctx.moveTo(-9,-16);
+ ctx.quadraticCurveTo(0,-28,9,-16);
+ ctx.moveTo(-7,-11);
+ ctx.lineTo(-4,-5);
+ ctx.moveTo(7,-11);
+ ctx.lineTo(4,-5);
+ ctx.stroke();
+
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 11px Arial";
+ ctx.textAlign="center";
+ ctx.fillText(name,0,53);
+ ctx.restore();
 }
 
 function drawHeart(x,y,size,number){
-ctx.save();ctx.translate(x,y);ctx.scale(size/24,size/24);
-ctx.shadowColor="#ff6b91";ctx.shadowBlur=12;ctx.fillStyle="#f04f78";ctx.beginPath();ctx.moveTo(0,9);
-ctx.bezierCurveTo(-5,5,-15,-2,-12,-10);ctx.bezierCurveTo(-10,-17,-2,-17,0,-10);
-ctx.bezierCurveTo(3,-18,12,-16,13,-9);ctx.bezierCurveTo(16,-1,6,6,0,9);ctx.fill();
-ctx.shadowBlur=0;ctx.strokeStyle="#ffd7df";ctx.lineWidth=1.4;ctx.stroke();
-ctx.fillStyle="#ffb2c3";ctx.beginPath();ctx.ellipse(-5,-9,2.3,4,-.5,0,Math.PI*2);ctx.fill();
-if(number){ctx.fillStyle="#fff7ed";ctx.font="bold 7px Arial";ctx.textAlign="center";ctx.fillText(String(number),0,19)}
-ctx.restore();
+ ctx.save();
+ ctx.translate(x,y);
+ ctx.scale(size/24,size/24);
+ ctx.shadowColor="#ff6b91";
+ ctx.shadowBlur=12;
+ ctx.fillStyle="#f04f78";
+ ctx.beginPath();
+ ctx.moveTo(0,9);
+ ctx.bezierCurveTo(-5,5,-15,-2,-12,-10);
+ ctx.bezierCurveTo(-10,-17,-2,-17,0,-10);
+ ctx.bezierCurveTo(3,-18,12,-16,13,-9);
+ ctx.bezierCurveTo(16,-1,6,6,0,9);
+ ctx.fill();
+ ctx.shadowBlur=0;
+ ctx.strokeStyle="#ffd7df";
+ ctx.lineWidth=1.4;
+ ctx.stroke();
+ ctx.fillStyle="#ffb2c3";
+ ctx.beginPath();
+ ctx.ellipse(-5,-9,2.3,4,-.5,0,Math.PI*2);
+ ctx.fill();
+ if(number){
+  ctx.fillStyle="#fff7ed";
+  ctx.font="bold 7px Arial";
+  ctx.textAlign="center";
+  ctx.fillText(String(number),0,19);
+ }
+ ctx.restore();
 }
 
 function drawObstacle(o){
-const x=o.x,y=o.y;ctx.save();ctx.translate(x,y);
-if(o.type==="syringe"){
-ctx.rotate(-.42);ctx.fillStyle="#d9e4e5";ctx.strokeStyle="#53636b";ctx.lineWidth=1.5;
-ctx.beginPath();ctx.roundRect(-17,-5,29,10,2);ctx.fill();ctx.stroke();
-ctx.fillStyle="#79bdc5";ctx.fillRect(-10,-4,15,8);
-ctx.strokeStyle="#e9eff0";ctx.lineWidth=2;
-for(let k=-7;k<8;k+=5){ctx.beginPath();ctx.moveTo(k,-4);ctx.lineTo(k,4);ctx.stroke()}
-ctx.strokeStyle="#d9e4e5";ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(23,0);ctx.moveTo(-19,-8);ctx.lineTo(-19,8);ctx.stroke();
-}else if(o.type==="bottle"){
-ctx.rotate(.3);ctx.fillStyle="#285d43";ctx.beginPath();ctx.roundRect(-17,-7,28,14,4);ctx.fill();
-ctx.fillStyle="#3e8059";ctx.fillRect(7,-4,11,8);ctx.fillStyle="#c6b67b";ctx.fillRect(-5,-6,7,12);
-ctx.fillStyle="#b6d1a5";ctx.fillRect(15,-3,5,6);ctx.strokeStyle="#183e30";ctx.lineWidth=1.5;ctx.stroke();
-}else if(o.type==="puddle"){
-ctx.fillStyle="#252d39";ctx.beginPath();ctx.ellipse(0,2,27,16,-.1,0,Math.PI*2);ctx.fill();
-ctx.strokeStyle="#9bbbc7";ctx.lineWidth=2;ctx.stroke();ctx.strokeStyle="#d0e7e9";ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(-7,-2,10,4,-.2,0,Math.PI*2);ctx.stroke();
-ctx.fillStyle="#657e89";ctx.beginPath();ctx.ellipse(13,7,5,2,.2,0,Math.PI*2);ctx.fill();
-}else if(o.type==="scooter"){
-ctx.rotate(-.18);ctx.fillStyle="#20262b";ctx.beginPath();ctx.roundRect(-20,-5,39,10,4);ctx.fill();
-ctx.fillStyle="#aeb9bd";ctx.fillRect(12,-17,4,15);ctx.fillRect(8,-19,12,3);
-ctx.fillStyle="#15191e";ctx.beginPath();ctx.arc(-15,7,5,0,Math.PI*2);ctx.arc(15,7,5,0,Math.PI*2);ctx.fill();
-ctx.fillStyle="#d5dadd";ctx.fillRect(-5,-3,10,3);
-}else if(o.type==="construction"){
-ctx.fillStyle="#34343a";ctx.fillRect(-25,11,50,6);ctx.fillRect(-21,8,5,8);ctx.fillRect(16,8,5,8);
-ctx.fillStyle="#ed743c";ctx.beginPath();ctx.roundRect(-23,-12,46,23,3);ctx.fill();
-ctx.save();ctx.beginPath();ctx.roundRect(-23,-12,46,23,3);ctx.clip();ctx.strokeStyle="#fff0d5";ctx.lineWidth=7;
-for(let k=-35;k<45;k+=18){ctx.beginPath();ctx.moveTo(k,12);ctx.lineTo(k-15,-12);ctx.stroke()}
-ctx.restore();ctx.fillStyle="#f5d36e";ctx.beginPath();ctx.arc(0,-16,4,0,Math.PI*2);ctx.fill();
-}else{
-ctx.fillStyle="#4e6948";ctx.beginPath();ctx.moveTo(-19,9);ctx.lineTo(-14,1);ctx.lineTo(-10,8);ctx.lineTo(-4,-1);ctx.lineTo(1,8);ctx.lineTo(8,0);ctx.lineTo(17,9);ctx.fill();
-ctx.fillStyle="#79513b";ctx.beginPath();ctx.ellipse(0,5,13,8,0,0,Math.PI*2);ctx.fill();
-ctx.beginPath();ctx.arc(-6,0,6,0,Math.PI*2);ctx.arc(2,-3,7,0,Math.PI*2);ctx.arc(8,3,5,0,Math.PI*2);ctx.fill();
-ctx.fillStyle="#a87954";ctx.beginPath();ctx.arc(2,-7,2.5,0,Math.PI*2);ctx.fill();
-}
-ctx.restore();
+ ctx.save();
+ ctx.translate(o.x,o.y);
+
+ if(o.type==="syringe"){
+  ctx.rotate(-.42);
+  ctx.fillStyle="#d9e4e5";
+  ctx.strokeStyle="#53636b";
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.roundRect(-17,-5,29,10,2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle="#79bdc5";
+  ctx.fillRect(-10,-4,15,8);
+  ctx.strokeStyle="#e9eff0";
+  ctx.lineWidth=2;
+  for(let k=-7;k<8;k+=5){
+   ctx.beginPath();
+   ctx.moveTo(k,-4);
+   ctx.lineTo(k,4);
+   ctx.stroke();
+  }
+  ctx.strokeStyle="#d9e4e5";
+  ctx.beginPath();
+  ctx.moveTo(12,0);
+  ctx.lineTo(23,0);
+  ctx.moveTo(-19,-8);
+  ctx.lineTo(-19,8);
+  ctx.stroke();
+
+ }else if(o.type==="bottle"){
+  ctx.rotate(.3);
+  ctx.fillStyle="#285d43";
+  ctx.beginPath();
+  ctx.roundRect(-17,-7,28,14,4);
+  ctx.fill();
+  ctx.fillStyle="#3e8059";
+  ctx.fillRect(7,-4,11,8);
+  ctx.fillStyle="#c6b67b";
+  ctx.fillRect(-5,-6,7,12;
+  ctx.fillStyle="#b6d1a5";
+  ctx.fillRect(15,-3,5,6);
+  ctx.strokeStyle="#183e30";
+  ctx.lineWidth=1.5;
+  ctx.stroke();
+
+ }else if(o.type==="puddle"){
+  ctx.fillStyle="#252d39";
+  ctx.beginPath();
+  ctx.ellipse(0,2,27,16,-.1,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#9bbbc7";
+  ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.strokeStyle="#d0e7e9";
+  ctx.beginPath();
+  ctx.ellipse(-7,-2,10,4,-.2,0,Math.PI*2);
+  ctx.stroke();
+
+ }else if(o.type==="scooter"){
+  ctx.rotate(-.18);
+  ctx.fillStyle="#20262b";
+  ctx.beginPath();
+  ctx.roundRect(-20,-5,39,10,4);
+  ctx.fill();
+  ctx.fillStyle="#aeb9bd";
+  ctx.fillRect(12,-17,4,15);
+  ctx.fillRect(8,-19,12,3);
+  ctx.fillStyle="#15191e";
+  ctx.beginPath();
+  ctx.arc(-15,7,5,0,Math.PI*2);
+  ctx.arc(15,7,5,0,Math.PI*2);
+  ctx.fill();
+
+ }else if(o.type==="construction"){
+  ctx.fillStyle="#34343a";
+  ctx.fillRect(-25,11,50,6);
+  ctx.fillRect(-21,8,5,8);
+  ctx.fillRect(16,8,5,8);
+  ctx.fillStyle="#ed743c";
+  ctx.beginPath();
+  ctx.roundRect(-23,-12,46,23,3);
+  ctx.fill();
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(-23,-12,46,23,3);
+  ctx.clip();
+  ctx.strokeStyle="#fff0d5";
+  ctx.lineWidth=7;
+  for(let k=-35;k<45;k+=18){
+   ctx.beginPath();
+   ctx.moveTo(k,12);
+   ctx.lineTo(k-15,-12);
+   ctx.stroke();
+  }
+  ctx.restore();
+
+ }else{
+  ctx.fillStyle="#79513b";
+  ctx.beginPath();
+  ctx.ellipse(0,5,13,8,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(-6,0,6,0,Math.PI*2);
+  ctx.arc(2,-3,7,0,Math.PI*2);
+  ctx.arc(8,3,5,0,Math.PI*2);
+  ctx.fill();
+ }
+ ctx.restore();
 }
 
 function spawnThings(){
-const t=performance.now()-bikeStart;
-if(t-lastObstacleAt>570){
-lastObstacleAt=t;
-const laneX=145+Math.random()*710,roll=Math.random();
-let type=roll<.20?"syringe":roll<.39?"bottle":roll<.58?"puddle":roll<.76?"scooter":roll<.90?"construction":"dogpoop";
-obstacles.push({x:laneX,y:-35,type,r:type==="puddle"?25:type==="construction"?25:19});
-}
-// Insgesamt 250 Herzen. Eines erscheint ungefähr alle 225 ms.
-const target=Math.min(250,Math.floor(t/225)+1);
-while(heartsSpawned<target){
-heartsSpawned++;
-collectibles.push({x:145+Math.random()*710,y:-35,r:15,number:heartsSpawned});
-}
+ const t=performance.now()-bikeStart;
+
+ if(t-lastObstacleAt>570){
+  lastObstacleAt=t;
+  const laneX=145+Math.random()*710;
+  const roll=Math.random();
+  let type=roll<.20?"syringe":
+           roll<.39?"bottle":
+           roll<.58?"puddle":
+           roll<.76?"scooter":
+           roll<.90?"construction":"dogpoop";
+  obstacles.push({
+   x:laneX,y:-35,type,
+   r:type==="puddle"?25:type==="construction"?25:19
+  });
+ }
+
+ // 100 Herzen, verteilt über die gesamte Fahrt
+ const target=Math.min(100,Math.floor(t/560)+1);
+ while(heartsSpawned<target){
+  heartsSpawned++;
+  collectibles.push({
+   x:145+Math.random()*710,
+   y:-35,
+   r:15
+  });
+ }
 }
 
 function drawBikeScene(now){
-const elapsed=now-bikeStart;
-bikeElapsed=Math.min(60,elapsed/1000);
-const progress=Math.min(1,elapsed/60000);
-box(0,0,W,H,"#3b5b49");box(70,0,860,H,"#5e5c65");box(90,0,820,H,"#4a4954");
-box(0,0,70,H,"#536d50");box(930,0,70,H,"#536d50");
-for(let y=-40+(roadOffset%100);y<H;y+=100){box(105,y,790,3,"#77717a");box(482,y,5,48,"#e3c98f")}
-for(let i=0;i<10;i++){const y=((i*83+roadOffset*1.5)%(H+60))-30;ctx.fillStyle=i%2?"#77936b":"#a2b77c";ctx.beginPath();ctx.arc(32,y,13,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(965,y+22,15,0,Math.PI*2);ctx.fill()}
-if(!restaurantReached){
-spawnThings();
-const speed=3.4;
-for(const p of Object.values(bikePlayers)){
-let dx=0,dy=0;
-if(p===bikePlayers.hasan){if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++}
-else{if(keys.a)dx--;if(keys.d)dx++;if(keys.w)dy--;if(keys.s)dy++}
-if(dx&&dy){dx*=.707;dy*=.707}
-p.x=Math.max(125,Math.min(875,p.x+dx*speed));
-p.y=Math.max(95,Math.min(555,p.y+dy*speed));
-}
-const scroll=4.4;roadOffset+=scroll;
-obstacles.forEach(o=>o.y+=scroll);
-collectibles.forEach(c=>c.y+=scroll);
-obstacles=obstacles.filter(o=>o.y<H+55);
-collectibles=collectibles.filter(c=>c.y<H+55);
-for(const o of obstacles){
-drawObstacle(o);
-if(!o.hitPlayers)o.hitPlayers={};
-for(const p of Object.values(bikePlayers)){
-if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
-o.hitPlayers[p.name]=true;
-p.x=Math.max(125,p.x-30);
-p.y=Math.max(95,Math.min(555,p.y+(p.y<o.y?-27:27)));
-bikeStart-=450;
-}
-}
-}
-for(const c of collectibles){
-ctx.fillStyle="#f8d28c";ctx.beginPath();ctx.arc(c.x,c.y,19,0,Math.PI*2);ctx.fill();
-drawHeart(c.x,c.y-2,25,null);
-for(const p of Object.values(bikePlayers)){
-if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<27){c.x=-100;score++;break}
-}
-}
-if(progress>.78){
-const a=(progress-.78)/.22;ctx.globalAlpha=Math.min(1,a);
-box(260,45,480,80,"#6b293b");ctx.strokeStyle="#e2bd7d";ctx.lineWidth=4;ctx.strokeRect(270,55,460,60);
-ctx.fillStyle="#ffe0a5";ctx.font="bold 27px Georgia";ctx.textAlign="center";ctx.fillText("RESTAURANT",500,88);
-ctx.font="13px Georgia";ctx.fillText("NOCH "+Math.ceil(60-bikeElapsed)+" SEKUNDEN",500,106);
-ctx.globalAlpha=1;
-}
-drawBike(bikePlayers.hasan.x,bikePlayers.hasan.y,bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
-drawBike(bikePlayers.jill.x,bikePlayers.jill.y,bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
-ctx.fillStyle="#fff0d5";ctx.font="bold 18px Arial";ctx.textAlign="left";ctx.fillText(Math.max(0,60-Math.floor(bikeElapsed))+" s",25,32);
-ctx.textAlign="right";ctx.fillText("♥ "+score+" / 52",975,32);
-drawHeart(30,584,25,null);
-ctx.fillStyle="#fff0d5";ctx.font="10px Arial";ctx.textAlign="left";ctx.fillText("SKIP",48,588);
-if(score>=52)restaurantReached=true;
-if(elapsed>=60000&&score<52&&!bikeFailed){
-bikeFailed=true;
-document.getElementById("failure").style.display="flex";
-}
-}else drawRestaurant();
+ const elapsed=now-bikeStart;
+ bikeElapsed=Math.min(60,elapsed/1000);
+ const progress=Math.min(1,elapsed/60000);
+
+ box(0,0,W,H,"#3b5b49");
+ box(70,0,860,H,"#5e5c65");
+ box(90,0,820,H,"#4a4954");
+ box(0,0,70,H,"#536d50");
+ box(930,0,70,H,"#536d50");
+
+ for(let y=-40+(roadOffset%100);y<H;y+=100){
+  box(105,y,790,3,"#77717a");
+  box(482,y,5,48,"#e3c98f");
+ }
+
+ for(let i=0;i<10;i++){
+  const y=((i*83+roadOffset*1.5)%(H+60))-30;
+  ctx.fillStyle=i%2?"#77936b":"#a2b77c";
+  ctx.beginPath();
+  ctx.arc(32,y,13,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(965,y+22,15,0,Math.PI*2);
+  ctx.fill();
+ }
+
+ if(!restaurantReached&&!bikeFailed){
+  spawnThings();
+  const speed=3.4;
+
+  for(const p of Object.values(bikePlayers)){
+   let dx=0,dy=0;
+
+   if(p===bikePlayers.hasan){
+    if(keys.ArrowLeft)dx--;
+    if(keys.ArrowRight)dx++;
+    if(keys.ArrowUp)dy--;
+    if(keys.ArrowDown)dy++;
+   }else{
+    if(keys.a)dx--;
+    if(keys.d)dx++;
+    if(keys.w)dy--;
+    if(keys.s)dy++;
+   }
+
+   if(dx&&dy){dx*=.707;dy*=.707}
+   p.x=Math.max(125,Math.min(875,p.x+dx*speed));
+   p.y=Math.max(95,Math.min(555,p.y+dy*speed));
+  }
+
+  const scroll=4.4;
+  roadOffset+=scroll;
+  obstacles.forEach(o=>o.y+=scroll);
+  collectibles.forEach(c=>c.y+=scroll);
+
+  obstacles=obstacles.filter(o=>o.y<H+55);
+  collectibles=collectibles.filter(c=>c.y<H+55);
+
+  for(const o of obstacles){
+   drawObstacle(o);
+   if(!o.hitPlayers)o.hitPlayers={};
+
+   for(const p of Object.values(bikePlayers)){
+    if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
+     o.hitPlayers[p.name]=true;
+     p.x=Math.max(125,p.x-30);
+     p.y=Math.max(95,Math.min(555,p.y+(p.y<o.y?-27:27)));
+     bikeStart-=450;
+    }
+   }
+  }
+
+  for(const c of collectibles){
+   ctx.fillStyle="#f8d28c";
+   ctx.beginPath();
+   ctx.arc(c.x,c.y,19,0,Math.PI*2);
+   ctx.fill();
+   drawHeart(c.x,c.y-2,25,null);
+
+   for(const p of Object.values(bikePlayers)){
+    if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<27){
+     c.x=-100;
+     score++;
+     break;
+    }
+   }
+  }
+
+  drawBike(bikePlayers.hasan.x,bikePlayers.hasan.y,
+           bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
+  drawBike(bikePlayers.jill.x,bikePlayers.jill.y,
+           bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
+
+  ctx.fillStyle="#fff0d5";
+  ctx.font="bold 18px Arial";
+  ctx.textAlign="left";
+  ctx.fillText(Math.max(0,60-Math.floor(bikeElapsed))+" s",25,32);
+  ctx.textAlign="right";
+  ctx.fillText("♥ "+score+" / 52",975,32);
+
+  if(score>=52){
+   restaurantReached=true;
+   scene="arrival";
+   transitionStart=now;
+  }
+
+  if(elapsed>=60000&&score<52){
+   bikeFailed=true;
+   showBikeFailure();
+  }
+
+ }else if(restaurantReached){
+  drawRestaurantArrival();
+ }
 }
 
-function drawRestaurant(){
-box(0,0,W,H,"#b9a18a");
-box(0,0,W,390,"#c9c2b2");
-for(let x=0;x<W;x+=115){box(x,0,4,390,"#b5ad9e");for(let y=0;y<390;y+=92)line(x,y,x+115,y,"#b9b2a4",2)}
-box(0,0,205,390,"#a95745");
-for(let y=12;y<390;y+=28)for(let x=(y%56?0:28);x<205;x+=56)line(x,y,x+48,y,"#d18a70",2);
-for(let x=24;x<180;x+=65){box(x,45,36,92,"#493b38");box(x+5,50,26,82,"#b7c5bd");line(x+18,50,x+18,132,"#65564b",3);line(x+5,90,x+31,90,"#65564b",3)}
-box(205,0,795,390,"#d1c9b7");box(205,0,795,22,"#b8ad9b");box(205,22,795,9,"#eee0c6");
-for(let x=260;x<950;x+=190){
-box(x,35,100,112,"#62534b");box(x+7,42,86,98,"#b8c8c1");box(x+12,48,76,85,"#d7dfd5");
-line(x+50,43,x+50,140,"#66594e",5);line(x+9,91,x+94,91,"#66594e",4);box(x-8,143,116,8,"#e5d6bd");
+function showBikeFailure(){
+ document.getElementById("resultEmoji").textContent="💔";
+ document.getElementById("resultTitle").textContent="Oh nein!";
+ document.getElementById("resultText").textContent=
+ "Mist. Ihr habt nicht genügend Herzen eingesammelt und euch beide den Ellenbogen gebrochen. Probiert es erneut!";
+ document.getElementById("resultButton").textContent="Nochmal versuchen ❤️";
+ document.getElementById("resultButton").onclick=()=>{
+  document.getElementById("result").style.display="none";
+  resetBikeGame();
+  scene="landing";
+  transitionStart=performance.now();
+ };
+ document.getElementById("result").style.display="flex";
 }
-box(235,155,735,235,"#702b3d");box(250,169,705,221,"#8d3545");
-box(230,145,750,45,"#752b3c");
-for(let x=230;x<980;x+=50){
-ctx.fillStyle=(Math.floor((x-230)/50)%2===0)?"#8b3446":"#e4d0b7";
-ctx.beginPath();ctx.moveTo(x,145);ctx.lineTo(x+50,145);ctx.lineTo(x+45,190);ctx.lineTo(x+5,190);ctx.closePath();ctx.fill();
+
+// --------------------------------------------------
+// Weinblatt – Ankunft, Außenbereich und Innenraum
+// --------------------------------------------------
+
+function drawRestaurantFacade(){
+ box(0,0,W,H,"#b8a18b");
+ box(0,0,W,105,"#59433c");
+ box(0,105,W,515,"#d4b99a");
+
+ // Altbau-Fassade
+ box(25,35,950,560,"#d9c5a8");
+ box(25,35,950,12,"#92765f");
+ box(25,575,950,20,"#92765f");
+
+ // Fenster links und rechts
+ for(const x of [65,790]){
+  box(x,150,145,250,"#563e37");
+  box(x+9,159,127,232,"#b8c3b0");
+  line(x+72,159,x+72,391,"#654a3d",6);
+  line(x+9,270,x+136,270,"#654a3d",6);
+ }
+
+ // Weinblatt-Ladenfront
+ box(280,105,440,400,"#572d36");
+ box(295,120,410,370,"#8b4650");
+ box(310,135,380,355,"#392c2b");
+
+ // Markise
+ box(275,115,450,52,"#eee0c5");
+ for(let i=0;i<9;i++){
+  box(275+i*50,115,25,52,i%2?"#eee0c5":"#8b4650");
+ }
+ box(275,160,450,10,"#5c3437");
+
+ // Schild
+ box(355,180,290,55,"#f0dfc1");
+ ctx.strokeStyle="#a77a53";
+ ctx.lineWidth=3;
+ ctx.strokeRect(361,186,278,43);
+ ctx.fillStyle="#633d37";
+ ctx.font="bold 30px Georgia";
+ ctx.textAlign="center";
+ ctx.fillText("WEINBLATT",500,218);
+
+ // Tür
+ box(455,265,100,225,"#593d32");
+ box(463,273,84,209,"#b2b8a3");
+ box(471,281,68,190,"#687e70");
+ ctx.fillStyle="#d6b77d";
+ ctx.beginPath();
+ ctx.arc(532,380,5,0,Math.PI*2);
+ ctx.fill();
+
+ // Schaufenster mit Flaschen und warmem Licht
+ box(320,265,115,210,"#e6c88c");
+ box(328,273,99,194,"#f5d9a1");
+ for(let i=0;i<5;i++){
+  const x=340+i*17;
+  box(x,350,10,65,i%2?"#58785a":"#8b4d42");
+  box(x+2,340,6,12,"#d9bd85");
+  box(x-2,415,14,4,"#75533d");
+ }
+ ctx.fillStyle="#fff0d5";
+ ctx.font="13px Georgia";
+ ctx.fillText("FRISCHE · WEIN · FEINKOST",500,525);
+
+ // Pflanzkübel und Gehweg
+ plant(240,545);
+ plant(760,545);
+ box(0,595,W,25,"#806d61");
+ for(let x=0;x<W;x+=65)line(x,595,x-20,620,"#a28b78",2);
 }
-ctx.fillStyle="#f4e5d0";ctx.font="italic bold 27px Georgia";ctx.textAlign="center";ctx.fillText("Weinblatt",610,177);
-box(520,205,255,145,"#332d2b");box(528,213,239,129,"#d9a45d");box(538,223,219,108,"#b85e32");box(548,232,199,92,"#e6b86e");
-box(548,237,199,5,"#5b3d30");box(548,286,199,5,"#5b3d30");
-for(let i=0;i<9;i++){const x=557+i*21,h=27+(i%3)*8;box(x,258-h,10,h,"#315746");box(x+2,250-h,6,8,"#d2c29a");box(x,302,10,22,"#8d553d")}
-ctx.fillStyle="#f7d79a";ctx.font="bold 12px Arial";ctx.fillText("Feinkost · Wein · Antipasti",650,337);
-box(795,194,145,196,"#392d2a");box(803,202,129,180,"#5c4236");box(812,211,111,163,"#292a28");box(818,217,99,151,"#a8754d");box(824,223,87,137,"#46342e");box(830,229,75,125,"#b58b60");
-line(867,229,867,354,"#5b4033",4);ctx.fillStyle="#e6c17b";ctx.beginPath();ctx.arc(895,292,4,0,Math.PI*2);ctx.fill();
-box(260,205,105,132,"#292b2b");box(267,212,91,118,"#393a35");
-ctx.fillStyle="#f1e6d0";ctx.textAlign="center";ctx.font="italic 12px Georgia";ctx.fillText("Antipasti",312,235);
-ctx.font="10px Georgia";ctx.fillText("Oliven · Käse",312,254);ctx.fillText("Pasta",312,273);ctx.fillText("Dolci",312,291);ctx.fillText("Vino",312,309);
-box(375,218,115,108,"#292b2b");ctx.fillStyle="#f1e6d0";ctx.font="italic 11px Georgia";ctx.fillText("Täglich frisch",432,243);
-ctx.font="10px Georgia";ctx.fillText("Hausgemacht",432,263);ctx.fillText("aus der Küche",432,280);ctx.fillText("Buon appetito!",432,302);
-box(0,390,W,230,"#77716a");
-for(let y=395;y<620;y+=35){line(0,y,W,y,"#a59a89",2);for(let x=(y%70?0:45);x<W;x+=95)line(x,y,x-30,y+35,"#625f5b",2)}
-function cafeTable(x,y,scale=1){
-ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
-line(-42,8,-48,75,"#29282a",6);line(42,8,48,75,"#29282a",6);
-ctx.fillStyle="#eee1cf";ctx.fillRect(-55,-4,110,55);
-ctx.save();ctx.beginPath();ctx.rect(-55,-4,110,55);ctx.clip();
-for(let xx=-55;xx<60;xx+=18)for(let yy=-4;yy<55;yy+=18){
-ctx.fillStyle=((Math.floor((xx+55)/18)+Math.floor((yy+4)/18))%2===0)?"#8e3545":"#f1e5d4";ctx.fillRect(xx,yy,18,18);
+
+function drawRestaurantArrival(){
+ drawRestaurantFacade();
+
+ box(0,0,W,75,"#211b2cbb");
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 25px Georgia";
+ ctx.textAlign="center";
+ ctx.fillText("WEINBLATT – GESCHAFFT! ♥",500,44);
+
+ // Ihr seid abgestiegen und steht als normale Figuren vor dem Laden
+ drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
+ drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
+
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 15px Arial";
+ ctx.textAlign="center";
+ ctx.fillText("Geht gemeinsam zur Eingangstür!",500,575);
 }
-ctx.restore();ctx.strokeStyle="#5a2d32";ctx.lineWidth=2;ctx.strokeRect(-55,-4,110,55);
-ctx.fillStyle="#d8e5dc";ctx.fillRect(-5,5,9,17);ctx.fillStyle="#e6d4a5";ctx.beginPath();ctx.arc(0,3,5,0,Math.PI*2);ctx.fill();
-ctx.fillStyle="#66804e";ctx.fillRect(18,4,3,14);ctx.fillStyle="#d8a36c";ctx.beginPath();ctx.arc(19,1,5,0,Math.PI*2);ctx.fill();
-ctx.restore();
+
+function drawRestaurantInterior(){
+ // Warmer, gemütlicher Feinkostladen mit Holzboden und Altbau-Charme
+ box(0,0,W,H,"#4a3433");
+ box(0,0,W,370,"#d7b994");
+ box(0,370,W,250,"#795744");
+
+ // Wandvertäfelung
+ for(let x=0;x<W;x+=125){
+  box(x,0,5,370,"#b58d69");
+ }
+ box(0,355,W,16,"#704c3d");
+
+ // Holzboden
+ for(let y=400;y<620;y+=43){
+  line(0,y,W,y,"#aa8061",2);
+ }
+ for(let x=0;x<W;x+=150){
+  line(x,370,x-55,620,"#674738",2);
+ }
+
+ // Hängelampen
+ for(const x of [180,500,820]){
+  line(x,0,x,70,"#4c3830",3);
+  ctx.fillStyle="#d6aa68";
+  ctx.beginPath();
+  ctx.arc(x,90,35,Math.PI,0);
+  ctx.lineTo(x+35,90);
+  ctx.lineTo(x-35,90);
+  ctx.fill();
+  glow(x,120,100,"#ffdb8b25");
+ }
+
+ // Regale an der Rückwand
+ for(let i=0;i<3;i++){
+  const x=70+i*300;
+  box(x,130,240,125,"#674638");
+  box(x+8,138,224,108,"#8a6249");
+  for(let j=0;j<7;j++){
+   const bx=x+18+j*29;
+   box(bx,160,13,57,j%2?"#6e8a64":"#9a5148");
+   box(bx+3,151,7,11,"#d6b77d");
+  }
+  box(x,245,240,9,"#4c342d");
+ }
+
+ // Helle Kacheln hinter der Frischetheke
+ box(0,270,W,100,"#e8d7bd");
+ for(let x=0;x<W;x+=50){
+  line(x,270,x,370,"#c5ad91",2);
+ }
+ line(0,320,W,320,"#c5ad91",2);
+
+ // Frischetheke im Vordergrund
+ box(80,340,840,160,"#6d4938");
+ box(95,350,810,120,"#e8dfc9");
+ box(95,350,810,12,"#fff3dd");
+ box(95,470,810,25,"#4d342d");
+
+ // Auslage mit Käse, Gemüse, Antipasti und Brot
+ const foodColors=["#e5bc58","#a84e42","#6e8955","#d69a57","#c7a76b"];
+ for(let i=0;i<10;i++){
+  const x=130+i*78;
+  ctx.fillStyle=foodColors[i%foodColors.length];
+  ctx.beginPath();
+  ctx.ellipse(x,410,25,16,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#f1dfbd";
+  ctx.beginPath();
+  ctx.arc(x-7,405,4,0,Math.PI*2);
+  ctx.fill();
+ }
+ // Schalen und Kräuter
+ for(let i=0;i<5;i++){
+  const x=170+i*160;
+  ctx.fillStyle="#8c6047";
+  ctx.beginPath();
+  ctx.ellipse(x,445,33,11,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#6e8955";
+  for(let j=0;j<5;j++){
+   ctx.beginPath();
+   ctx.arc(x-18+j*9,438,5,0,Math.PI*2);
+   ctx.fill();
+  }
+ }
+
+ // Kleine Details: Weinflaschen und Pflanzen
+ for(let i=0;i<6;i++){
+  const x=90+i*150;
+  box(x,190,13,54,"#52714e");
+  box(x+3,180,7,12,"#d4bd8a");
+ }
+ plant(950,365);
+
+ // Frischetheken-Schild
+ box(370,290,260,35,"#f5e8d2");
+ ctx.fillStyle="#62473b";
+ ctx.font="bold 18px Georgia";
+ ctx.textAlign="center";
+ ctx.fillText("FRISCHE & FEINKOST",500,314);
+
+ // Mitarbeiterin hinter der Theke
+ drawShopkeeper();
+
+ // Ihr steht vor der Theke
+ drawCharacter(hasanImages,420,565,"front",false);
+ drawCharacter(jillImages,580,565,"front",false);
+
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 16px Arial";
+ ctx.fillText("Willkommen im Weinblatt!",500,40);
 }
-cafeTable(180,495,.85);cafeTable(455,505,.9);cafeTable(835,500,.9);
-function chair(x,y){
-ctx.strokeStyle="#252629";ctx.lineWidth=7;ctx.lineCap="round";ctx.beginPath();
-ctx.moveTo(x-18,y);ctx.lineTo(x-18,y+53);ctx.moveTo(x+18,y);ctx.lineTo(x+18,y+53);
-ctx.moveTo(x-18,y+5);ctx.lineTo(x+18,y+5);ctx.moveTo(x-18,y+22);ctx.lineTo(x+18,y+22);ctx.stroke();
-ctx.fillStyle="#71303d";ctx.fillRect(x-20,y-10,40,23);
+
+function drawShopkeeper(){
+ // Freundliche Mitarbeiterin mit Schürze hinter der Theke
+ ctx.save();
+ ctx.translate(500,280);
+
+ // Körper und Schürze
+ ctx.fillStyle="#e7d2b9";
+ ctx.beginPath();
+ ctx.roundRect(-25,-5,50,80,12);
+ ctx.fill();
+
+ ctx.fillStyle="#7b4650";
+ ctx.beginPath();
+ ctx.roundRect(-29,20,58,65,7);
+ ctx.fill();
+
+ // Hals
+ box(-7,-15,14,20,"#d6a17e");
+
+ // Kopf
+ ctx.fillStyle="#d6a17e";
+ ctx.beginPath();
+ ctx.arc(0,-38,24,0,Math.PI*2);
+ ctx.fill();
+
+ // Haare
+ ctx.fillStyle="#594036";
+ ctx.beginPath();
+ ctx.arc(0,-48,25,Math.PI,Math.PI*2);
+ ctx.lineTo(25,-25);
+ ctx.lineTo(18,-12);
+ ctx.lineTo(-20,-12);
+ ctx.lineTo(-25,-25);
+ ctx.fill();
+
+ // Gesicht
+ ctx.fillStyle="#513a35";
+ ctx.beginPath();
+ ctx.arc(-8,-39,2,0,Math.PI*2);
+ ctx.arc(8,-39,2,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.strokeStyle="#8b5146";
+ ctx.lineWidth=2;
+ ctx.beginPath();
+ ctx.arc(0,-31,7,.1,Math.PI-.1);
+ ctx.stroke();
+
+ // Arme
+ ctx.strokeStyle="#d6a17e";
+ ctx.lineWidth=9;
+ ctx.beginPath();
+ ctx.moveTo(-22,5);
+ ctx.lineTo(-43,35);
+ ctx.moveTo(22,5);
+ ctx.lineTo(43,35);
+ ctx.stroke();
+
+ ctx.restore();
 }
-chair(115,530);chair(240,535);chair(390,550);chair(520,552);chair(780,535);chair(900,540);
-glow(650,255,95,"#ffd58b38");glow(860,270,80,"#ffd58b25");
-ctx.fillStyle="#1e1d1c";ctx.fillRect(25,405,140,62);ctx.strokeStyle="#c9a66c";ctx.lineWidth=3;ctx.strokeRect(25,405,140,62);
-ctx.fillStyle="#f4e5d0";ctx.font="italic 16px Georgia";ctx.textAlign="center";ctx.fillText("Willkommen!",95,431);
-ctx.font="11px Georgia";ctx.fillText("WEINBLATT",95,451);
-ctx.fillStyle="#211b2ce8";ctx.fillRect(0,0,W,78);
-ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 34px Georgia";ctx.fillText("WEINBLATT",500,39);
-ctx.font="14px Arial";ctx.fillText("Geschafft – ihr seid angekommen! ♥",500,62);
-ctx.fillStyle="#fff0d5";ctx.font="bold 16px Arial";ctx.fillText("Eure 52 Wochen-Herzen: "+score+" / 52",500,603);
-drawBike(445,360,bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
-drawBike(555,360,bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
+
+// --------------------------------------------------
+// Restaurant-Tür und Dialog
+// --------------------------------------------------
+
+function enterRestaurant(){
+ scene="interior";
+ hasan.x=420;
+ hasan.y=550;
+ hasan.direction="front";
+ jill.x=580;
+ jill.y=550;
+ jill.direction="front";
+
+ document.getElementById("pageTitle").textContent="Ein Besuch im Weinblatt";
+ document.getElementById("pageSubtitle").textContent="Ein bisschen Feinkost, ein bisschen Liebe ♥";
+ document.getElementById("controlsTitle").textContent="Steuerung:";
+ document.getElementById("help").innerHTML=
+ '<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>'+
+ 'Geht zur Frischetheke und sprecht mit der Mitarbeiterin (E oder Leertaste).'+
+ '<div id="hint">🍷 Willkommen im Weinblatt!</div>';
 }
+
+function acceptFood(){
+ document.getElementById("dialogue").style.display="none";
+ document.getElementById("foodIntro").style.display="flex";
+ scene="foodIntro";
+}
+
+// --------------------------------------------------
+// Essensspiel
+// --------------------------------------------------
+
+const foodItems=[
+ {emoji:"🧀",name:"Käse"},
+ {emoji:"🥖",name:"Baguette"},
+ {emoji:"🍅",name:"Tomaten"},
+ {emoji:"🫒",name:"Oliven"},
+ {emoji:"🥒",name:"Antipasti"},
+ {emoji:"🍇",name:"Trauben"},
+ {emoji:"🥕",name:"Karotten"},
+ {emoji:"🥪",name:"Sandwich"},
+ {emoji:"🍄",name:"Pilze"},
+ {emoji:"🥑",name:"Avocado"},
+ {emoji:"🍓",name:"Erdbeeren"},
+ {emoji:"🥐",name:"Croissant"}
+];
+
+function startFoodGame(){
+ document.getElementById("foodIntro").style.display="none";
+ scene="food";
+ foodPlayers.hasan.column=7;
+ foodPlayers.jill.column=0;
+ fallingFood=[];
+ deliciousCount=0;
+ greenSauceHits=0;
+ foodFinished=false;
+ foodStart=performance.now();
+ lastFoodSpawn=0;
+}
+
+function restartFoodGame(){
+ document.getElementById("result").style.display="none";
+ document.getElementById("foodIntro").style.display="flex";
+ scene="foodIntro";
+}
+
+function spawnFood(){
+ const now=performance.now();
+ if(now-lastFoodSpawn<850)return;
+ lastFoodSpawn=now;
+
+ const column=Math.floor(Math.random()*FOOD_COLUMNS);
+ const isSauce=Math.random()<.19;
+
+ fallingFood.push({
+  column,
+  x:FOOD_X[column],
+  y:-35,
+  speed:1.65+Math.random()*.45,
+  sauce:isSauce,
+  emoji:isSauce?"🥣":foodItems[Math.floor(Math.random()*foodItems.length)].emoji,
+  name:isSauce?"Frankfurter Grüne Soße":"Leckerei",
+  caught:false
+ });
+}
+
+function moveFoodPlayers(){
+ // Hasan: Pfeiltasten links/rechts
+ if(keys.ArrowLeft&& !foodPlayers.hasan.leftHeld){
+  foodPlayers.hasan.column=Math.max(0,foodPlayers.hasan.column-1);
+  foodPlayers.hasan.leftHeld=true;
+ }
+ if(!keys.ArrowLeft)foodPlayers.hasan.leftHeld=false;
+
+ if(keys.ArrowRight&&!foodPlayers.hasan.rightHeld){
+  foodPlayers.hasan.column=Math.min(7,foodPlayers.hasan.column+1);
+  foodPlayers.hasan.rightHeld=true;
+ }
+ if(!keys.ArrowRight)foodPlayers.hasan.rightHeld=false;
+
+ // Jill: A und D
+ if(keys.a&&!foodPlayers.jill.leftHeld){
+  foodPlayers.jill.column=Math.max(0,foodPlayers.jill.column-1);
+  foodPlayers.jill.leftHeld=true;
+ }
+ if(!keys.a)foodPlayers.jill.leftHeld=false;
+
+ if(keys.d&&!foodPlayers.jill.rightHeld){
+  foodPlayers.jill.column=Math.min(7,foodPlayers.jill.column+1);
+  foodPlayers.jill.rightHeld=true;
+ }
+ if(!keys.d)foodPlayers.jill.rightHeld=false;
+
+ foodPlayers.hasan.x=FOOD_X[foodPlayers.hasan.column];
+ foodPlayers.jill.x=FOOD_X[foodPlayers.jill.column];
+}
+
+function drawFoodBackground(){
+ box(0,0,W,H,"#e8d9c4");
+
+ // Hintergrund wie eine Feinkosttheke
+ box(0,0,W,100,"#704d3e");
+ ctx.fillStyle="#f6e5c9";
+ ctx.font="bold 26px Georgia";
+ ctx.textAlign="center";
+ ctx.fillText("DIE WEINBLATT-FRISCHEtheke".toUpperCase(),500,55);
+
+ // Acht Spalten
+ for(let i=0;i<FOOD_COLUMNS;i++){
+  const x=FOOD_X[i];
+  box(x-47,115,94,435,i%2?"#f4e9d8":"#eadcc8");
+  ctx.strokeStyle="#c3a98b";
+  ctx.lineWidth=2;
+  ctx.strokeRect(x-47,115,94,435);
+  ctx.fillStyle="#8b6c56";
+  ctx.font="12px Arial";
+  ctx.fillText(String(i+1),x,135);
+ }
+
+ // Auffangbereich
+ box(0,550,W,70,"#75513d");
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 15px Arial";
+ ctx.fillText("EURE TELLER",500,607);
+}
+
+function drawFallingFood(item){
+ ctx.save();
+ ctx.font="34px Arial";
+ ctx.textAlign="center";
+ ctx.textBaseline="middle";
+
+ if(item.sauce){
+  ctx.fillStyle="#6b9a52";
+  ctx.beginPath();
+  ctx.ellipse(item.x,item.y,24,20,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#d7e7b8";
+  ctx.lineWidth=3;
+  ctx.stroke();
+  ctx.fillStyle="#fff";
+  ctx.font="25px Arial";
+  ctx.fillText("🥣",item.x,item.y+1);
+ }else{
+  ctx.fillStyle="#fff7e8";
+  ctx.beginPath();
+  ctx.arc(item.x,item.y,25,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#c8a77f";
+  ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.fillText(item.emoji,item.x,item.y+1);
+ }
+ ctx.restore();
+}
+
+function drawFoodPlayer(player,images){
+ const image=images.front;
+ if(image&&image.complete&&image.naturalWidth>0){
+  ctx.drawImage(image,player.x-32,player.y-100,64,100);
+ }else{
+  ctx.fillStyle=player.color;
+  ctx.beginPath();
+  ctx.arc(player.x,player.y-45,18,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillRect(player.x-15,player.y-30,30,30);
+ }
+}
+
+function drawFoodHUD(){
+ box(20,15,270,55,"#4d3832dd");
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 18px Arial";
+ ctx.textAlign="left";
+ ctx.fillText("🍽️ Leckereien: "+deliciousCount+" / 40",35,49);
+
+ box(710,15,270,55,"#4d3832dd");
+ ctx.fillStyle="#fff0d5";
+ ctx.textAlign="right";
+ ctx.fillText("🥣 Grüne Soße: "+greenSauceHits+" / 2",965,49);
+}
+
+function drawFoodGame(now){
+ drawFoodBackground();
+ moveFoodPlayers();
+ spawnFood();
+
+ for(const item of fallingFood){
+  item.y+=item.speed;
+  drawFallingFood(item);
+
+  if(!item.caught&&item.y>=500&&item.y<=560){
+   const players=[foodPlayers.hasan,foodPlayers.jill];
+
+   for(const player of players){
+    if(player.column===item.column){
+     item.caught=true;
+
+     if(item.sauce){
+      greenSauceHits++;
+     }else{
+      deliciousCount++;
+     }
+     break;
+    }
+   }
+  }
+ }
+
+ fallingFood=fallingFood.filter(item=>item.y<590&&!item.caught);
+
+ drawFoodPlayer(foodPlayers.hasan,hasanImages);
+ drawFoodPlayer(foodPlayers.jill,jillImages);
+
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 13px Arial";
+ ctx.textAlign="center";
+ ctx.fillText("HASAN",foodPlayers.hasan.x,540);
+ ctx.fillText("JILL",foodPlayers.jill.x,540);
+
+ drawFoodHUD();
+
+ // Gewinnbedingung
+ if(deliciousCount>=40&&greenSauceHits<=2){
+  finishFoodGame(true);
+  return;
+ }
+
+ // Mehr als zwei Portionen Grüne Soße: verloren
+ if(greenSauceHits>2){
+  finishFoodGame(false);
+ }
+}
+
+function finishFoodGame(won){
+ if(foodFinished)return;
+ foodFinished=true;
+ scene="foodResult";
+
+ if(won){
+  document.getElementById("resultEmoji").textContent="🥂❤️";
+  document.getElementById("resultTitle").textContent="Das perfekte Weinblatt-Menü!";
+  document.getElementById("resultText").textContent=
+   "Ihr habt "+deliciousCount+" leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
+  document.getElementById("resultButton").textContent="Unser Abenteuer nochmal spielen";
+  document.getElementById("resultButton").onclick=()=>{
+   document.getElementById("result").style.display="none";
+   scene="museum";
+   hasan.x=500;
+   hasan.y=460;
+   jill.x=-80;
+   finaleStarted=false;
+   finaleFinished=false;
+   seenMemories.clear();
+   document.getElementById("pageTitle").textContent="Das Museum unserer kleinen Welt";
+   document.getElementById("pageSubtitle").textContent="Ein Abenteuer für Hasan ♥";
+   document.getElementById("help").innerHTML=
+    '<b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>'+
+    'Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.'+
+    '<div id="hint">✦ Drei Erinnerungen warten darauf, entdeckt zu werden.</div>';
+  };
+ }else{
+  document.getElementById("resultEmoji").textContent="🥣";
+  document.getElementById("resultTitle").textContent="Oh nein – zu viel Grüne Soße!";
+  document.getElementById("resultText").textContent=
+   "Euch hat die Frankfurter Grüne Soße mehr als zweimal erwischt. Das Essen ist damit leider nicht ganz nach eurem Geschmack. Probiert es noch einmal!";
+  document.getElementById("resultButton").textContent="Nochmal versuchen";
+  document.getElementById("resultButton").onclick=restartFoodGame;
+ }
+
+ document.getElementById("result").style.display="flex";
+}
+
+// --------------------------------------------------
+// Übergänge und Spielablauf
+// --------------------------------------------------
 
 function drawFall(now){
-drawRoom();drawHasan();drawJill();const t=(now-transitionStart)/1000;
-ctx.fillStyle="#211b2c";ctx.globalAlpha=Math.min(.88,t*.9);ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
-ctx.fillStyle="#f4d8a5";ctx.textAlign="center";ctx.font="bold 34px Georgia";ctx.fillText("Und los geht’s …",500,285);
-if(t>.65){scene="landing";transitionStart=now}
+ drawRoom();
+ drawHasan();
+ drawJill();
+ const t=(now-transitionStart)/1000;
+ ctx.fillStyle="#211b2c";
+ ctx.globalAlpha=Math.min(.88,t*.9);
+ ctx.fillRect(0,0,W,H);
+ ctx.globalAlpha=1;
+ ctx.fillStyle="#f4d8a5";
+ ctx.textAlign="center";
+ ctx.font="bold 34px Georgia";
+ ctx.fillText("Und los geht’s …",500,285);
+ if(t>.65){
+  scene="landing";
+  transitionStart=now;
+ }
 }
 
 function drawLanding(now){
-box(0,0,W,H,"#3b5b49");box(70,0,860,H,"#5e5c65");box(90,0,820,H,"#4a4954");
-box(105,38,790,340,"#6b293b");ctx.strokeStyle="#e2bd7d";ctx.lineWidth=4;ctx.strokeRect(118,51,764,314);
-ctx.fillStyle="#ffe0a5";ctx.textAlign="center";ctx.font="bold 31px Georgia";ctx.fillText("Auf zum Restaurant!",500,91);
-ctx.font="bold 18px Arial";ctx.fillText("Passt auf im Berliner Straßenverkehr!",500,132);
-ctx.font="15px Arial";ctx.fillText("Weicht den Berliner Hindernissen aus – Baustellen,",500,168);
-ctx.fillText("E-Scootern, Flaschen, Pfützen und mehr.",500,192);
-ctx.fillText("Sammelt gemeinsam 52 Herzen: eins für jede Woche,",500,226);
-ctx.fillText("die ihr schon zusammen seid. ♥",500,250);
-ctx.font="bold 15px Arial";ctx.fillText("Hasan: Pfeiltasten   ·   Jill: W A S D",500,286);
-ctx.font="bold 16px Arial";ctx.fillText("Bereit? Dann klick auf LOS!",500,320);
-drawBike(390,405,"#243e65","#38251f","HASAN");drawBike(610,405,"#6d3048","#4b241c","JILL");
-if(!countdownStarted){
-ctx.fillStyle="#f0c77d";ctx.strokeStyle="#fff0d5";ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(420,480,160,58,12);ctx.fill();ctx.stroke();
-ctx.fillStyle="#54283b";ctx.font="bold 25px Arial";ctx.fillText("LOS!",500,517);
-}else{
-const t=(now-countdownStart)/1000;let label="";
-if(t<1)label="3";else if(t<2)label="2";else if(t<3)label="1";else if(t<3.7)label="GO!";
-ctx.fillStyle="#fff0d5";ctx.font="bold 70px Arial";ctx.fillText(label,500,530);
-if(t>=3.7){scene="bikes";bikeStart=now;bikeElapsed=0;lastObstacleAt=0}
-}
+ box(0,0,W,H,"#3b5b49");
+ box(70,0,860,H,"#5e5c65");
+ box(90,0,820,H,"#4a4954");
+
+ box(105,48,790,290,"#6b293b");
+ ctx.strokeStyle="#e2bd7d";
+ ctx.lineWidth=4;
+ ctx.strokeRect(118,61,764,264);
+
+ ctx.fillStyle="#ffe0a5";
+ ctx.textAlign="center";
+ ctx.font="bold 31px Georgia";
+ ctx.fillText("Auf zum Restaurant!",500,105);
+
+ ctx.font="bold 18px Arial";
+ ctx.fillText("Passt auf im Berliner Straßenverkehr!",500,145);
+
+ ctx.font="15px Arial";
+ ctx.fillText("Weicht den Berliner Hindernissen aus – Baustellen,",500,180);
+ ctx.fillText("E-Scootern, Flaschen, Pfützen und mehr.",500,203);
+ ctx.fillText("Sammelt gemeinsam 52 Herzen in 60 Sekunden!",500,237);
+ ctx.fillText("Hasan: Pfeiltasten   ·   Jill: W A S D",500,297);
+
+ const t=(now-transitionStart)/1000;
+ drawBike(390,360,"#243e65","#38251f","HASAN");
+ drawBike(610,360,"#6d3048","#4b241c","JILL");
+
+ let countLabel="";
+ if(t<1)countLabel="3";
+ else if(t<2)countLabel="2";
+ else if(t<3)countLabel="1";
+ else if(t<3.7)countLabel="GO!";
+
+ ctx.fillStyle="#fff0d5";
+ ctx.font="bold 70px Arial";
+ ctx.fillText(countLabel,500,500);
+
+ if(t>=3.7){
+  scene="bikes";
+  bikeStart=now;
+  bikeElapsed=0;
+  lastObstacleAt=0;
+ }
 }
 
 function update(now=performance.now()){
-time++;
-if(scene==="museum"){
-if(!opened&&!finaleStarted){
-let dx=0,dy=0;
-if(keys.ArrowLeft||keys.a)dx--;
-if(keys.ArrowRight||keys.d)dx++;
-if(keys.ArrowUp||keys.w)dy--;
-if(keys.ArrowDown||keys.s)dy++;
-if(dx&&dy){dx*=.7071;dy*=.7071}
-if(dx<0)hasan.direction="left";else if(dx>0)hasan.direction="right";else if(dy<0)hasan.direction="back";else if(dy>0)hasan.direction="front";
-hasan.x=Math.max(45,Math.min(955,hasan.x+dx*hasan.speed));
-hasan.y=Math.max(390,Math.min(585,hasan.y+dy*hasan.speed));
+ time++;
+
+ if(scene==="museum"){
+  if(!opened&&!finaleStarted){
+   let dx=0,dy=0;
+   if(keys.ArrowLeft||keys.a)dx--;
+   if(keys.ArrowRight||keys.d)dx++;
+   if(keys.ArrowUp||keys.w)dy--;
+   if(keys.ArrowDown||keys.s)dy++;
+
+   if(dx&&dy){dx*=.7071;dy*=.7071}
+
+   if(dx<0)hasan.direction="left";
+   else if(dx>0)hasan.direction="right";
+   else if(dy<0)hasan.direction="back";
+   else if(dy>0)hasan.direction="front";
+
+   hasan.x=Math.max(45,Math.min(955,hasan.x+dx*hasan.speed));
+   hasan.y=Math.max(390,Math.min(585,hasan.y+dy*hasan.speed));
+  }
+
+  if(finaleStarted&&!finaleFinished){
+   jill.x+=3.8;
+   jill.direction="right";
+   if(jill.x>=410){
+    jill.x=410;
+    finaleFinished=true;
+    jill.direction="front";
+    document.getElementById("finale").style.display="flex";
+   }
+  }
+
+  drawRoom();
+  drawHasan();
+  drawJill();
+
+ }else if(scene==="fall"){
+  drawFall(now);
+
+ }else if(scene==="landing"){
+  drawLanding(now);
+
+ }else if(scene==="bikes"){
+  drawBikeScene(now);
+
+ }else if(scene==="arrival"){
+  drawRestaurantArrival();
+
+  // Nach kurzer Ankunftsanimation kann man die Figuren bewegen
+  const speed=3.2;
+  let dx=0,dy=0;
+  if(keys.ArrowLeft)dx--;
+  if(keys.ArrowRight)dx++;
+  if(keys.ArrowUp)dy--;
+  if(keys.ArrowDown)dy++;
+  if(keys.a)dx--;
+  if(keys.d)dx++;
+  if(keys.w)dy--;
+  if(keys.s)dy++;
+  if(dx&&dy){dx*=.707;dy*=.707}
+
+  if(dx<0){hasan.direction="left";jill.direction="left"}
+  if(dx>0){hasan.direction="right";jill.direction="right"}
+  if(dy<0){hasan.direction="back";jill.direction="back"}
+  if(dy>0){hasan.direction="front";jill.direction="front"}
+
+  // Die Figuren bewegen sich gemeinsam zur Tür
+  hasan.x=Math.max(280,Math.min(720,hasan.x+dx*speed));
+  hasan.y=Math.max(390,Math.min(565,hasan.y+dy*speed));
+  jill.x=Math.max(280,Math.min(720,jill.x+dx*speed));
+  jill.y=Math.max(390,Math.min(565,jill.y+dy*speed);
+
+  // Türbereich
+  if(Math.hypot(hasan.x-500,hasan.y-420)<55&&
+     Math.hypot(jill.x-500,jill.y-420)<100){
+   enterRestaurant();
+  }
+
+ }else if(scene==="interior"){
+  const speed=3.2;
+  let dx=0,dy=0;
+
+  if(keys.ArrowLeft)dx--;
+  if(keys.ArrowRight)dx++;
+  if(keys.ArrowUp)dy--;
+  if(keys.ArrowDown)dy++;
+  if(keys.a)dx--;
+  if(keys.d)dx++;
+  if(keys.w)dy--;
+  if(keys.s)dy++;
+
+  if(dx&&dy){dx*=.707;dy*=.707}
+
+  if(dx<0){hasan.direction="left";jill.direction="left"}
+  if(dx>0){hasan.direction="right";jill.direction="right"}
+  if(dy<0){hasan.direction="back";jill.direction="back"}
+  if(dy>0){hasan.direction="front";jill.direction="front"}
+
+  hasan.x=Math.max(60,Math.min(940,hasan.x+dx*speed));
+  hasan.y=Math.max(410,Math.min(570,hasan.y+dy*speed));
+  jill.x=Math.max(60,Math.min(940,jill.x+dx*speed));
+  jill.y=Math.max(410,Math.min(570,jill.y+dy*speed));
+
+  drawRestaurantInterior();
+
+ }else if(scene==="food"){
+  drawFoodGame(now);
+
+ }else if(scene==="foodResult"){
+  drawRestaurantInterior();
+ }
+
+ requestAnimationFrame(update);
 }
-if(finaleStarted&&!finaleFinished){
-jill.x+=3.8;jill.direction="right";
-if(jill.x>=410){jill.x=410;finaleFinished=true;jill.direction="front";document.getElementById("finale").style.display="flex"}
-}
-drawRoom();drawHasan();drawJill();
-}else if(scene==="fall"){drawFall(now)}
-else if(scene==="landing"){drawLanding(now)}
-else if(scene==="bikes"){drawBikeScene(now)}
-requestAnimationFrame(update);
-}
+
+// --------------------------------------------------
+// Tastatur und Maus
+// --------------------------------------------------
 
 document.addEventListener("keydown",e=>{
-if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key))e.preventDefault();
-keys[e.key]=true;keys[e.key.toLowerCase()]=true;
-if(e.key.toLowerCase()==="e"||e.key===" ")interact();
-if(e.key==="Escape"&&opened)closeMemory();
+ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)){
+  e.preventDefault();
+ }
+ keys[e.key]=true;
+ keys[e.key.toLowerCase()]=true;
+
+ if(e.key.toLowerCase()==="e"||e.key===" "){
+  interact();
+ }
+
+ if(e.key==="Escape"&&opened){
+  closeMemory();
+ }
 });
-document.addEventListener("keyup",e=>{keys[e.key]=false;keys[e.key.toLowerCase()]=false});
+
+document.addEventListener("keyup",e=>{
+ keys[e.key]=false;
+ keys[e.key.toLowerCase()]=false;
+});
+
+function interact(){
+ if(opened)return;
+
+ if(scene==="museum"){
+  if(finaleStarted)return;
+  const e=exhibits.find(item=>
+   Math.hypot(hasan.x-item.x,hasan.y-(item.y+80))<115
+  );
+  if(e)openMemory(e);
+ }
+
+ if(scene==="interior"){
+  const nearCounter=
+   Math.hypot(hasan.x-500,hasan.y-450)<210||
+   Math.hypot(jill.x-500,jill.y-450)<210;
+
+  if(nearCounter){
+   document.getElementById("dialogue").style.display="flex";
+  }
+ }
+}
+
+function dodgeNoButton(){
+ const b=document.getElementById("noButton");
+ const a=document.getElementById("choices");
+ const maxX=Math.max(0,a.clientWidth-b.offsetWidth);
+ const maxY=Math.max(0,a.clientHeight-b.offsetHeight);
+ b.style.position="absolute";
+ b.style.left=Math.random()*maxX+"px";
+ b.style.top=Math.random()*maxY+"px";
+}
+
+document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButton);
+document.getElementById("noButton").addEventListener("click",dodgeNoButton);
 
 canvas.addEventListener("click",e=>{
-const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*canvas.width/r.width,y=(e.clientY-r.top)*canvas.height/r.height;
-if(scene==="landing"&&!countdownStarted&&x>=410&&x<=590&&y>=470&&y<=550){countdownStarted=true;countdownStart=performance.now();return}
-if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){restaurantReached=true;return}
-if(opened||finaleStarted||scene!=="museum")return;
-if(x>=8&&x<=62&&y>=552&&y<=605){sayYes();return}
-const ex=exhibits.find(item=>Math.abs(x-item.x)<75&&y>item.y-75&&y<item.y+100);
-if(ex)openMemory(ex);
+ const r=canvas.getBoundingClientRect();
+ const x=(e.clientX-r.left)*canvas.width/r.width;
+ const y=(e.clientY-r.top)*canvas.height/r.height;
+
+ if(opened||finaleStarted&&scene==="museum")return;
+
+ // Herz im Museum: direkter Einstieg ins Fahrradspiel
+ if(scene==="museum"&&x>=8&&x<=62&&y>=552&&y<=605){
+  sayYes();
+  return;
+ }
+
+ // Herz im Fahrradspiel: Shortcut zum Weinblatt
+ if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){
+  restaurantReached=true;
+  scene="arrival";
+  hasan.x=420;
+  hasan.y=500;
+  jill.x=580;
+  jill.y=500;
+  return;
+ }
+
+ if(scene==="museum"){
+  const ex=exhibits.find(item=>
+   Math.abs(x-item.x)<75&&y>item.y-75&&y<item.y+100
+  );
+  if(ex)openMemory(ex);
+ }
 });
+
 canvas.addEventListener("mousemove",e=>{
-const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)*canvas.width/r.width,y=(e.clientY-r.top)*canvas.height/r.height;
-const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
-const overLos=scene==="landing"&&!countdownStarted&&x>=410&&x<=590&&y>=470&&y<=550;
-canvas.style.cursor=((overHeart&&(scene==="museum"||scene==="bikes"))||overLos)?"pointer":"default";
+ const r=canvas.getBoundingClientRect();
+ const x=(e.clientX-r.left)*canvas.width/r.width;
+ const y=(e.clientY-r.top)*canvas.height/r.height;
+
+ const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
+ canvas.style.cursor=overHeart&&
+  (scene==="museum"||scene==="bikes")?"pointer":"default";
 });
+
 update();
 </script>
+</body>
+</html>
