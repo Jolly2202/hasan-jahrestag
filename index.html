@@ -14,7 +14,6 @@ header p{color:#d6c1b3;margin:5px}
 #game{width:min(100%,1100px);margin:auto}
 canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c;touch-action:none}
 #help{padding:12px;color:#e6d5bd;font:13px/1.7 Arial,sans-serif}
-#hint{color:#e8c68b}
 #popup,#finale,#dialogue,#foodIntro,#result{
  display:none;position:fixed;inset:0;z-index:10;align-items:center;
  justify-content:center;padding:20px;background:#100d19bb
@@ -32,6 +31,7 @@ button:hover{background:#6d3048}
 </style>
 </head>
 <body>
+
 <header>
  <h1 id="pageTitle">Das Museum unserer kleinen Welt</h1>
  <p id="pageSubtitle">Ein Abenteuer für Hasan ♥</p>
@@ -41,7 +41,7 @@ button:hover{background:#6d3048}
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
 
 <div id="help">
- <b id="controlsTitle">Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
+ <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
  Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.
  <div id="hint">✦ Drei Erinnerungen warten darauf, entdeckt zu werden.</div>
 </div>
@@ -70,9 +70,9 @@ button:hover{background:#6d3048}
 <div id="dialogue">
  <div class="card">
   <div style="font-size:30px">🍷</div>
-  <h2 id="dialogueTitle">Willkommen im Weinblatt!</h2>
-  <p id="dialogueText">Wie schön, dass ihr da seid! Soll ich euch einfach etwas Leckeres an unserer Frischetheke zusammenstellen?</p>
-  <button id="dialogueButton" onclick="acceptFood()">Ja, das klingt gut. So machen wir das!</button>
+  <h2>Willkommen im Weinblatt!</h2>
+  <p>Wie schön, dass ihr da seid! Soll ich euch einfach etwas Leckeres an unserer Frischetheke zusammenstellen?</p>
+  <button onclick="acceptFood()">Ja, das klingt gut. So machen wir das!</button>
  </div>
 </div>
 
@@ -80,20 +80,10 @@ button:hover{background:#6d3048}
  <div class="card">
   <div style="font-size:34px">🥖 🧀 🍅</div>
   <h2>Einmal quer durch die Frischetheke!</h2>
-  <p>
-   Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.
-  </p>
-  <p>
-   Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links.
-   Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.
-  </p>
-  <p>
-   <b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht.
-   Weicht ihr unbedingt aus.
-  </p>
-  <p>
-   <b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen.
-  </p>
+  <p>Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.</p>
+  <p>Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
+  <p><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
+  <p><b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen.</p>
   <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
   <button onclick="startFoodGame()">Start</button>
  </div>
@@ -104,11 +94,13 @@ button:hover{background:#6d3048}
   <div id="resultEmoji" style="font-size:40px">🎉</div>
   <h2 id="resultTitle">Geschafft!</h2>
   <p id="resultText"></p>
-  <button id="resultButton" onclick="restartFoodGame()">Nochmal spielen</button>
+  <button id="resultButton">Nochmal spielen</button>
  </div>
 </div>
 
 <script>
+"use strict";
+
 const canvas=document.getElementById("world");
 const ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
@@ -137,11 +129,23 @@ const jill={x:-80,y:460,direction:"right"};
 const keys={};
 const seenMemories=new Set();
 
-let opened=null,finaleStarted=false,finaleFinished=false,time=0;
-let scene="museum",transitionStart=0;
-let bikeStart=0,bikeElapsed=0,restaurantReached=false;
-let countdownStart=0;
+let opened=null;
+let finaleStarted=false;
+let finaleFinished=false;
+let time=0;
+let scene="museum";
+let transitionStart=0;
+
+let bikeStart=0;
+let bikeElapsed=0;
+let restaurantReached=false;
 let bikeFailed=false;
+let obstacles=[];
+let collectibles=[];
+let score=0;
+let heartsSpawned=0;
+let lastObstacleAt=0;
+let roadOffset=0;
 
 const exhibits=[
  {x:245,y:205,title:"Exponat 001 – Der Anfang",caption:"BADFISH",
@@ -153,28 +157,35 @@ const exhibits=[
 ];
 
 const bikePlayers={
- hasan:{x:575,y:500,color:"#243e65",hair:"#38251f",name:"Hasan"},
- jill:{x:375,y:500,color:"#6d3048",hair:"#4b241c",name:"Jill"}
+ // Hasan startet rechts, Jill links
+ hasan:{x:735,y:500,color:"#243e65",hair:"#38251f",name:"HASAN"},
+ jill:{x:265,y:500,color:"#6d3048",hair:"#4b241c",name:"JILL"}
 };
 
-let obstacles=[],collectibles=[],score=0,heartsSpawned=0,lastObstacleAt=0,roadOffset=0;
+// Restaurantfiguren: beide werden unabhängig gesteuert
+const restaurantPlayers={
+ hasan:{x:420,y:510,direction:"front"},
+ jill:{x:580,y:510,direction:"front"}
+};
 
 // Essensspiel
 const FOOD_COLUMNS=8;
 const FOOD_X=Array.from({length:FOOD_COLUMNS},(_,i)=>110+i*(780/7));
-let foodPlayers={
- hasan:{column:7,x:7,y:535,color:"#243e65",hair:"#38251f",name:"Hasan"},
- jill:{column:0,x:0,y:535,color:"#6d3048",hair:"#4b241c",name:"Jill"}
+
+const foodPlayers={
+ hasan:{column:7,x:0,y:535,leftHeld:false,rightHeld:false},
+ jill:{column:0,x:0,y:535,leftHeld:false,rightHeld:false}
 };
+
+const foodItems=["🧀","🥖","🍅","🫒","🥒","🍇","🥕","🥪","🍄","🥑","🍓","🥐"];
 let fallingFood=[];
 let deliciousCount=0;
 let greenSauceHits=0;
-let foodStart=0;
 let lastFoodSpawn=0;
 let foodFinished=false;
 
 // --------------------------------------------------
-// Hilfsfunktionen und Museum
+// Allgemeine Zeichenfunktionen
 // --------------------------------------------------
 
 function box(x,y,w,h,color){
@@ -223,6 +234,10 @@ function candle(x,y){
  box(x-9,y+17,18,15,"#79503e");
 }
 
+// --------------------------------------------------
+// Museum
+// --------------------------------------------------
+
 function drawExhibit(exhibit,i){
  const near=Math.hypot(hasan.x-exhibit.x,hasan.y-(exhibit.y+80))<115;
  if(near)glow(exhibit.x,exhibit.y+35,110,"#f6cb8b32");
@@ -242,6 +257,7 @@ function drawExhibit(exhibit,i){
  ctx.beginPath();
  ctx.arc(exhibit.x+24,exhibit.y-23,15,0,Math.PI*2);
  ctx.fill();
+
  ctx.beginPath();
  ctx.moveTo(exhibit.x-51,exhibit.y+15);
  ctx.lineTo(exhibit.x-20,exhibit.y-8);
@@ -324,7 +340,8 @@ function drawRoom(){
  exhibits.forEach(drawExhibit);
 
  for(let i=0;i<25;i++){
-  const x=(i*173+41)%980,y=(i*79+110)%225;
+  const x=(i*173+41)%980;
+  const y=(i*79+110)%225;
   ctx.fillStyle="#f8d8a0";
   ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;
   ctx.beginPath();
@@ -333,23 +350,14 @@ function drawRoom(){
  }
  ctx.globalAlpha=1;
 
- // Kleines Herz unten links: direkter Einstieg ins Fahrradspiel
- ctx.save();
- ctx.globalAlpha=.78;
- ctx.fillStyle="#e58b9b";
- ctx.beginPath();
- ctx.moveTo(31,589);
- ctx.bezierCurveTo(8,574,15,558,26,565);
- ctx.bezierCurveTo(30,568,31,572,31,572);
- ctx.bezierCurveTo(35,562,49,560,52,572);
- ctx.bezierCurveTo(55,581,43,589,31,598);
- ctx.fill();
- ctx.restore();
+ // Kleines Herz als Shortcut
+ drawHeart(31,581,30,null);
 }
 
 function drawCharacter(images,x,y,direction,moving){
  const image=images[direction]||images.front;
  const bob=moving?Math.sin(time/40)*2:Math.sin(time/260)*1.5;
+
  ctx.fillStyle="#21152555";
  ctx.beginPath();
  ctx.ellipse(x,y+2,32,9,0,0,Math.PI*2);
@@ -357,6 +365,13 @@ function drawCharacter(images,x,y,direction,moving){
 
  if(image&&image.complete&&image.naturalWidth>0){
   ctx.drawImage(image,x-60,y-180+bob,120,180);
+ }else{
+  ctx.fillStyle="#e7c49b";
+  ctx.beginPath();
+  ctx.arc(x,y-130,18,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#222";
+  ctx.fillRect(x-15,y-112,30,90);
  }
 }
 
@@ -392,22 +407,22 @@ function startFinale(){
 
 function sayYes(){
  document.getElementById("finale").style.display="none";
+
  const music=document.getElementById("bikeMusic");
  if(music){
   music.volume=.55;
   music.currentTime=0;
   music.play().catch(()=>{});
  }
+
  scene="fall";
  transitionStart=performance.now();
 
  document.getElementById("pageTitle").textContent="Unser nächstes Abenteuer";
  document.getElementById("pageSubtitle").textContent="Zwei Fahrräder, ein Ziel und ganz viel Wir ♥";
- document.getElementById("controlsTitle").textContent="Steuerung:";
  document.getElementById("help").innerHTML=
  '<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>'+
- 'Sammelt gemeinsam 52 Herzen in 60 Sekunden und weicht den Hindernissen aus!'+
- '<div id="hint">🚲 Gemeinsam ans Ziel!</div>';
+ 'Sammelt gemeinsam 52 Herzen in 60 Sekunden und weicht den Hindernissen aus!';
 
  resetBikeGame();
 }
@@ -424,7 +439,6 @@ function resetBikeGame(){
  lastObstacleAt=0;
  roadOffset=0;
 
- // Hasan rechts, Jill links
  bikePlayers.hasan.x=735;
  bikePlayers.hasan.y=500;
  bikePlayers.jill.x=265;
@@ -444,23 +458,15 @@ function drawBike(x,y,color,hair,name){
   ctx.beginPath();
   ctx.ellipse(0,wy,12,18,0,0,Math.PI*2);
   ctx.fill();
-
   ctx.strokeStyle="#b9c4c7";
   ctx.lineWidth=2;
   ctx.beginPath();
   ctx.ellipse(0,wy,8.5,14,0,0,Math.PI*2);
   ctx.stroke();
-
-  for(let a=0;a<8;a++){
-   const ang=a*Math.PI/4;
-   line(Math.cos(ang)*2,wy+Math.sin(ang)*3,
-        Math.cos(ang)*8,wy+Math.sin(ang)*13,"#7f898d",.8);
-  }
  }
 
  ctx.strokeStyle="#d9b77e";
  ctx.lineWidth=4;
- ctx.lineCap="round";
  ctx.beginPath();
  ctx.moveTo(0,-25);
  ctx.lineTo(-10,0);
@@ -501,32 +507,9 @@ function drawBike(x,y,color,hair,name){
  ctx.lineTo(10,19);
  ctx.stroke();
 
- ctx.fillStyle="#e6e1d6";
- ctx.beginPath();
- ctx.ellipse(-10,20,5,3,0,0,Math.PI*2);
- ctx.ellipse(10,20,5,3,0,0,Math.PI*2);
- ctx.fill();
-
  ctx.fillStyle=color;
  ctx.beginPath();
  ctx.ellipse(0,-2,11,15,0,0,Math.PI*2);
- ctx.fill();
-
- ctx.strokeStyle="#e8c7a7";
- ctx.lineWidth=4;
- ctx.beginPath();
- ctx.moveTo(-7,-8);
- ctx.lineTo(-12,-22);
- ctx.lineTo(-8,-28);
- ctx.moveTo(7,-8);
- ctx.lineTo(12,-22);
- ctx.lineTo(8,-28);
- ctx.stroke();
-
- ctx.fillStyle="#e8b18b";
- ctx.beginPath();
- ctx.arc(-8,-28,3,0,Math.PI*2);
- ctx.arc(8,-28,3,0,Math.PI*2);
  ctx.fill();
 
  ctx.fillStyle=hair;
@@ -543,17 +526,6 @@ function drawBike(x,y,color,hair,name){
  ctx.beginPath();
  ctx.ellipse(0,-17,11,8,0,0,Math.PI*2);
  ctx.fill();
-
- ctx.strokeStyle="#fff0c4";
- ctx.lineWidth=1.8;
- ctx.beginPath();
- ctx.moveTo(-9,-16);
- ctx.quadraticCurveTo(0,-28,9,-16);
- ctx.moveTo(-7,-11);
- ctx.lineTo(-4,-5);
- ctx.moveTo(7,-11);
- ctx.lineTo(4,-5);
- ctx.stroke();
 
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 11px Arial";
@@ -580,10 +552,6 @@ function drawHeart(x,y,size,number){
  ctx.strokeStyle="#ffd7df";
  ctx.lineWidth=1.4;
  ctx.stroke();
- ctx.fillStyle="#ffb2c3";
- ctx.beginPath();
- ctx.ellipse(-5,-9,2.3,4,-.5,0,Math.PI*2);
- ctx.fill();
  if(number){
   ctx.fillStyle="#fff7ed";
   ctx.font="bold 7px Arial";
@@ -608,14 +576,6 @@ function drawObstacle(o){
   ctx.stroke();
   ctx.fillStyle="#79bdc5";
   ctx.fillRect(-10,-4,15,8);
-  ctx.strokeStyle="#e9eff0";
-  ctx.lineWidth=2;
-  for(let k=-7;k<8;k+=5){
-   ctx.beginPath();
-   ctx.moveTo(k,-4);
-   ctx.lineTo(k,4);
-   ctx.stroke();
-  }
   ctx.strokeStyle="#d9e4e5";
   ctx.beginPath();
   ctx.moveTo(12,0);
@@ -633,12 +593,9 @@ function drawObstacle(o){
   ctx.fillStyle="#3e8059";
   ctx.fillRect(7,-4,11,8);
   ctx.fillStyle="#c6b67b";
-  ctx.fillRect(-5,-6,7,12;
+  ctx.fillRect(-5,-6,7,12);
   ctx.fillStyle="#b6d1a5";
   ctx.fillRect(15,-3,5,6);
-  ctx.strokeStyle="#183e30";
-  ctx.lineWidth=1.5;
-  ctx.stroke();
 
  }else if(o.type==="puddle"){
   ctx.fillStyle="#252d39";
@@ -647,10 +604,6 @@ function drawObstacle(o){
   ctx.fill();
   ctx.strokeStyle="#9bbbc7";
   ctx.lineWidth=2;
-  ctx.stroke();
-  ctx.strokeStyle="#d0e7e9";
-  ctx.beginPath();
-  ctx.ellipse(-7,-2,10,4,-.2,0,Math.PI*2);
   ctx.stroke();
 
  }else if(o.type==="scooter"){
@@ -671,16 +624,10 @@ function drawObstacle(o){
  }else if(o.type==="construction"){
   ctx.fillStyle="#34343a";
   ctx.fillRect(-25,11,50,6);
-  ctx.fillRect(-21,8,5,8);
-  ctx.fillRect(16,8,5,8);
   ctx.fillStyle="#ed743c";
   ctx.beginPath();
   ctx.roundRect(-23,-12,46,23,3);
   ctx.fill();
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(-23,-12,46,23,3);
-  ctx.clip();
   ctx.strokeStyle="#fff0d5";
   ctx.lineWidth=7;
   for(let k=-35;k<45;k+=18){
@@ -689,7 +636,6 @@ function drawObstacle(o){
    ctx.lineTo(k-15,-12);
    ctx.stroke();
   }
-  ctx.restore();
 
  }else{
   ctx.fillStyle="#79513b";
@@ -712,25 +658,26 @@ function spawnThings(){
   lastObstacleAt=t;
   const laneX=145+Math.random()*710;
   const roll=Math.random();
-  let type=roll<.20?"syringe":
-           roll<.39?"bottle":
-           roll<.58?"puddle":
-           roll<.76?"scooter":
-           roll<.90?"construction":"dogpoop";
+  const type=roll<.20?"syringe":
+   roll<.39?"bottle":
+   roll<.58?"puddle":
+   roll<.76?"scooter":
+   roll<.90?"construction":"dogpoop";
+
   obstacles.push({
    x:laneX,y:-35,type,
-   r:type==="puddle"?25:type==="construction"?25:19
+   r:type==="puddle"?25:type==="construction"?25:19,
+   hitPlayers:{}
   });
  }
 
- // 100 Herzen, verteilt über die gesamte Fahrt
+ // 100 Herzen insgesamt
  const target=Math.min(100,Math.floor(t/560)+1);
  while(heartsSpawned<target){
   heartsSpawned++;
   collectibles.push({
    x:145+Math.random()*710,
-   y:-35,
-   r:15
+   y:-35
   });
  }
 }
@@ -738,7 +685,6 @@ function spawnThings(){
 function drawBikeScene(now){
  const elapsed=now-bikeStart;
  bikeElapsed=Math.min(60,elapsed/1000);
- const progress=Math.min(1,elapsed/60000);
 
  box(0,0,W,H,"#3b5b49");
  box(70,0,860,H,"#5e5c65");
@@ -751,24 +697,11 @@ function drawBikeScene(now){
   box(482,y,5,48,"#e3c98f");
  }
 
- for(let i=0;i<10;i++){
-  const y=((i*83+roadOffset*1.5)%(H+60))-30;
-  ctx.fillStyle=i%2?"#77936b":"#a2b77c";
-  ctx.beginPath();
-  ctx.arc(32,y,13,0,Math.PI*2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(965,y+22,15,0,Math.PI*2);
-  ctx.fill();
- }
-
  if(!restaurantReached&&!bikeFailed){
   spawnThings();
-  const speed=3.4;
 
   for(const p of Object.values(bikePlayers)){
    let dx=0,dy=0;
-
    if(p===bikePlayers.hasan){
     if(keys.ArrowLeft)dx--;
     if(keys.ArrowRight)dx++;
@@ -780,41 +713,28 @@ function drawBikeScene(now){
     if(keys.w)dy--;
     if(keys.s)dy++;
    }
-
    if(dx&&dy){dx*=.707;dy*=.707}
-   p.x=Math.max(125,Math.min(875,p.x+dx*speed));
-   p.y=Math.max(95,Math.min(555,p.y+dy*speed));
+   p.x=Math.max(125,Math.min(875,p.x+dx*3.4));
+   p.y=Math.max(95,Math.min(555,p.y+dy*3.4));
   }
 
-  const scroll=4.4;
-  roadOffset+=scroll;
-  obstacles.forEach(o=>o.y+=scroll);
-  collectibles.forEach(c=>c.y+=scroll);
-
-  obstacles=obstacles.filter(o=>o.y<H+55);
-  collectibles=collectibles.filter(c=>c.y<H+55);
+  roadOffset+=4.4;
+  obstacles.forEach(o=>o.y+=4.4);
+  collectibles.forEach(c=>c.y+=4.4);
 
   for(const o of obstacles){
    drawObstacle(o);
-   if(!o.hitPlayers)o.hitPlayers={};
-
    for(const p of Object.values(bikePlayers)){
     if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
      o.hitPlayers[p.name]=true;
      p.x=Math.max(125,p.x-30);
-     p.y=Math.max(95,Math.min(555,p.y+(p.y<o.y?-27:27)));
      bikeStart-=450;
     }
    }
   }
 
   for(const c of collectibles){
-   ctx.fillStyle="#f8d28c";
-   ctx.beginPath();
-   ctx.arc(c.x,c.y,19,0,Math.PI*2);
-   ctx.fill();
-   drawHeart(c.x,c.y-2,25,null);
-
+   drawHeart(c.x,c.y,25,null);
    for(const p of Object.values(bikePlayers)){
     if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<27){
      c.x=-100;
@@ -824,10 +744,13 @@ function drawBikeScene(now){
    }
   }
 
+  obstacles=obstacles.filter(o=>o.y<H+55);
+  collectibles=collectibles.filter(c=>c.y<H+55);
+
   drawBike(bikePlayers.hasan.x,bikePlayers.hasan.y,
-           bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
+   bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
   drawBike(bikePlayers.jill.x,bikePlayers.jill.y,
-           bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
+   bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
 
   ctx.fillStyle="#fff0d5";
   ctx.font="bold 18px Arial";
@@ -839,16 +762,13 @@ function drawBikeScene(now){
   if(score>=52){
    restaurantReached=true;
    scene="arrival";
-   transitionStart=now;
+   setArrivalPositions();
   }
 
   if(elapsed>=60000&&score<52){
    bikeFailed=true;
    showBikeFailure();
   }
-
- }else if(restaurantReached){
-  drawRestaurantArrival();
  }
 }
 
@@ -857,8 +777,9 @@ function showBikeFailure(){
  document.getElementById("resultTitle").textContent="Oh nein!";
  document.getElementById("resultText").textContent=
  "Mist. Ihr habt nicht genügend Herzen eingesammelt und euch beide den Ellenbogen gebrochen. Probiert es erneut!";
- document.getElementById("resultButton").textContent="Nochmal versuchen ❤️";
- document.getElementById("resultButton").onclick=()=>{
+ const button=document.getElementById("resultButton");
+ button.textContent="Nochmal versuchen ❤️";
+ button.onclick=()=>{
   document.getElementById("result").style.display="none";
   resetBikeGame();
   scene="landing";
@@ -868,20 +789,25 @@ function showBikeFailure(){
 }
 
 // --------------------------------------------------
-// Weinblatt – Ankunft, Außenbereich und Innenraum
+// Weinblatt – Außenansicht
 // --------------------------------------------------
+
+function plantPot(x,y){
+ box(x-18,y-35,36,35,"#a95e4d");
+ for(let i=0;i<5;i++){
+  ctx.fillStyle="#71916c";
+  ctx.beginPath();
+  ctx.ellipse(x+(i-2)*9,y-48,8,17,(i-2)*.2,0,Math.PI*2);
+  ctx.fill();
+ }
+}
 
 function drawRestaurantFacade(){
  box(0,0,W,H,"#b8a18b");
- box(0,0,W,105,"#59433c");
- box(0,105,W,515,"#d4b99a");
-
- // Altbau-Fassade
  box(25,35,950,560,"#d9c5a8");
  box(25,35,950,12,"#92765f");
- box(25,575,950,20,"#92765f");
 
- // Fenster links und rechts
+ // Altbaufenster
  for(const x of [65,790]){
   box(x,150,145,250,"#563e37");
   box(x+9,159,127,232,"#b8c3b0");
@@ -889,12 +815,12 @@ function drawRestaurantFacade(){
   line(x+9,270,x+136,270,"#654a3d",6);
  }
 
- // Weinblatt-Ladenfront
+ // Weinblatt-Fassade
  box(280,105,440,400,"#572d36");
  box(295,120,410,370,"#8b4650");
  box(310,135,380,355,"#392c2b");
 
- // Markise
+ // Gestreifte Markise
  box(275,115,450,52,"#eee0c5");
  for(let i=0;i<9;i++){
   box(275+i*50,115,25,52,i%2?"#eee0c5":"#8b4650");
@@ -911,7 +837,7 @@ function drawRestaurantFacade(){
  ctx.textAlign="center";
  ctx.fillText("WEINBLATT",500,218);
 
- // Tür
+ // Eingangstür
  box(455,265,100,225,"#593d32");
  box(463,273,84,209,"#b2b8a3");
  box(471,281,68,190,"#687e70");
@@ -920,7 +846,7 @@ function drawRestaurantFacade(){
  ctx.arc(532,380,5,0,Math.PI*2);
  ctx.fill();
 
- // Schaufenster mit Flaschen und warmem Licht
+ // Schaufenster und Flaschen
  box(320,265,115,210,"#e6c88c");
  box(328,273,99,194,"#f5d9a1");
  for(let i=0;i<5;i++){
@@ -929,15 +855,21 @@ function drawRestaurantFacade(){
   box(x+2,340,6,12,"#d9bd85");
   box(x-2,415,14,4,"#75533d");
  }
- ctx.fillStyle="#fff0d5";
- ctx.font="13px Georgia";
- ctx.fillText("FRISCHE · WEIN · FEINKOST",500,525);
 
- // Pflanzkübel und Gehweg
- plant(240,545);
- plant(760,545);
+ plantPot(240,545);
+ plantPot(760,545);
+
  box(0,595,W,25,"#806d61");
  for(let x=0;x<W;x+=65)line(x,595,x-20,620,"#a28b78",2);
+}
+
+function setArrivalPositions(){
+ restaurantPlayers.hasan.x=420;
+ restaurantPlayers.hasan.y=510;
+ restaurantPlayers.hasan.direction="front";
+ restaurantPlayers.jill.x=580;
+ restaurantPlayers.jill.y=510;
+ restaurantPlayers.jill.direction="front";
 }
 
 function drawRestaurantArrival(){
@@ -949,37 +881,90 @@ function drawRestaurantArrival(){
  ctx.textAlign="center";
  ctx.fillText("WEINBLATT – GESCHAFFT! ♥",500,44);
 
- // Ihr seid abgestiegen und steht als normale Figuren vor dem Laden
- drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
- drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
+ drawCharacter(hasanImages,restaurantPlayers.hasan.x,
+  restaurantPlayers.hasan.y,restaurantPlayers.hasan.direction,false);
+ drawCharacter(jillImages,restaurantPlayers.jill.x,
+  restaurantPlayers.jill.y,restaurantPlayers.jill.direction,false);
 
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 15px Arial";
- ctx.textAlign="center";
  ctx.fillText("Geht gemeinsam zur Eingangstür!",500,575);
+ ctx.font="12px Arial";
+ ctx.fillText("Hasan: Pfeiltasten · Jill: WASD",500,598);
+}
+
+// --------------------------------------------------
+// Weinblatt – Innenraum
+// --------------------------------------------------
+
+function drawShopkeeper(){
+ ctx.save();
+ ctx.translate(500,280);
+
+ ctx.fillStyle="#e7d2b9";
+ ctx.beginPath();
+ ctx.roundRect(-25,-5,50,80,12);
+ ctx.fill();
+
+ ctx.fillStyle="#7b4650";
+ ctx.beginPath();
+ ctx.roundRect(-29,20,58,65,7);
+ ctx.fill();
+
+ box(-7,-15,14,20,"#d6a17e");
+
+ ctx.fillStyle="#d6a17e";
+ ctx.beginPath();
+ ctx.arc(0,-38,24,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.fillStyle="#594036";
+ ctx.beginPath();
+ ctx.arc(0,-48,25,Math.PI,Math.PI*2);
+ ctx.lineTo(25,-25);
+ ctx.lineTo(18,-12);
+ ctx.lineTo(-20,-12);
+ ctx.lineTo(-25,-25);
+ ctx.fill();
+
+ ctx.fillStyle="#513a35";
+ ctx.beginPath();
+ ctx.arc(-8,-39,2,0,Math.PI*2);
+ ctx.arc(8,-39,2,0,Math.PI*2);
+ ctx.fill();
+
+ ctx.strokeStyle="#8b5146";
+ ctx.lineWidth=2;
+ ctx.beginPath();
+ ctx.arc(0,-31,7,.1,Math.PI-.1);
+ ctx.stroke();
+
+ ctx.strokeStyle="#d6a17e";
+ ctx.lineWidth=9;
+ ctx.beginPath();
+ ctx.moveTo(-22,5);
+ ctx.lineTo(-43,35);
+ ctx.moveTo(22,5);
+ ctx.lineTo(43,35);
+ ctx.stroke();
+
+ ctx.restore();
 }
 
 function drawRestaurantInterior(){
- // Warmer, gemütlicher Feinkostladen mit Holzboden und Altbau-Charme
  box(0,0,W,H,"#4a3433");
  box(0,0,W,370,"#d7b994");
  box(0,370,W,250,"#795744");
 
  // Wandvertäfelung
- for(let x=0;x<W;x+=125){
-  box(x,0,5,370,"#b58d69");
- }
+ for(let x=0;x<W;x+=125)box(x,0,5,370,"#b58d69");
  box(0,355,W,16,"#704c3d");
 
  // Holzboden
- for(let y=400;y<620;y+=43){
-  line(0,y,W,y,"#aa8061",2);
- }
- for(let x=0;x<W;x+=150){
-  line(x,370,x-55,620,"#674738",2);
- }
+ for(let y=400;y<620;y+=43)line(0,y,W,y,"#aa8061",2);
+ for(let x=0;x<W;x+=150)line(x,370,x-55,620,"#674738",2);
 
- // Hängelampen
+ // Lampen
  for(const x of [180,500,820]){
   line(x,0,x,70,"#4c3830",3);
   ctx.fillStyle="#d6aa68";
@@ -991,7 +976,7 @@ function drawRestaurantInterior(){
   glow(x,120,100,"#ffdb8b25");
  }
 
- // Regale an der Rückwand
+ // Regale
  for(let i=0;i<3;i++){
   const x=70+i*300;
   box(x,130,240,125,"#674638");
@@ -1004,20 +989,18 @@ function drawRestaurantInterior(){
   box(x,245,240,9,"#4c342d");
  }
 
- // Helle Kacheln hinter der Frischetheke
+ // Kacheln
  box(0,270,W,100,"#e8d7bd");
- for(let x=0;x<W;x+=50){
-  line(x,270,x,370,"#c5ad91",2);
- }
+ for(let x=0;x<W;x+=50)line(x,270,x,370,"#c5ad91",2);
  line(0,320,W,320,"#c5ad91",2);
 
- // Frischetheke im Vordergrund
+ // Frischetheke
  box(80,340,840,160,"#6d4938");
  box(95,350,810,120,"#e8dfc9");
  box(95,350,810,12,"#fff3dd");
  box(95,470,810,25,"#4d342d");
 
- // Auslage mit Käse, Gemüse, Antipasti und Brot
+ // Auslage
  const foodColors=["#e5bc58","#a84e42","#6e8955","#d69a57","#c7a76b"];
  for(let i=0;i<10;i++){
   const x=130+i*78;
@@ -1030,7 +1013,7 @@ function drawRestaurantInterior(){
   ctx.arc(x-7,405,4,0,Math.PI*2);
   ctx.fill();
  }
- // Schalen und Kräuter
+
  for(let i=0;i<5;i++){
   const x=170+i*160;
   ctx.fillStyle="#8c6047";
@@ -1045,114 +1028,88 @@ function drawRestaurantInterior(){
   }
  }
 
- // Kleine Details: Weinflaschen und Pflanzen
+ // Flaschen
  for(let i=0;i<6;i++){
   const x=90+i*150;
   box(x,190,13,54,"#52714e");
   box(x+3,180,7,12,"#d4bd8a");
  }
- plant(950,365);
 
- // Frischetheken-Schild
+ plantPot(950,365);
+
  box(370,290,260,35,"#f5e8d2");
  ctx.fillStyle="#62473b";
  ctx.font="bold 18px Georgia";
  ctx.textAlign="center";
  ctx.fillText("FRISCHE & FEINKOST",500,314);
 
- // Mitarbeiterin hinter der Theke
  drawShopkeeper();
 
- // Ihr steht vor der Theke
- drawCharacter(hasanImages,420,565,"front",false);
- drawCharacter(jillImages,580,565,"front",false);
+ // Beide Figuren vor der Theke
+ drawCharacter(hasanImages,restaurantPlayers.hasan.x,
+  restaurantPlayers.hasan.y,restaurantPlayers.hasan.direction,false);
+ drawCharacter(jillImages,restaurantPlayers.jill.x,
+  restaurantPlayers.jill.y,restaurantPlayers.jill.direction,false);
 
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 16px Arial";
  ctx.fillText("Willkommen im Weinblatt!",500,40);
 }
 
-function drawShopkeeper(){
- // Freundliche Mitarbeiterin mit Schürze hinter der Theke
- ctx.save();
- ctx.translate(500,280);
+// --------------------------------------------------
+// Bewegungssteuerung Restaurant
+// --------------------------------------------------
 
- // Körper und Schürze
- ctx.fillStyle="#e7d2b9";
- ctx.beginPath();
- ctx.roundRect(-25,-5,50,80,12);
- ctx.fill();
+function moveOnePlayer(player,controls){
+ let dx=0,dy=0;
 
- ctx.fillStyle="#7b4650";
- ctx.beginPath();
- ctx.roundRect(-29,20,58,65,7);
- ctx.fill();
+ if(keys[controls.left])dx--;
+ if(keys[controls.right])dx++;
+ if(keys[controls.up])dy--;
+ if(keys[controls.down])dy++;
 
- // Hals
- box(-7,-15,14,20,"#d6a17e");
+ if(dx&&dy){dx*=.707;dy*=.707}
 
- // Kopf
- ctx.fillStyle="#d6a17e";
- ctx.beginPath();
- ctx.arc(0,-38,24,0,Math.PI*2);
- ctx.fill();
+ if(dx<0)player.direction="left";
+ if(dx>0)player.direction="right";
+ if(dy<0)player.direction="back";
+ if(dy>0)player.direction="front";
 
- // Haare
- ctx.fillStyle="#594036";
- ctx.beginPath();
- ctx.arc(0,-48,25,Math.PI,Math.PI*2);
- ctx.lineTo(25,-25);
- ctx.lineTo(18,-12);
- ctx.lineTo(-20,-12);
- ctx.lineTo(-25,-25);
- ctx.fill();
-
- // Gesicht
- ctx.fillStyle="#513a35";
- ctx.beginPath();
- ctx.arc(-8,-39,2,0,Math.PI*2);
- ctx.arc(8,-39,2,0,Math.PI*2);
- ctx.fill();
-
- ctx.strokeStyle="#8b5146";
- ctx.lineWidth=2;
- ctx.beginPath();
- ctx.arc(0,-31,7,.1,Math.PI-.1);
- ctx.stroke();
-
- // Arme
- ctx.strokeStyle="#d6a17e";
- ctx.lineWidth=9;
- ctx.beginPath();
- ctx.moveTo(-22,5);
- ctx.lineTo(-43,35);
- ctx.moveTo(22,5);
- ctx.lineTo(43,35);
- ctx.stroke();
-
- ctx.restore();
+ player.x=Math.max(50,Math.min(950,player.x+dx*3.2));
+ player.y=Math.max(390,Math.min(570,player.y+dy*3.2));
 }
 
-// --------------------------------------------------
-// Restaurant-Tür und Dialog
-// --------------------------------------------------
+function moveRestaurantPlayers(){
+ moveOnePlayer(restaurantPlayers.hasan,{
+  left:"ArrowLeft",right:"ArrowRight",up:"ArrowUp",down:"ArrowDown"
+ });
+ moveOnePlayer(restaurantPlayers.jill,{
+  left:"a",right:"d",up:"w",down:"s"
+ });
+}
+
+function checkRestaurantDoor(){
+ const h=restaurantPlayers.hasan;
+ const j=restaurantPlayers.jill;
+
+ const hNear=Math.hypot(h.x-500,h.y-420)<65;
+ const jNear=Math.hypot(j.x-500,j.y-420)<65;
+
+ if(hNear&&jNear)enterRestaurant();
+}
 
 function enterRestaurant(){
  scene="interior";
- hasan.x=420;
- hasan.y=550;
- hasan.direction="front";
- jill.x=580;
- jill.y=550;
- jill.direction="front";
+ restaurantPlayers.hasan.x=420;
+ restaurantPlayers.hasan.y=550;
+ restaurantPlayers.jill.x=580;
+ restaurantPlayers.jill.y=550;
 
  document.getElementById("pageTitle").textContent="Ein Besuch im Weinblatt";
  document.getElementById("pageSubtitle").textContent="Ein bisschen Feinkost, ein bisschen Liebe ♥";
- document.getElementById("controlsTitle").textContent="Steuerung:";
  document.getElementById("help").innerHTML=
  '<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>'+
- 'Geht zur Frischetheke und sprecht mit der Mitarbeiterin (E oder Leertaste).'+
- '<div id="hint">🍷 Willkommen im Weinblatt!</div>';
+ 'Geht gemeinsam zur Frischetheke und drückt E oder Leertaste.';
 }
 
 function acceptFood(){
@@ -1165,31 +1122,24 @@ function acceptFood(){
 // Essensspiel
 // --------------------------------------------------
 
-const foodItems=[
- {emoji:"🧀",name:"Käse"},
- {emoji:"🥖",name:"Baguette"},
- {emoji:"🍅",name:"Tomaten"},
- {emoji:"🫒",name:"Oliven"},
- {emoji:"🥒",name:"Antipasti"},
- {emoji:"🍇",name:"Trauben"},
- {emoji:"🥕",name:"Karotten"},
- {emoji:"🥪",name:"Sandwich"},
- {emoji:"🍄",name:"Pilze"},
- {emoji:"🥑",name:"Avocado"},
- {emoji:"🍓",name:"Erdbeeren"},
- {emoji:"🥐",name:"Croissant"}
-];
-
 function startFoodGame(){
  document.getElementById("foodIntro").style.display="none";
  scene="food";
+
  foodPlayers.hasan.column=7;
  foodPlayers.jill.column=0;
+ foodPlayers.hasan.x=FOOD_X[7];
+ foodPlayers.jill.x=FOOD_X[0];
+
+ foodPlayers.hasan.leftHeld=false;
+ foodPlayers.hasan.rightHeld=false;
+ foodPlayers.jill.leftHeld=false;
+ foodPlayers.jill.rightHeld=false;
+
  fallingFood=[];
  deliciousCount=0;
  greenSauceHits=0;
  foodFinished=false;
- foodStart=performance.now();
  lastFoodSpawn=0;
 }
 
@@ -1205,62 +1155,62 @@ function spawnFood(){
  lastFoodSpawn=now;
 
  const column=Math.floor(Math.random()*FOOD_COLUMNS);
- const isSauce=Math.random()<.19;
+ const sauce=Math.random()<.19;
 
  fallingFood.push({
   column,
   x:FOOD_X[column],
   y:-35,
   speed:1.65+Math.random()*.45,
-  sauce:isSauce,
-  emoji:isSauce?"🥣":foodItems[Math.floor(Math.random()*foodItems.length)].emoji,
-  name:isSauce?"Frankfurter Grüne Soße":"Leckerei",
+  sauce,
+  emoji:sauce?"🥣":foodItems[Math.floor(Math.random()*foodItems.length)],
   caught:false
  });
 }
 
 function moveFoodPlayers(){
- // Hasan: Pfeiltasten links/rechts
- if(keys.ArrowLeft&& !foodPlayers.hasan.leftHeld){
-  foodPlayers.hasan.column=Math.max(0,foodPlayers.hasan.column-1);
-  foodPlayers.hasan.leftHeld=true;
- }
- if(!keys.ArrowLeft)foodPlayers.hasan.leftHeld=false;
+ const h=foodPlayers.hasan;
+ const j=foodPlayers.jill;
 
- if(keys.ArrowRight&&!foodPlayers.hasan.rightHeld){
-  foodPlayers.hasan.column=Math.min(7,foodPlayers.hasan.column+1);
-  foodPlayers.hasan.rightHeld=true;
+ // Hasan – Pfeiltasten links/rechts
+ if(keys.ArrowLeft&&!h.leftHeld){
+  h.column=Math.max(0,h.column-1);
+  h.leftHeld=true;
  }
- if(!keys.ArrowRight)foodPlayers.hasan.rightHeld=false;
+ if(!keys.ArrowLeft)h.leftHeld=false;
 
- // Jill: A und D
- if(keys.a&&!foodPlayers.jill.leftHeld){
-  foodPlayers.jill.column=Math.max(0,foodPlayers.jill.column-1);
-  foodPlayers.jill.leftHeld=true;
+ if(keys.ArrowRight&&!h.rightHeld){
+  h.column=Math.min(7,h.column+1);
+  h.rightHeld=true;
  }
- if(!keys.a)foodPlayers.jill.leftHeld=false;
+ if(!keys.ArrowRight)h.rightHeld=false;
 
- if(keys.d&&!foodPlayers.jill.rightHeld){
-  foodPlayers.jill.column=Math.min(7,foodPlayers.jill.column+1);
-  foodPlayers.jill.rightHeld=true;
+ // Jill – A und D
+ if(keys.a&&!j.leftHeld){
+  j.column=Math.max(0,j.column-1);
+  j.leftHeld=true;
  }
- if(!keys.d)foodPlayers.jill.rightHeld=false;
+ if(!keys.a)j.leftHeld=false;
 
- foodPlayers.hasan.x=FOOD_X[foodPlayers.hasan.column];
- foodPlayers.jill.x=FOOD_X[foodPlayers.jill.column];
+ if(keys.d&&!j.rightHeld){
+  j.column=Math.min(7,j.column+1);
+  j.rightHeld=true;
+ }
+ if(!keys.d)j.rightHeld=false;
+
+ h.x=FOOD_X[h.column];
+ j.x=FOOD_X[j.column];
 }
 
 function drawFoodBackground(){
  box(0,0,W,H,"#e8d9c4");
-
- // Hintergrund wie eine Feinkosttheke
  box(0,0,W,100,"#704d3e");
+
  ctx.fillStyle="#f6e5c9";
  ctx.font="bold 26px Georgia";
  ctx.textAlign="center";
- ctx.fillText("DIE WEINBLATT-FRISCHEtheke".toUpperCase(),500,55);
+ ctx.fillText("DIE WEINBLATT-FRISCHETHEKE",500,55);
 
- // Acht Spalten
  for(let i=0;i<FOOD_COLUMNS;i++){
   const x=FOOD_X[i];
   box(x-47,115,94,435,i%2?"#f4e9d8":"#eadcc8");
@@ -1272,7 +1222,6 @@ function drawFoodBackground(){
   ctx.fillText(String(i+1),x,135);
  }
 
- // Auffangbereich
  box(0,550,W,70,"#75513d");
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 15px Arial";
@@ -1314,10 +1263,11 @@ function drawFoodPlayer(player,images){
  if(image&&image.complete&&image.naturalWidth>0){
   ctx.drawImage(image,player.x-32,player.y-100,64,100);
  }else{
-  ctx.fillStyle=player.color;
+  ctx.fillStyle="#e7c49b";
   ctx.beginPath();
   ctx.arc(player.x,player.y-45,18,0,Math.PI*2);
   ctx.fill();
+  ctx.fillStyle="#222";
   ctx.fillRect(player.x-15,player.y-30,30,30);
  }
 }
@@ -1335,7 +1285,7 @@ function drawFoodHUD(){
  ctx.fillText("🥣 Grüne Soße: "+greenSauceHits+" / 2",965,49);
 }
 
-function drawFoodGame(now){
+function drawFoodGame(){
  drawFoodBackground();
  moveFoodPlayers();
  spawnFood();
@@ -1350,12 +1300,8 @@ function drawFoodGame(now){
    for(const player of players){
     if(player.column===item.column){
      item.caught=true;
-
-     if(item.sauce){
-      greenSauceHits++;
-     }else{
-      deliciousCount++;
-     }
+     if(item.sauce)greenSauceHits++;
+     else deliciousCount++;
      break;
     }
    }
@@ -1375,14 +1321,9 @@ function drawFoodGame(now){
 
  drawFoodHUD();
 
- // Gewinnbedingung
  if(deliciousCount>=40&&greenSauceHits<=2){
   finishFoodGame(true);
-  return;
- }
-
- // Mehr als zwei Portionen Grüne Soße: verloren
- if(greenSauceHits>2){
+ }else if(greenSauceHits>2){
   finishFoodGame(false);
  }
 }
@@ -1392,13 +1333,16 @@ function finishFoodGame(won){
  foodFinished=true;
  scene="foodResult";
 
+ const button=document.getElementById("resultButton");
+
  if(won){
   document.getElementById("resultEmoji").textContent="🥂❤️";
   document.getElementById("resultTitle").textContent="Das perfekte Weinblatt-Menü!";
   document.getElementById("resultText").textContent=
-   "Ihr habt "+deliciousCount+" leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
-  document.getElementById("resultButton").textContent="Unser Abenteuer nochmal spielen";
-  document.getElementById("resultButton").onclick=()=>{
+   "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
+
+  button.textContent="Unser Abenteuer nochmal spielen";
+  button.onclick=()=>{
    document.getElementById("result").style.display="none";
    scene="museum";
    hasan.x=500;
@@ -1407,42 +1351,47 @@ function finishFoodGame(won){
    finaleStarted=false;
    finaleFinished=false;
    seenMemories.clear();
+
    document.getElementById("pageTitle").textContent="Das Museum unserer kleinen Welt";
    document.getElementById("pageSubtitle").textContent="Ein Abenteuer für Hasan ♥";
    document.getElementById("help").innerHTML=
     '<b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>'+
-    'Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.'+
-    '<div id="hint">✦ Drei Erinnerungen warten darauf, entdeckt zu werden.</div>';
+    'Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.';
   };
+
  }else{
   document.getElementById("resultEmoji").textContent="🥣";
   document.getElementById("resultTitle").textContent="Oh nein – zu viel Grüne Soße!";
   document.getElementById("resultText").textContent=
    "Euch hat die Frankfurter Grüne Soße mehr als zweimal erwischt. Das Essen ist damit leider nicht ganz nach eurem Geschmack. Probiert es noch einmal!";
-  document.getElementById("resultButton").textContent="Nochmal versuchen";
-  document.getElementById("resultButton").onclick=restartFoodGame;
+
+  button.textContent="Nochmal versuchen";
+  button.onclick=restartFoodGame;
  }
 
  document.getElementById("result").style.display="flex";
 }
 
 // --------------------------------------------------
-// Übergänge und Spielablauf
+// Übergänge und Hauptschleife
 // --------------------------------------------------
 
 function drawFall(now){
  drawRoom();
  drawHasan();
  drawJill();
+
  const t=(now-transitionStart)/1000;
  ctx.fillStyle="#211b2c";
  ctx.globalAlpha=Math.min(.88,t*.9);
  ctx.fillRect(0,0,W,H);
  ctx.globalAlpha=1;
+
  ctx.fillStyle="#f4d8a5";
  ctx.textAlign="center";
  ctx.font="bold 34px Georgia";
  ctx.fillText("Und los geht’s …",500,285);
+
  if(t>.65){
   scene="landing";
   transitionStart=now;
@@ -1477,15 +1426,15 @@ function drawLanding(now){
  drawBike(390,360,"#243e65","#38251f","HASAN");
  drawBike(610,360,"#6d3048","#4b241c","JILL");
 
- let countLabel="";
- if(t<1)countLabel="3";
- else if(t<2)countLabel="2";
- else if(t<3)countLabel="1";
- else if(t<3.7)countLabel="GO!";
+ let label="";
+ if(t<1)label="3";
+ else if(t<2)label="2";
+ else if(t<3)label="1";
+ else if(t<3.7)label="GO!";
 
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 70px Arial";
- ctx.fillText(countLabel,500,500);
+ ctx.fillText(label,500,500);
 
  if(t>=3.7){
   scene="bikes";
@@ -1509,9 +1458,9 @@ function update(now=performance.now()){
    if(dx&&dy){dx*=.7071;dy*=.7071}
 
    if(dx<0)hasan.direction="left";
-   else if(dx>0)hasan.direction="right";
-   else if(dy<0)hasan.direction="back";
-   else if(dy>0)hasan.direction="front";
+   if(dx>0)hasan.direction="right";
+   if(dy<0)hasan.direction="back";
+   if(dy>0)hasan.direction="front";
 
    hasan.x=Math.max(45,Math.min(955,hasan.x+dx*hasan.speed));
    hasan.y=Math.max(390,Math.min(585,hasan.y+dy*hasan.speed));
@@ -1543,66 +1492,15 @@ function update(now=performance.now()){
 
  }else if(scene==="arrival"){
   drawRestaurantArrival();
-
-  // Nach kurzer Ankunftsanimation kann man die Figuren bewegen
-  const speed=3.2;
-  let dx=0,dy=0;
-  if(keys.ArrowLeft)dx--;
-  if(keys.ArrowRight)dx++;
-  if(keys.ArrowUp)dy--;
-  if(keys.ArrowDown)dy++;
-  if(keys.a)dx--;
-  if(keys.d)dx++;
-  if(keys.w)dy--;
-  if(keys.s)dy++;
-  if(dx&&dy){dx*=.707;dy*=.707}
-
-  if(dx<0){hasan.direction="left";jill.direction="left"}
-  if(dx>0){hasan.direction="right";jill.direction="right"}
-  if(dy<0){hasan.direction="back";jill.direction="back"}
-  if(dy>0){hasan.direction="front";jill.direction="front"}
-
-  // Die Figuren bewegen sich gemeinsam zur Tür
-  hasan.x=Math.max(280,Math.min(720,hasan.x+dx*speed));
-  hasan.y=Math.max(390,Math.min(565,hasan.y+dy*speed));
-  jill.x=Math.max(280,Math.min(720,jill.x+dx*speed));
-  jill.y=Math.max(390,Math.min(565,jill.y+dy*speed);
-
-  // Türbereich
-  if(Math.hypot(hasan.x-500,hasan.y-420)<55&&
-     Math.hypot(jill.x-500,jill.y-420)<100){
-   enterRestaurant();
-  }
+  moveRestaurantPlayers();
+  checkRestaurantDoor();
 
  }else if(scene==="interior"){
-  const speed=3.2;
-  let dx=0,dy=0;
-
-  if(keys.ArrowLeft)dx--;
-  if(keys.ArrowRight)dx++;
-  if(keys.ArrowUp)dy--;
-  if(keys.ArrowDown)dy++;
-  if(keys.a)dx--;
-  if(keys.d)dx++;
-  if(keys.w)dy--;
-  if(keys.s)dy++;
-
-  if(dx&&dy){dx*=.707;dy*=.707}
-
-  if(dx<0){hasan.direction="left";jill.direction="left"}
-  if(dx>0){hasan.direction="right";jill.direction="right"}
-  if(dy<0){hasan.direction="back";jill.direction="back"}
-  if(dy>0){hasan.direction="front";jill.direction="front"}
-
-  hasan.x=Math.max(60,Math.min(940,hasan.x+dx*speed));
-  hasan.y=Math.max(410,Math.min(570,hasan.y+dy*speed));
-  jill.x=Math.max(60,Math.min(940,jill.x+dx*speed));
-  jill.y=Math.max(410,Math.min(570,jill.y+dy*speed));
-
+  moveRestaurantPlayers();
   drawRestaurantInterior();
 
  }else if(scene==="food"){
-  drawFoodGame(now);
+  drawFoodGame();
 
  }else if(scene==="foodResult"){
   drawRestaurantInterior();
@@ -1612,29 +1510,8 @@ function update(now=performance.now()){
 }
 
 // --------------------------------------------------
-// Tastatur und Maus
+// Interaktion
 // --------------------------------------------------
-
-document.addEventListener("keydown",e=>{
- if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)){
-  e.preventDefault();
- }
- keys[e.key]=true;
- keys[e.key.toLowerCase()]=true;
-
- if(e.key.toLowerCase()==="e"||e.key===" "){
-  interact();
- }
-
- if(e.key==="Escape"&&opened){
-  closeMemory();
- }
-});
-
-document.addEventListener("keyup",e=>{
- keys[e.key]=false;
- keys[e.key.toLowerCase()]=false;
-});
 
 function interact(){
  if(opened)return;
@@ -1648,9 +1525,11 @@ function interact(){
  }
 
  if(scene==="interior"){
+  const h=restaurantPlayers.hasan;
+  const j=restaurantPlayers.jill;
   const nearCounter=
-   Math.hypot(hasan.x-500,hasan.y-450)<210||
-   Math.hypot(jill.x-500,jill.y-450)<210;
+   Math.hypot(h.x-500,h.y-450)<210||
+   Math.hypot(j.x-500,j.y-450)<210;
 
   if(nearCounter){
    document.getElementById("dialogue").style.display="flex";
@@ -1671,31 +1550,46 @@ function dodgeNoButton(){
 document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButton);
 document.getElementById("noButton").addEventListener("click",dodgeNoButton);
 
+document.addEventListener("keydown",e=>{
+ if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)){
+  e.preventDefault();
+ }
+ keys[e.key]=true;
+ keys[e.key.toLowerCase()]=true;
+
+ if(e.key.toLowerCase()==="e"||e.key===" "){
+  interact();
+ }
+ if(e.key==="Escape"&&opened)closeMemory();
+});
+
+document.addEventListener("keyup",e=>{
+ keys[e.key]=false;
+ keys[e.key.toLowerCase()]=false;
+});
+
 canvas.addEventListener("click",e=>{
  const r=canvas.getBoundingClientRect();
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
 
- if(opened||finaleStarted&&scene==="museum")return;
+ if(opened)return;
 
  // Herz im Museum: direkter Einstieg ins Fahrradspiel
- if(scene==="museum"&&x>=8&&x<=62&&y>=552&&y<=605){
+ if(scene==="museum"&&!finaleStarted&&x>=8&&x<=62&&y>=552&&y<=605){
   sayYes();
   return;
  }
 
- // Herz im Fahrradspiel: Shortcut zum Weinblatt
+ // Shortcut zum Restaurant
  if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){
   restaurantReached=true;
   scene="arrival";
-  hasan.x=420;
-  hasan.y=500;
-  jill.x=580;
-  jill.y=500;
+  setArrivalPositions();
   return;
  }
 
- if(scene==="museum"){
+ if(scene==="museum"&&!finaleStarted){
   const ex=exhibits.find(item=>
    Math.abs(x-item.x)<75&&y>item.y-75&&y<item.y+100
   );
@@ -1707,8 +1601,8 @@ canvas.addEventListener("mousemove",e=>{
  const r=canvas.getBoundingClientRect();
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
-
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
+
  canvas.style.cursor=overHeart&&
   (scene==="museum"||scene==="bikes")?"pointer":"default";
 });
