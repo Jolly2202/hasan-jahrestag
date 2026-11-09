@@ -157,18 +157,15 @@ const exhibits=[
 ];
 
 const bikePlayers={
- // Hasan startet rechts, Jill links
  hasan:{x:735,y:500,color:"#243e65",hair:"#38251f",name:"HASAN"},
  jill:{x:265,y:500,color:"#6d3048",hair:"#4b241c",name:"JILL"}
 };
 
-// Restaurantfiguren: beide werden unabhängig gesteuert
 const restaurantPlayers={
  hasan:{x:420,y:510,direction:"front"},
  jill:{x:580,y:510,direction:"front"}
 };
 
-// Essensspiel
 const FOOD_COLUMNS=8;
 const FOOD_X=Array.from({length:FOOD_COLUMNS},(_,i)=>110+i*(780/7));
 
@@ -759,6 +756,9 @@ function drawBikeScene(now){
   ctx.textAlign="right";
   ctx.fillText("♥ "+score+" / 52",975,32);
 
+  // Kleines Herz als Shortcut bleibt sichtbar
+  drawHeart(31,581,30,null);
+
   if(score>=52){
    restaurantReached=true;
    scene="arrival";
@@ -773,7 +773,10 @@ function drawBikeScene(now){
 }
 
 function showBikeFailure(){
- document.getElementById("resultEmoji").textContent="💔";
+ document.getElementById("resultEmoji").innerHTML=
+  '<div style="display:flex;justify-content:center;gap:18px">'+
+  '<svg width="105" height="135" viewBox="0 0 105 135"><circle cx="52" cy="22" r="18" fill="#d6a17e"/><path d="M34 20Q35 0 54 4Q73 4 70 24L40 13Z" fill="#38251f"/><path d="M27 46Q52 37 77 46L84 102H21Z" fill="#222"/><path d="M77 53L94 85" stroke="#d6a17e" stroke-width="10"/><path d="M86 78L101 88L91 109L77 99Z" fill="#f4eadb" stroke="#9b8d80" stroke-width="2"/><text x="52" y="129" text-anchor="middle" font-size="11" fill="#39283a">HASAN</text></svg>'+
+  '<svg width="105" height="135" viewBox="0 0 105 135"><circle cx="52" cy="22" r="18" fill="#d6a17e"/><path d="M29 28Q24 0 53 3Q80 4 75 38L67 15L39 13Z" fill="#39251f"/><path d="M27 46Q52 37 77 46L87 105H17Z" fill="#17151b"/><path d="M27 53L10 85" stroke="#d6a17e" stroke-width="10"/><path d="M3 78L20 84L17 108L2 102Z" fill="#f4eadb" stroke="#9b8d80" stroke-width="2"/><text x="52" y="129" text-anchor="middle" font-size="11" fill="#39283a">JILL</text></svg></div>';
  document.getElementById("resultTitle").textContent="Oh nein!";
  document.getElementById("resultText").textContent=
  "Mist. Ihr habt nicht genügend Herzen eingesammelt und euch beide den Ellenbogen gebrochen. Probiert es erneut!";
@@ -1285,6 +1288,26 @@ function drawFoodHUD(){
  ctx.fillText("🥣 Grüne Soße: "+greenSauceHits+" / 2",965,49);
 }
 
+function drawMetaverse(){
+ box(0,0,W,H,"#11152f");
+ const colors=["#4a2d78","#245b78","#7a3e83","#2e786e"];
+ for(let i=0;i<24;i++){
+  const x=(i*173+time*.18)%W,y=(i*97+Math.sin(time/35+i)*18)%H;
+  glow(x,y,55,colors[i%4]+"88");
+  ctx.fillStyle=colors[i%4];
+  ctx.fillRect(x-13,y-13,26,26);
+ }
+ ctx.textAlign="center";
+ ctx.fillStyle="#f5d8a0";
+ ctx.font="bold 38px Georgia";
+ ctx.fillText("EURE KLEINE WELT",500,115);
+ ctx.font="20px Georgia";
+ ctx.fillText("Hier beginnt das nächste Kapitel … ♥",500,160);
+ drawCharacter(hasanImages,420,470,"front",false);
+ drawCharacter(jillImages,580,470,"front",false);
+ drawHeart(31,581,30,null);
+}
+
 function drawFoodGame(){
  drawFoodBackground();
  moveFoodPlayers();
@@ -1321,6 +1344,9 @@ function drawFoodGame(){
 
  drawFoodHUD();
 
+ // Kleines Herz als Shortcut direkt ins Metaverse
+ drawHeart(31,581,30,null);
+
  if(deliciousCount>=40&&greenSauceHits<=2){
   finishFoodGame(true);
  }else if(greenSauceHits>2){
@@ -1341,22 +1367,13 @@ function finishFoodGame(won){
   document.getElementById("resultText").textContent=
    "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
-  button.textContent="Unser Abenteuer nochmal spielen";
+  button.textContent="Weiter ins Metaverse ♥";
   button.onclick=()=>{
    document.getElementById("result").style.display="none";
-   scene="museum";
-   hasan.x=500;
-   hasan.y=460;
-   jill.x=-80;
-   finaleStarted=false;
-   finaleFinished=false;
-   seenMemories.clear();
-
-   document.getElementById("pageTitle").textContent="Das Museum unserer kleinen Welt";
-   document.getElementById("pageSubtitle").textContent="Ein Abenteuer für Hasan ♥";
-   document.getElementById("help").innerHTML=
-    '<b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>'+
-    'Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.';
+   scene="metaverse";
+   document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
+   document.getElementById("pageSubtitle").textContent="Euer nächstes gemeinsames Abenteuer ♥";
+   document.getElementById("help").innerHTML="Eure kleine digitale Welt ♥";
   };
 
  }else{
@@ -1504,6 +1521,9 @@ function update(now=performance.now()){
 
  }else if(scene==="foodResult"){
   drawRestaurantInterior();
+
+ }else if(scene==="metaverse"){
+  drawMetaverse();
  }
 
  requestAnimationFrame(update);
@@ -1581,6 +1601,15 @@ canvas.addEventListener("click",e=>{
   return;
  }
 
+ // Shortcut aus dem Essensspiel direkt ins Metaverse
+ if(scene==="food"&&x>=8&&x<=62&&y>=552&&y<=605){
+  scene="metaverse";
+  document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
+  document.getElementById("pageSubtitle").textContent="Euer nächstes gemeinsames Abenteuer ♥";
+  document.getElementById("help").innerHTML="Eure kleine digitale Welt ♥";
+  return;
+ }
+
  // Shortcut zum Restaurant
  if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){
   restaurantReached=true;
@@ -1604,7 +1633,7 @@ canvas.addEventListener("mousemove",e=>{
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
 
  canvas.style.cursor=overHeart&&
-  (scene==="museum"||scene==="bikes")?"pointer":"default";
+  (scene==="museum"||scene==="bikes"||scene==="food"||scene==="metaverse")?"pointer":"default";
 });
 
 update();
