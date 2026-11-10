@@ -244,6 +244,37 @@ let foodOrderCount=0;
 let metaverseMessage="";
 let metaverseMessageUntil=0;
 
+// Das Redewendungs-Chaos: Hasans Originale bleiben wortwörtlich erhalten.
+const sayingsData=[
+ {wrong:"Die Gerüchte reißen sich darum",right:"Die Gerüchteküche brodelt",art:"🗣️ 🫧 🍲",scene:"Gerüchte-Dschungel"},
+ {wrong:"Ich bin aus den Socken/Schuhen gefallen",right:"Ich bin aus allen Wolken gefallen",art:"🧦 ☁️ 😲",scene:"Socken-Wolken-Welt"},
+ {wrong:"Die Feuerbändiger in die Knie besiegt.",right:"Die Feinde in die Knie gezwungen",art:"🔥 🥷 🏆",scene:"Feuerbändiger-Festung"},
+ {wrong:"Ich muss mir immer etwas aus den Leiern ziehen.",right:"Sich etwas aus den Rippen leiern",art:"🎼 🦴 🎻",scene:"Leier-Werkstatt"},
+ {wrong:"Der Drops ist eh in den Brunnen gefallen.",right:"Der Drops ist gelutscht / Das Kind ist in den Brunnen gefallen",art:"🍬 🕳️ 🪣",scene:"Drops-Brunnen"},
+ {wrong:"Ich kämpfe da gegen eine Wand.",right:"Gegen Windmühlen kämpfen",art:"🧱 🌬️ ⚔️",scene:"Windmühlen-Ebene"},
+ {wrong:"Ich fahre da gegen eine Wand.",right:"Mit dem Kopf gegen die Wand fahren",art:"🚗 🧱 💥",scene:"Crash-Test-Arena"},
+ {wrong:"Da war der Zug schon abgelaufen.",right:"Der Zug ist abgefahren",art:"🚂 ⏰ 🚉",scene:"Bahnhof der verpassten Chancen"},
+ {wrong:"Leg meinen Schuh nicht immer auf die Goldwaage bitte.",right:"Leg nicht jedes Wort auf die Goldwaage",art:"👞 ⚖️ 🪙",scene:"Goldwaagen-Gasse"},
+ {wrong:"Die gehen wirklich ans Zahnfleisch.",right:"Auf dem Zahnfleisch gehen",art:"🦷 👟 🥵",scene:"Zahnfleisch-Wüste"},
+ {wrong:"Was ist, kann werden.",right:"Was nicht ist, kann noch werden",art:"🌱 ✨ 🌷",scene:"Möglichkeits-Garten"},
+ {wrong:"Sein Herz ist auf der rechten Seite.",right:"Sein Herz sitzt am rechten Fleck",art:"❤️ 📍 🫀",scene:"Herz-Kompass"},
+ {wrong:"Find ich einfach lustig wie er da an die Wand gegangen ist.",right:"Gegen die Wand gefahren sein",art:"🚙 🧱 💫",scene:"Wand-Crash-Kino"},
+ {wrong:"Der ist eher so vom alten Hasen.",right:"Ein alter Hase / Vom alten Schlag",art:"🐇 🎩 🕰️",scene:"Hasen-Veteranen-Club"},
+ {wrong:"Ich traue schon dem ganzen Hasen nicht mehr.",right:"Ich traue dem Braten nicht mehr",art:"🐇 🍖 👀",scene:"Misstrauische Hasenküche"},
+ {wrong:"Ich kann mir nicht vorstellen, dass sie viel im Keller hat.",right:"Ich kann mir nicht vorstellen, dass sie viele Leichen im Keller hat",art:"🏚️ 🚪 💀",scene:"Geheimnisvoller Keller"},
+ {wrong:"Ich will einfach nur den Pool offen halten.",right:"Ich will mir einfach nur alle Optionen offen halten",art:"🏊 🚪 🔑",scene:"Pool der Möglichkeiten"}
+];
+let sayingsIndex=0;
+let sayingsOptions=[];
+let sayingsSolved=false;
+let sayingsFeedback="";
+let sayingsBossMode=false;
+let sayingsBossLeft=3;
+let sayingsBossPool=[];
+let sayingsCompleted=false;
+let sayingsWrongCount=0;
+
+
 // --------------------------------------------------
 // Allgemeine Zeichenfunktionen
 // --------------------------------------------------
@@ -436,7 +467,7 @@ function enterMetaverse(){
  scene="metaverse";hasan.x=120;hasan.y=480;jill.x=170;jill.y=480;
  document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
  document.getElementById("pageSubtitle").textContent="Eure Erinnerungen werden zu eurer Welt ♥";
- document.getElementById("help").innerHTML="Erkundet die Inseln mit Hasan (Pfeiltasten) und Jill (WASD). Drückt E an den Erinnerungsorten.";
+ document.getElementById("help").innerHTML="Erkundet die Inseln mit Hasan (Pfeiltasten) und Jill (WASD). Drückt E an den Erinnerungsorten oder am Portal zum Redewendungs-Chaos.";
 }
 
 function drawCharacter(images,x,y,direction,moving){
@@ -1467,6 +1498,12 @@ function drawMetaverse(){
  // Vier kleine begehbare Erinnerungsinseln
  const islands=[{x:205,y:310,c:"#b46b70",title:"BADFISH",emoji:"🍹"},{x:420,y:220,c:"#648d91",title:"BERLIN",emoji:"🏙️"},{x:650,y:315,c:"#8d668e",title:"REISEN",emoji:"🌴"},{x:820,y:210,c:"#b58a52",title:"ZUKUNFT",emoji:"✨"}];
  for(const island of islands){glow(island.x,island.y,100,island.c+"88");ctx.fillStyle=island.c;ctx.beginPath();ctx.ellipse(island.x,island.y+28,82,24,0,0,Math.PI*2);ctx.fill();ctx.font="34px Arial";ctx.textAlign="center";ctx.fillText(island.emoji,island.x,island.y);ctx.fillStyle="#fff0d5";ctx.font="bold 12px Arial";ctx.fillText(island.title,island.x,island.y+57);}
+ // Neues Bonusportal zum Redewendungs-Chaos
+ glow(500,425,115,"#f4c66b99");
+ ctx.fillStyle="#6b3b62";ctx.beginPath();ctx.ellipse(500,447,105,25,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#f4d18c";ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(500,405,58,75,0,0,Math.PI*2);ctx.stroke();
+ ctx.font="42px Arial";ctx.textAlign="center";ctx.fillText("🗯️",500,420);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 13px Arial";ctx.fillText("REDEWENDUNGS-CHAOS",500,485);
  // Figuren bewegen sich hier gemeinsam durch die Welt
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
@@ -1474,6 +1511,127 @@ function drawMetaverse(){
  ctx.font="17px Georgia";ctx.fillText("Jede Erinnerung ist ein Ort. Und jedes Kapitel gehört euch. ♥",500,105);
  drawInventoryHUD();drawAchievementToast();drawHeart(31,581,30,null);
  if(metaverseMessage&&performance.now()<metaverseMessageUntil){box(270,520,460,42,"#211b2cee");ctx.fillStyle="#ffe0a5";ctx.font="bold 16px Arial";ctx.fillText(metaverseMessage,500,547);}
+}
+
+function shuffledSayingsOptions(correct){
+ const alternatives=sayingsData.map(item=>item.right).filter(value=>value!==correct);
+ for(let i=alternatives.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[alternatives[i],alternatives[j]]=[alternatives[j],alternatives[i]];}
+ return [correct,...alternatives.slice(0,2)].sort(()=>Math.random()-.5);
+}
+function startSayingsLevel(){
+ scene="sayings";sayingsIndex=0;sayingsSolved=false;sayingsFeedback="";sayingsBossMode=false;sayingsBossLeft=3;sayingsCompleted=false;sayingsWrongCount=0;
+ sayingsBossPool=[];hasan.x=410;hasan.y=555;hasan.direction="front";jill.x=590;jill.y=555;jill.direction="front";
+ prepareSayingsRound();
+ document.getElementById("pageTitle").textContent="Hasan hat die Sprache kaputt gemacht";
+ document.getElementById("pageSubtitle").textContent="Das große Redewendungs-Chaos 🗯️";
+ document.getElementById("help").innerHTML="Hasan: Pfeiltasten · Jill: WASD · Lauft zu einer Antwort und drückt E oder Leertaste. Ihr könnt die Antwortfelder auch anklicken.";
+}
+function prepareSayingsRound(){
+ const item=sayingssCurrent();
+ sayingsOptions=shuffledSayingsOptions(item.right);
+ sayingsSolved=false;sayingsFeedback="";
+}
+function chooseSayingsOption(index){
+ if(sayingsSolved||sayingsCompleted||!sayingsOptions[index])return;
+ const selected=sayingsOptions[index];
+ const correct= sayingssCurrent().right;
+ if(selected===correct){
+  sayingsSolved=true;sayingsFeedback="Richtig! Die Redewendung ist repariert. ♥";
+  achievements.add("Sprachretter:innen");
+ }else{
+  sayingsWrongCount++;sayingsFeedback="Knapp daneben! Hasan hat die Sprache noch nicht repariert. Versucht es noch einmal.";
+ }
+}
+function sayingssCurrent(){
+ if(sayingsBossMode)return sayingsBossPool[0];
+ return sayingsData[sayingsIndex];
+}
+function continueSayings(){
+ if(!sayingsSolved)return;
+ if(sayingsBossMode){
+  sayingsBossPool.shift();sayingsBossLeft--;
+  if(sayingsBossLeft<=0){finishSayingsLevel();return;}
+  prepareSayingsRound();return;
+ }
+ sayingsIndex++;
+ if(sayingsIndex>=sayingsData.length){
+  sayingsBossMode=true;
+  const pool=[...sayingsData];
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  sayingsBossPool=pool.slice(0,3);sayingsBossLeft=3;
+  sayingsSolved=false;sayingsFeedback="Der Endgegner kommt! Hasan wirft euch drei besonders wilde Redewendungen entgegen.";
+  prepareSayingsRound();
+  return;
+ }
+ prepareSayingsRound();
+}
+function finishSayingsLevel(){
+ sayingsCompleted=true;scene="sayingsComplete";
+ achievements.add("Doktor der Sprichwortwissenschaft");
+ document.getElementById("pageTitle").textContent="Sprache gerettet!";
+ document.getElementById("pageSubtitle").textContent="Hasans Redewendungen sind wieder ganz ♥";
+ document.getElementById("help").innerHTML="Ihr habt alle 17 Redewendungen und den Endgegner gemeistert. Das Diplom wartet auf euch!";
+}
+function drawSayingsBackdrop(item){
+ const palettes=["#344b4b","#46506e","#68404a","#55435e","#56452f","#3e5260"];
+ const c=palettes[sayingsIndex%palettes.length];box(0,0,W,H,c);
+ for(let i=0;i<12;i++){glow((i*97+90)%W,(i*61+85)%440,75,"#f7d58b24");}
+ box(0,0,W,105,"#211b2cdd");
+ ctx.textAlign="center";ctx.fillStyle="#f7d9a4";ctx.font="bold 17px Arial";
+ ctx.fillText(item.scene,500,31);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 23px Georgia";
+ ctx.fillText(sayingsBossMode?"BOSS-RUNDE – HASANS SPRICHWORTSALAT":"Redewendung "+(sayingsIndex+1)+" / 17",500,70);
+ // Die absurde, wörtliche Mini-Szene: jedes Sprichwort erhält sein eigenes Motiv.
+ ctx.fillStyle="#ffffff12";ctx.beginPath();ctx.roundRect(210,125,580,145,18);ctx.fill();
+ ctx.font="62px Arial";ctx.fillText(item.art,500,215);
+ // Hasan als Urheber des Sprach-Chaos
+ ctx.fillStyle="#f5d9b1";ctx.beginPath();ctx.roundRect(90,285,820,76,14);ctx.fill();
+ ctx.fillStyle="#4a2e3a";ctx.font="bold 12px Arial";ctx.fillText("HASANS ORIGINALVERSION",500,308);
+ ctx.font="bold 20px Georgia";wrapSayingsText("„"+item.wrong+"“",500,333,760,23);
+ if(sayingsBossMode){
+  ctx.font="58px Arial";ctx.fillText("👑🤪",500,425);
+  ctx.fillStyle="#ffe0a5";ctx.font="bold 13px Arial";ctx.fillText("DER WANDLENDE SPRICHWORTSALAT",500,458);
+ }
+}
+function drawSayingsLevel(){
+ const item=sayingssCurrent();drawSayingsBackdrop(item);
+ const positions=[235,500,765];
+ for(let i=0;i<3;i++){
+  const x=positions[i];
+  ctx.fillStyle="#f3e4cf";ctx.beginPath();ctx.roundRect(x-118,385,236,105,12);ctx.fill();
+  ctx.strokeStyle="#cda66c";ctx.lineWidth=4;ctx.stroke();
+  ctx.fillStyle="#7b4350";ctx.font="bold 13px Arial";ctx.textAlign="center";ctx.fillText("TOR "+(i+1),x,408);
+  ctx.fillStyle="#38283a";ctx.font="bold 14px Arial";
+  wrapSayingsText(sayingsOptions[i],x,435,205,18);
+  if(sayingsSolved&&sayingsOptions[i]===item.right){ctx.strokeStyle="#4e9c6b";ctx.lineWidth=6;ctx.strokeRect(x-118,385,236,105);}
+ }
+ drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
+ drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText("HASAN",hasan.x,602);ctx.fillText("JILL",jill.x,602);
+ ctx.fillStyle="#fff0d5";ctx.font="12px Arial";
+ ctx.fillText("Lauft zu einem Antwort-Tor und drückt E / Leertaste – oder klickt es an.",500,520);
+ if(sayingsFeedback){
+  box(170,535,660,55,"#211b2cee");ctx.fillStyle=sayingsSolved?"#a8e0ad":"#ffe0a5";ctx.font="bold 16px Arial";ctx.fillText(sayingsFeedback,500,568);
+ }
+ if(sayingsSolved){
+  box(330,575,340,36,"#f5dfb9");ctx.fillStyle="#442d3d";ctx.font="bold 14px Arial";
+  ctx.fillText(sayingsBossMode?"Weiter im Bosskampf →":"Redewendung repariert – weiter →",500,598);
+ }
+}
+function wrapSayingsText(text,x,y,maxWidth,lineHeight){
+ const words=text.split(" ");let line="",lines=[];
+ for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word;}else line=test;}
+ if(line)lines.push(line);
+ lines.slice(0,3).forEach((part,i)=>ctx.fillText(part,x,y+i*lineHeight));
+}
+function interactSayings(){
+ if(sayingsSolved){continueSayings();return;}
+ const positions=[235,500,765];
+ const candidates=[{x:hasan.x,y:hasan.y},{x:jill.x,y:jill.y}];
+ let best=-1,bestDistance=Infinity;
+ positions.forEach((x,i)=>candidates.forEach(p=>{const d=Math.hypot(p.x-x,p.y-435);if(d<bestDistance){bestDistance=d;best=i;}}));
+ if(bestDistance<145)chooseSayingsOption(best);
+ else sayingsFeedback="Geht näher an eines der drei Antwort-Tore heran.";
 }
 
 function drawFoodGame(){
@@ -1699,6 +1857,18 @@ function update(now=performance.now()){
  }else if(scene==="apartment"){
   moveRestaurantPlayers();drawApartment();
 
+ }else if(scene==="sayings"){
+  let dx=0,dy=0;
+  if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++;
+  if(dx&&dy){dx*=.707;dy*=.707;}hasan.x=Math.max(80,Math.min(920,hasan.x+dx*3.4));hasan.y=Math.max(365,Math.min(555,hasan.y+dy*3.4));
+  let jx=0,jy=0;if(keys.a)jx--;if(keys.d)jx++;if(keys.w)jy--;if(keys.s)jy++;
+  if(jx&&jy){jx*=.707;jy*=.707;}jill.x=Math.max(80,Math.min(920,jill.x+jx*3.4));jill.y=Math.max(365,Math.min(555,jill.y+jy*3.4));
+  drawSayingsLevel();
+ }else if(scene==="sayingsComplete"){
+  drawSayingsBackdrop({scene:"Sprachprüfung bestanden",art:"🏆 🗯️ ❤️",wrong:"17 Redewendungen gerettet – Hasan bleibt trotzdem Hasan."});
+  ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 31px Georgia";ctx.fillText("DOKTOR DER SPRICHWORTWISSENSCHAFT",500,475);
+  ctx.font="19px Georgia";ctx.fillText("Hasan – 17 kreative Neuinterpretationen. Keine davon ganz freiwillig.",500,520);
+  ctx.font="16px Arial";ctx.fillText("Klickt oder drückt E, um ins Metaverse zurückzukehren.",500,570);
  }else if(scene==="metaverse"){
   let dx=0,dy=0;
   if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++;
@@ -1730,9 +1900,16 @@ function interact(){
   interactApartment();
  }
  if(scene==="metaverse"){
+  if(Math.hypot(hasan.x-500,hasan.y-425)<125||Math.hypot(jill.x-500,jill.y-425)<125){startSayingsLevel();return;}
   const spots=[{x:205,y:310,t:"Hier begann alles mit zwei Frozen Margaritas."},{x:420,y:220,t:"Berlin – eure gemeinsame kleine Welt."},{x:650,y:315,t:"Noch viele Reisen warten auf euch."},{x:820,y:210,t:"Das nächste Kapitel schreibt ihr zusammen."}];
   const near=spots.find(o=>Math.hypot(hasan.x-o.x,hasan.y-o.y)<95||Math.hypot(jill.x-o.x,jill.y-o.y)<95);
   if(near){metaverseMessage=near.t;metaverseMessageUntil=performance.now()+3000;achievements.add("Weltentdecker:innen");}
+ }
+ if(scene==="sayings"){interactSayings();}
+ if(scene==="sayingsComplete"){
+  scene="metaverse";hasan.x=500;hasan.y=500;jill.x=550;jill.y=500;
+  document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
+  document.getElementById("pageSubtitle").textContent="Eure Erinnerungen werden zu eurer Welt ♥";
  }
  if(scene==="interior"){
   const h=restaurantPlayers.hasan;
@@ -1785,6 +1962,15 @@ canvas.addEventListener("click",e=>{
 
  if(opened)return;
 
+ if(scene==="sayings"){
+  if(sayingsSolved&&x>=300&&x<=700&&y>=565&&y<=615){continueSayings();return;}
+  if(!sayingsSolved&&y>=380&&y<=500){
+   const positions=[235,500,765];
+   for(let i=0;i<3;i++){if(Math.abs(x-positions[i])<=120){chooseSayingsOption(i);return;}}
+  }
+ }
+ if(scene==="sayingsComplete"){interact();return;}
+
  // Herz im Museum: direkter Einstieg ins Fahrradspiel
  if(scene==="museum"&&!finaleStarted&&x>=8&&x<=62&&y>=552&&y<=605){
   sayYes();
@@ -1826,6 +2012,7 @@ canvas.addEventListener("click",e=>{
   enterMetaverse();
   return;
  }
+ if(scene==="metaverse"&&Math.abs(x-500)<115&&y>345&&y<500){startSayingsLevel();return;}
 
  // Shortcut zum Restaurant
  if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){
@@ -1853,7 +2040,7 @@ canvas.addEventListener("mousemove",e=>{
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
 
  canvas.style.cursor=overHeart&&
-  (scene==="museum"||scene==="landing"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="metaverse")?"pointer":"default";
+  (scene==="museum"||scene==="landing"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="metaverse"||scene==="sayings"||scene==="sayingsComplete")?"pointer":"default";
 });
 
 update();
