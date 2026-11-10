@@ -82,7 +82,7 @@ button:hover{background:#6d3048}
   <p>Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.</p>
   <p>Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
   <p><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
-  <p><b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen.</p>
+  <p><b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen. Achtet außerdem auf die kleine Tagesbestellung – die richtige Reihenfolge bringt Bonuspunkte!</p>
   <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
   <button onclick="startFoodGame()">Start</button>
  </div>
@@ -222,6 +222,27 @@ let deliciousCount=0;
 let greenSauceHits=0;
 let lastFoodSpawn=0;
 let foodFinished=false;
+
+// Gemeinsames Inventar, freischaltbare Erfolge und neue Abenteuerorte
+const inventory=[];
+const achievements=new Set();
+const museumSecrets=[
+ {x:145,y:510,label:"Kinoticket",emoji:"🎟️",found:false},
+ {x:855,y:500,label:"Kleines Herz",emoji:"💌",found:false},
+ {x:500,y:545,label:"Reisekarte",emoji:"🗺️",found:false}
+];
+let apartmentFound={photo:false,record:false,postcard:false};
+let apartmentMessage="";
+let apartmentMessageUntil=0;
+let bikePowerups=[];
+let shieldUntil=0;
+let turboUntil=0;
+let teamBonusAt=0;
+let bikeSection="NEUKÖLLN";
+let foodOrderIndex=0;
+let foodOrderCount=0;
+let metaverseMessage="";
+let metaverseMessageUntil=0;
 
 // --------------------------------------------------
 // Allgemeine Zeichenfunktionen
@@ -391,6 +412,31 @@ function drawRoom(){
 
  // Kleines Herz als Shortcut
  drawHeart(31,581,30,null);
+}
+
+function drawInventoryHUD(){
+ box(785,12,200,38,"#211b2cbb");
+ ctx.fillStyle="#fff0d5";ctx.font="bold 13px Arial";ctx.textAlign="right";
+ ctx.fillText("Fundstücke: "+inventory.length+" / 6",970,36);
+}
+function addInventory(label,emoji){
+ if(!inventory.some(item=>item.label===label))inventory.push({label,emoji});
+ if(inventory.length>=3)achievements.add("Sammler:innen");
+}
+function drawAchievementToast(){
+ if(!achievements.size)return;
+ const names=[...achievements].slice(-3).join(" · ");
+ box(690,75,290,34,"#3b2a42dd");ctx.fillStyle="#ffe0a5";ctx.font="12px Arial";ctx.textAlign="right";
+ ctx.fillText("🏆 "+names,968,97);
+}
+function showApartmentMessage(message){
+ apartmentMessage=message;apartmentMessageUntil=performance.now()+2600;
+}
+function enterMetaverse(){
+ scene="metaverse";hasan.x=120;hasan.y=480;jill.x=170;jill.y=480;
+ document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
+ document.getElementById("pageSubtitle").textContent="Eure Erinnerungen werden zu eurer Welt ♥";
+ document.getElementById("help").innerHTML="Erkundet die Inseln mit Hasan (Pfeiltasten) und Jill (WASD). Drückt E an den Erinnerungsorten.";
 }
 
 function drawCharacter(images,x,y,direction,moving){
@@ -702,6 +748,10 @@ function spawnThings(){
   });
  }
 
+ // Power-ups: Schutzschild und Herzmagnet erscheinen in wechselnden Abschnitten
+ if(Math.floor(t/9000)>Math.floor((t-16)/9000) && bikePowerups.length<8){
+  bikePowerups.push({x:180+Math.random()*640,y:-35,type:Math.random()<.5?"shield":"magnet"});
+ }
  // 100 Herzen insgesamt
  const target=Math.min(100,Math.floor(t/560)+1);
  while(heartsSpawned<target){
@@ -727,6 +777,9 @@ function drawBikeScene(now){
   box(105,y,790,3,"#77717a");
   box(482,y,5,48,"#e3c98f");
  }
+ const sectionNames=["NEUKÖLLN","KREUZUNG","BAUSTELLE","KOPFSTEINPFLASTER"];
+ bikeSection=sectionNames[Math.min(3,Math.floor(elapsed/15000))];
+ box(365,8,270,31,"#211b2caa");ctx.fillStyle="#ffe0a5";ctx.font="bold 14px Arial";ctx.textAlign="center";ctx.fillText("BERLIN · "+bikeSection,500,29);
 
  if(!restaurantReached&&!bikeFailed){
   spawnThings();
@@ -745,26 +798,39 @@ function drawBikeScene(now){
     if(keys.s)dy++;
    }
    if(dx&&dy){dx*=.707;dy*=.707}
-   p.x=Math.max(125,Math.min(875,p.x+dx*3.4));
-   p.y=Math.max(95,Math.min(555,p.y+dy*3.4));
+   const rideSpeed=now<turboUntil?5.1:3.4;
+   p.x=Math.max(125,Math.min(875,p.x+dx*rideSpeed));
+   p.y=Math.max(95,Math.min(555,p.y+dy*rideSpeed));
   }
 
   roadOffset+=4.4;
   obstacles.forEach(o=>o.y+=4.4);
   collectibles.forEach(c=>c.y+=4.4);
+  bikePowerups.forEach(power=>power.y+=4.4);
+  for(const power of bikePowerups){
+   ctx.font="27px Arial";ctx.textAlign="center";ctx.fillText(power.type==="shield"?"🛡️":"🧲",power.x,power.y);
+   for(const player of Object.values(bikePlayers)){
+    if(power.y>-10&&Math.hypot(player.x-power.x,player.y-power.y)<32){
+     if(power.type==="shield")shieldUntil=now+6500;else turboUntil=now+6500;
+     power.y=9999;achievements.add(power.type==="shield"?"Unverwüstlich":"Herzmagnet");
+    }
+   }
+  }
+  bikePowerups=bikePowerups.filter(power=>power.y<H+30);
 
   for(const o of obstacles){
    drawObstacle(o);
    for(const p of Object.values(bikePlayers)){
     if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
      o.hitPlayers[p.name]=true;
-     p.x=Math.max(125,p.x-30);
-     bikeStart-=450;
+     if(now<shieldUntil){shieldUntil=0;achievements.add("Schutzengel");}
+     else {p.x=Math.max(125,p.x-30);bikeStart-=450;}
     }
    }
   }
 
   for(const c of collectibles){
+   if(now<turboUntil){const nearest=[bikePlayers.hasan,bikePlayers.jill].sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];c.x+=(nearest.x-c.x)*.025;}
    drawHeart(c.x,c.y,25,null);
    for(const p of Object.values(bikePlayers)){
     if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<27){
@@ -777,6 +843,9 @@ function drawBikeScene(now){
 
   obstacles=obstacles.filter(o=>o.y<H+55);
   collectibles=collectibles.filter(c=>c.y<H+55);
+  if(Math.hypot(bikePlayers.hasan.x-bikePlayers.jill.x,bikePlayers.hasan.y-bikePlayers.jill.y)<75&&now-teamBonusAt>1800){
+   teamBonusAt=now;score++;achievements.add("Teamwork-Profi");
+  }
 
   drawBike(bikePlayers.hasan.x,bikePlayers.hasan.y,
    bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
@@ -789,6 +858,8 @@ function drawBikeScene(now){
   ctx.fillText(Math.max(0,60-Math.floor(bikeElapsed))+" s",25,32);
   ctx.textAlign="right";
   ctx.fillText("♥ "+score+" / 52",975,32);
+  if(now<shieldUntil||now<turboUntil){ctx.textAlign="center";ctx.font="13px Arial";ctx.fillText((now<shieldUntil?"🛡️ Schutzschild ":"")+(now<turboUntil?"🧲 Herzmagnet":""),500,600);}
+  drawAchievementToast();
 
   // Kleines Herz als Shortcut bleibt sichtbar
   drawHeart(31,581,30,null);
@@ -1301,7 +1372,8 @@ function drawFallingFood(item){
   ctx.strokeStyle="#c8a77f";
   ctx.lineWidth=2;
   ctx.stroke();
-  ctx.fillText(item.emoji,item.x,item.y+1);
+  ctx.fillText(item.dish?item.dish.emoji:item.emoji,item.x,item.y+1);
+  if(item.dish&&!item.sauce){ctx.fillStyle="#684b3c";ctx.font="9px Arial";ctx.fillText(item.dish.name,item.x,item.y+39);}
  }
  ctx.restore();
 }
@@ -1342,24 +1414,66 @@ function drawFoodHUD(){
  ctx.fillStyle="#fff0d5";
  ctx.textAlign="right";
  ctx.fillText("🥣 Grüne Soße: "+greenSauceHits+" / 2",965,49);
-}function drawMetaverse(){
+}function drawApartment(){
+ box(0,0,W,H,"#463344");box(0,0,W,365,"#b88d75");box(0,365,W,H-365,"#795b4c");
+ // Tapete und Dielen
+ for(let x=0;x<W;x+=70)line(x,0,x,365,"#d0a58a",1);
+ for(let y=390;y<H;y+=42)line(0,y,W,y,"#a27a61",2);
+ // Fenster mit Berliner Abendhimmel
+ box(65,55,240,190,"#342e4b");box(75,65,220,170,"#52627c");
+ for(let i=0;i<18;i++){ctx.fillStyle="#ffe0a5";ctx.fillRect(85+(i*37)%200,78+(i*53)%145,3,3);}
+ line(185,65,185,235,"#e5c4a3",7);line(75,150,295,150,"#e5c4a3",7);
+ // Sofa
+ box(340,300,310,125,"#6e4054");box(355,270,280,75,"#91566a");box(370,285,115,55,"#c18a83");box(505,285,115,55,"#c18a83");
+ // Couchtisch und Plattenspieler
+ box(410,445,170,55,"#8a6047");box(435,420,120,28,"#d5b78d");ctx.fillStyle="#29222d";ctx.beginPath();ctx.arc(495,434,13,0,Math.PI*2);ctx.fill();
+ // Regal mit Erinnerungsstücken
+ box(730,75,205,220,"#684536");for(let y of [145,215,285])box(740,y,185,8,"#d0a276");
+ ctx.font="25px Arial";ctx.textAlign="center";ctx.fillText("📷",780,135);ctx.fillText("💿",850,205);ctx.fillText("🗺️",900,275);
+ // Wohnungstür zum nächsten Kapitel
+ box(455,500,90,110,"#57392f");box(463,508,74,102,"#95674f");ctx.fillStyle="#e4c28b";ctx.beginPath();ctx.arc(522,560,4,0,Math.PI*2);ctx.fill();
+ // Teppich
+ ctx.fillStyle="#8a4658";ctx.beginPath();ctx.ellipse(500,530,260,58,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e1b77d";ctx.lineWidth=3;ctx.stroke();
+ // Sammelobjekte
+ const objects=[{x:275,y:485,key:"photo",emoji:"📸",label:"Foto"},{x:690,y:490,key:"record",emoji:"💿",label:"Schallplatte"},{x:885,y:385,key:"postcard",emoji:"💌",label:"Postkarte"}];
+ for(const o of objects){if(!apartmentFound[o.key]){glow(o.x,o.y,34,"#ffe0a555");ctx.font="28px Arial";ctx.fillText(o.emoji,o.x,o.y+8);}}
+ drawCharacter(hasanImages,restaurantPlayers.hasan.x,restaurantPlayers.hasan.y,restaurantPlayers.hasan.direction,false);
+ drawCharacter(jillImages,restaurantPlayers.jill.x,restaurantPlayers.jill.y,restaurantPlayers.jill.direction,false);
+ box(0,8,W,42,"#211b2cbb");ctx.fillStyle="#ffe0a5";ctx.font="bold 21px Georgia";ctx.fillText("Zuhause – unser kleines Glück",500,36);
+ ctx.font="13px Arial";ctx.fillStyle="#fff0d5";ctx.fillText("Findet die drei Erinnerungsstücke und geht dann gemeinsam zur Tür",500,590);
+ drawInventoryHUD();drawHeart(31,581,30,null);
+ if(apartmentMessage&&performance.now()<apartmentMessageUntil){box(220,510,560,45,"#211b2cee");ctx.fillStyle="#ffe0a5";ctx.font="bold 17px Arial";ctx.fillText(apartmentMessage,500,539);}
+}
+function interactApartment(){
+ const h=restaurantPlayers.hasan,j=restaurantPlayers.jill;
+ const objects=[{x:275,y:485,key:"photo",label:"Ein Foto von eurem ersten Date"},{x:690,y:490,key:"record",label:"Eure gemeinsame Schallplatte"},{x:885,y:385,key:"postcard",label:"Eine Postkarte von einer Reise"}];
+ for(const o of objects){
+  if(!apartmentFound[o.key]&&(Math.hypot(h.x-o.x,h.y-o.y)<85||Math.hypot(j.x-o.x,j.y-o.y)<85)){
+   apartmentFound[o.key]=true;addInventory(o.label,"✨");achievements.add("Zuhause gefunden");showApartmentMessage(o.label+" – Erinnerung eingesammelt!");return;
+  }
+ }
+ if(Object.values(apartmentFound).every(Boolean)&&Math.hypot(h.x-500,h.y-550)<100&&Math.hypot(j.x-500,j.y-550)<100){
+  enterMetaverse();return;
+ }
+ showApartmentMessage("Sucht die drei Erinnerungsstücke im Zimmer.");
+}
+function drawMetaverse(){
  box(0,0,W,H,"#11152f");
  const colors=["#4a2d78","#245b78","#7a3e83","#2e786e"];
  for(let i=0;i<24;i++){
   const x=(i*173+time*.18)%W,y=(i*97+Math.sin(time/35+i)*18)%H;
-  glow(x,y,55,colors[i%4]+"88");
-  ctx.fillStyle=colors[i%4];
-  ctx.fillRect(x-13,y-13,26,26);
+  glow(x,y,55,colors[i%4]+"88");ctx.fillStyle=colors[i%4];ctx.fillRect(x-13,y-13,26,26);
  }
- ctx.textAlign="center";
- ctx.fillStyle="#f5d8a0";
- ctx.font="bold 38px Georgia";
- ctx.fillText("EURE KLEINE WELT",500,115);
- ctx.font="20px Georgia";
- ctx.fillText("Hier beginnt das nächste Kapitel … ♥",500,160);
- drawCharacter(hasanImages,420,470,"front",false);
- drawCharacter(jillImages,580,470,"front",false);
- drawHeart(31,581,30,null);
+ // Vier kleine begehbare Erinnerungsinseln
+ const islands=[{x:205,y:310,c:"#b46b70",title:"BADFISH",emoji:"🍹"},{x:420,y:220,c:"#648d91",title:"BERLIN",emoji:"🏙️"},{x:650,y:315,c:"#8d668e",title:"REISEN",emoji:"🌴"},{x:820,y:210,c:"#b58a52",title:"ZUKUNFT",emoji:"✨"}];
+ for(const island of islands){glow(island.x,island.y,100,island.c+"88");ctx.fillStyle=island.c;ctx.beginPath();ctx.ellipse(island.x,island.y+28,82,24,0,0,Math.PI*2);ctx.fill();ctx.font="34px Arial";ctx.textAlign="center";ctx.fillText(island.emoji,island.x,island.y);ctx.fillStyle="#fff0d5";ctx.font="bold 12px Arial";ctx.fillText(island.title,island.x,island.y+57);}
+ // Figuren bewegen sich hier gemeinsam durch die Welt
+ drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
+ drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
+ ctx.textAlign="center";ctx.fillStyle="#f5d8a0";ctx.font="bold 32px Georgia";ctx.fillText("EURE KLEINE WELT",500,72);
+ ctx.font="17px Georgia";ctx.fillText("Jede Erinnerung ist ein Ort. Und jedes Kapitel gehört euch. ♥",500,105);
+ drawInventoryHUD();drawAchievementToast();drawHeart(31,581,30,null);
+ if(metaverseMessage&&performance.now()<metaverseMessageUntil){box(270,520,460,42,"#211b2cee");ctx.fillStyle="#ffe0a5";ctx.font="bold 16px Arial";ctx.fillText(metaverseMessage,500,547);}
 }
 
 function drawFoodGame(){
@@ -1378,7 +1492,10 @@ function drawFoodGame(){
     if(player.column===item.column){
      item.caught=true;
      if(item.sauce)greenSauceHits++;
-     else deliciousCount++;
+     else {
+      deliciousCount++;player.eatUntil=performance.now()+520;playEatSound();
+      if(item.dish&&item.dish.name===foodItems[foodOrderIndex%foodItems.length].name){foodOrderCount++;foodOrderIndex++;if(foodOrderCount%3===0){deliciousCount++;achievements.add("Feinschmecker:innen");}}
+     }
      break;
     }
    }
@@ -1421,13 +1538,13 @@ function finishFoodGame(won){
   document.getElementById("resultText").textContent=
    "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
-  button.textContent="Weiter ins Metaverse ♥";
+  button.textContent="Nach Hause ♥";
   button.onclick=()=>{
    document.getElementById("result").style.display="none";
-   scene="metaverse";
-   document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
-   document.getElementById("pageSubtitle").textContent="Euer nächstes gemeinsames Abenteuer ♥";
-   document.getElementById("help").innerHTML="Eure kleine digitale Welt ♥";
+   scene="apartment";setArrivalPositions();
+   document.getElementById("pageTitle").textContent="Zuhause – unser kleines Glück";
+   document.getElementById("pageSubtitle").textContent="Findet drei Erinnerungsstücke ♥";
+   document.getElementById("help").innerHTML="Hasan: Pfeiltasten · Jill: WASD · E/Leertaste zum Interagieren";
   };
 
  }else{
@@ -1511,6 +1628,7 @@ function drawLanding(now){
 
  if(t>=3.7){
   scene="bikes";
+  startBikeMusic();
   bikeStart=now;
   bikeElapsed=0;
   lastObstacleAt=0;
@@ -1578,7 +1696,15 @@ function update(now=performance.now()){
  }else if(scene==="foodResult"){
   drawRestaurantInterior();
 
+ }else if(scene==="apartment"){
+  moveRestaurantPlayers();drawApartment();
+
  }else if(scene==="metaverse"){
+  let dx=0,dy=0;
+  if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++;
+  if(dx&&dy){dx*=.707;dy*=.707;}hasan.x=Math.max(60,Math.min(940,hasan.x+dx*3));hasan.y=Math.max(180,Math.min(550,hasan.y+dy*3));
+  let jx=0,jy=0;if(keys.a)jx--;if(keys.d)jx++;if(keys.w)jy--;if(keys.s)jy++;
+  if(jx&&jy){jx*=.707;jy*=.707;}jill.x=Math.max(60,Math.min(940,jill.x+jx*3));jill.y=Math.max(180,Math.min(550,jill.y+jy*3));
   drawMetaverse();
  }
 
@@ -1600,6 +1726,14 @@ function interact(){
   if(e)openMemory(e);
  }
 
+ if(scene==="apartment"){
+  interactApartment();
+ }
+ if(scene==="metaverse"){
+  const spots=[{x:205,y:310,t:"Hier begann alles mit zwei Frozen Margaritas."},{x:420,y:220,t:"Berlin – eure gemeinsame kleine Welt."},{x:650,y:315,t:"Noch viele Reisen warten auf euch."},{x:820,y:210,t:"Das nächste Kapitel schreibt ihr zusammen."}];
+  const near=spots.find(o=>Math.hypot(hasan.x-o.x,hasan.y-o.y)<95||Math.hypot(jill.x-o.x,jill.y-o.y)<95);
+  if(near){metaverseMessage=near.t;metaverseMessageUntil=performance.now()+3000;achievements.add("Weltentdecker:innen");}
+ }
  if(scene==="interior"){
   const h=restaurantPlayers.hasan;
   const j=restaurantPlayers.jill;
@@ -1685,12 +1819,11 @@ canvas.addEventListener("click",e=>{
   return;
  }
 
+ // Herz in der Wohnung: direkt ins Metaverse
+ if(scene==="apartment"&&x>=8&&x<=62&&y>=552&&y<=605){enterMetaverse();return;}
  // Shortcut aus dem Essensspiel direkt ins Metaverse
  if(scene==="food"&&x>=8&&x<=62&&y>=552&&y<=605){
-  scene="metaverse";
-  document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
-  document.getElementById("pageSubtitle").textContent="Euer nächstes gemeinsames Abenteuer ♥";
-  document.getElementById("help").innerHTML="Eure kleine digitale Welt ♥";
+  enterMetaverse();
   return;
  }
 
@@ -1704,6 +1837,8 @@ canvas.addEventListener("click",e=>{
  }
 
  if(scene==="museum"&&!finaleStarted){
+  const secret=museumSecrets.find(item=>!item.found&&Math.hypot(x-item.x,y-item.y)<35);
+  if(secret){secret.found=true;addInventory(secret.label,secret.emoji);achievements.add("Museumsdetektiv:innen");return;}
   const ex=exhibits.find(item=>
    Math.abs(x-item.x)<75&&y>item.y-75&&y<item.y+100
   );
@@ -1718,7 +1853,7 @@ canvas.addEventListener("mousemove",e=>{
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
 
  canvas.style.cursor=overHeart&&
-  (scene==="museum"||scene==="landing"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="metaverse")?"pointer":"default";
+  (scene==="museum"||scene==="landing"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="metaverse")?"pointer":"default";
 });
 
 update();
