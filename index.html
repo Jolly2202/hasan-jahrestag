@@ -104,6 +104,38 @@ const canvas=document.getElementById("world");
 const ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
 
+let eatAudioContext=null;
+function playEatSound(){
+ try{
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return;
+  if(!eatAudioContext)eatAudioContext=new AudioCtx();
+  if(eatAudioContext.state==="suspended")eatAudioContext.resume();
+  const now=eatAudioContext.currentTime;
+  const osc=eatAudioContext.createOscillator();
+  const gain=eatAudioContext.createGain();
+  osc.type="triangle";
+  osc.frequency.setValueAtTime(520,now);
+  osc.frequency.exponentialRampToValueAtTime(190,now+.12);
+  gain.gain.setValueAtTime(.0001,now);
+  gain.gain.exponentialRampToValueAtTime(.16,now+.015);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+.16);
+  osc.connect(gain);gain.connect(eatAudioContext.destination);
+  osc.start(now);osc.stop(now+.17);
+ }catch(error){}
+}
+function startBikeMusic(){
+ const music=document.getElementById("bikeMusic");
+ if(!music)return;
+ music.volume=.55;
+ if(music.paused)music.play().catch(()=>{});
+}
+function stopBikeMusic(){
+ const music=document.getElementById("bikeMusic");
+ if(music&&!music.paused){music.pause();music.currentTime=0;}
+}
+
+
 function loadImage(filename){
  const img=new Image();
  img.src=filename;
@@ -173,7 +205,18 @@ const foodPlayers={
  jill:{column:0,x:0,y:535,leftHeld:false,rightHeld:false}
 };
 
-const foodItems=["🧀","🥖","🍅","🫒","🥒","🍇","🥕","🥪","🍄","🥑","🍓","🥐"];
+const foodItems=[
+ {emoji:"🫒",name:"Dolma"},
+ {emoji:"🍚",name:"Couscous"},
+ {emoji:"🧆",name:"Falafel"},
+ {emoji:"🥣",name:"Hummus"},
+ {emoji:"🥗",name:"Taboulé"},
+ {emoji:"🍆",name:"Baba Ghanoush"},
+ {emoji:"🥙",name:"Kibbeh"},
+ {emoji:"🫓",name:"Fladenbrot"},
+ {emoji:"🍅",name:"Gefüllte Tomaten"},
+ {emoji:"🥬",name:"Weinblätter"}
+];
 let fallingFood=[];
 let deliciousCount=0;
 let greenSauceHits=0;
@@ -404,13 +447,7 @@ function startFinale(){
 function sayYes(){
  document.getElementById("finale").style.display="none";
 
- const music=document.getElementById("bikeMusic");
- if(music){
-  music.volume=.55;
-  music.currentTime=0;
-  music.play().catch(()=>{});
- }
-
+ stopBikeMusic();
  scene="fall";
  transitionStart=performance.now();
 
@@ -758,12 +795,14 @@ function drawBikeScene(now){
 
   if(score>=52){
    restaurantReached=true;
+   stopBikeMusic();
    scene="arrival";
    setArrivalPositions();
   }
 
   if(elapsed>=60000&&score<52){
    bikeFailed=true;
+   stopBikeMusic();
    showBikeFailure();
   }
  }
@@ -1159,19 +1198,20 @@ function restartFoodGame(){
 
 function spawnFood(){
  const now=performance.now();
- if(now-lastFoodSpawn<850)return;
+ if(now-lastFoodSpawn<560)return;
  lastFoodSpawn=now;
 
  const column=Math.floor(Math.random()*FOOD_COLUMNS);
- const sauce=Math.random()<.19;
+ const sauce=Math.random()<.25;
 
  fallingFood.push({
   column,
   x:FOOD_X[column],
   y:-35,
-  speed:1.65+Math.random()*.45,
+  speed:2.65+Math.random()*.85,
   sauce,
-  emoji:sauce?"🥣":foodItems[Math.floor(Math.random()*foodItems.length)],
+  dish:sauce?{emoji:"🥣",name:"Grüne Soße"}:foodItems[Math.floor(Math.random()*foodItems.length)],
+  emoji:sauce?"🥣":null,
   caught:false
  });
 }
@@ -1270,6 +1310,17 @@ function drawFoodPlayer(player,images){
  const image=images.front;
  if(image&&image.complete&&image.naturalWidth>0){
   ctx.drawImage(image,player.x-32,player.y-100,64,100);
+  if(player.eatUntil&&performance.now()<player.eatUntil){
+   const pulse=1+Math.sin(performance.now()/35)*.18;
+   ctx.fillStyle="#542b2a";
+   ctx.beginPath();
+   ctx.ellipse(player.x,player.y-77,4*pulse,6*pulse,0,0,Math.PI*2);
+   ctx.fill();
+   ctx.fillStyle="#d97883";
+   ctx.beginPath();
+   ctx.ellipse(player.x,player.y-74,2.5*pulse,2*pulse,0,0,Math.PI*2);
+   ctx.fill();
+  }
  }else{
   ctx.fillStyle="#e7c49b";
   ctx.beginPath();
@@ -1609,6 +1660,7 @@ canvas.addEventListener("click",e=>{
  // Herz auf dem Erklärungsbildschirm: Fahrradspiel direkt starten
  if(scene==="landing"&&x>=8&&x<=62&&y>=552&&y<=605){
   scene="bikes";
+  startBikeMusic();
   bikeStart=performance.now();
   bikeElapsed=0;
   lastObstacleAt=0;
@@ -1645,6 +1697,7 @@ canvas.addEventListener("click",e=>{
  // Shortcut zum Restaurant
  if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){
   restaurantReached=true;
+  stopBikeMusic();
   scene="arrival";
   setArrivalPositions();
   return;
