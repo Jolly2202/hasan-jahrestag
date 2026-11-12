@@ -38,6 +38,7 @@ button:hover{background:#6d3048}
 
 <div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
+<audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -132,6 +133,17 @@ function startBikeMusic(){
 }
 function stopBikeMusic(){
  const music=document.getElementById("bikeMusic");
+ if(music&&!music.paused){music.pause();music.currentTime=0;}
+}
+function startMuseumMusic(){
+ if(scene!=="museum")return;
+ const music=document.getElementById("museumMusic");
+ if(!music)return;
+ music.volume=.32;
+ if(music.paused)music.play().catch(()=>{});
+}
+function stopMuseumMusic(){
+ const music=document.getElementById("museumMusic");
  if(music&&!music.paused){music.pause();music.currentTime=0;}
 }
 
@@ -2404,6 +2416,7 @@ function drawLanding(now){
 
 function update(now=performance.now()){
  time++;
+ if(scene!=="museum")stopMuseumMusic();
 
  if(scene==="museum"){
   if(!opened&&!finaleStarted){
@@ -2542,6 +2555,7 @@ document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButto
 document.getElementById("noButton").addEventListener("click",dodgeNoButton);
 
 document.addEventListener("keydown",e=>{
+ if(scene==="museum")startMuseumMusic();
  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)){
   e.preventDefault();
  }
@@ -2561,6 +2575,7 @@ document.addEventListener("keyup",e=>{
 });
 
 canvas.addEventListener("click",e=>{
+ if(scene==="museum")startMuseumMusic();
  const r=canvas.getBoundingClientRect();
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
