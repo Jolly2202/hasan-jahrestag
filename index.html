@@ -188,8 +188,8 @@ const exhibits=[
 ];
 
 const bikePlayers={
- hasan:{x:735,y:500,color:"#243e65",hair:"#38251f",name:"HASAN"},
- jill:{x:265,y:500,color:"#6d3048",hair:"#4b241c",name:"JILL"}
+ hasan:{x:735,y:500,color:"#243e65",hair:"#38251f",name:"HASAN",direction:"back"},
+ jill:{x:265,y:500,color:"#6d3048",hair:"#4b241c",name:"JILL",direction:"back"}
 };
 
 const restaurantPlayers={
@@ -223,6 +223,17 @@ let greenSauceHits=0;
 let lastFoodSpawn=0;
 let foodFinished=false;
 
+// Die Geschichte nach dem Essen: Spaziergang durch den Graefekiez und Hasans Fahrradunfall.
+let streetStoryStartedAt=0;
+let streetStoryPhase="walk";
+let streetDialogueIndex=-1;
+const streetDialogue=[
+ {speaker:"Jill",text:"Oh nein oh nein was ist denn nun mit unserem Italien-Urlaub?"},
+ {speaker:"Hasan",text:"Naja... der Drops ist jetzt schon in den Brunnen gefallen..."},
+ {speaker:"Jill",text:"Tut mir ja leid mein Schatz aber diese Redewendung ist leider nicht ganz richtig."},
+ {speaker:"Hasan",text:"Ist ja gut ich kriege das schon hin! Pass mal auf!"}
+];
+
 // Gemeinsames Inventar, freischaltbare Erfolge und neue Abenteuerorte
 const inventory=[];
 const achievements=new Set();
@@ -239,10 +250,13 @@ let shieldUntil=0;
 let turboUntil=0;
 let teamBonusAt=0;
 let bikeSection="NEUKÖLLN";
+let bikeParticles=[];
+let bikeCelebrationAt=0;
+let bikeBossStarted=false;
+let bikeBossObjects=[];
+let streetSceneryOffset=0;
 let foodOrderIndex=0;
 let foodOrderCount=0;
-let metaverseMessage="";
-let metaverseMessageUntil=0;
 
 // Das Redewendungs-Chaos: Hasans Originale bleiben wortwörtlich erhalten.
 const sayingsData=[
@@ -339,24 +353,40 @@ function candle(x,y){
 
 function drawExhibit(exhibit,i){
  const near=Math.hypot(hasan.x-exhibit.x,hasan.y-(exhibit.y+80))<115;
- if(near)glow(exhibit.x,exhibit.y+35,110,"#f6cb8b32");
+ // Dramatischer Lichtkegel auf jedem der drei vorhandenen Erinnerungsbilder
+ ctx.save();
+ const beam=ctx.createLinearGradient(exhibit.x,55,exhibit.x,exhibit.y+95);
+ beam.addColorStop(0,"#f8d99a00");
+ beam.addColorStop(.65,"#f8d99a18");
+ beam.addColorStop(1,"#f8d99a00");
+ ctx.fillStyle=beam;
+ ctx.beginPath();ctx.moveTo(exhibit.x-100,55);ctx.lineTo(exhibit.x+100,55);
+ ctx.lineTo(exhibit.x+75,exhibit.y+100);ctx.lineTo(exhibit.x-75,exhibit.y+100);ctx.closePath();ctx.fill();
+ ctx.restore();
+ if(near)glow(exhibit.x,exhibit.y+35,135,"#f6cb8b55");
+ glow(exhibit.x,exhibit.y-58,82,"#f6d79b30");
 
- box(exhibit.x-69,exhibit.y-67,138,154,"#b7884f");
- box(exhibit.x-63,exhibit.y-61,126,142,"#e5c18a");
- box(exhibit.x-57,exhibit.y-55,114,130,"#39283d");
+ // Mehrschichtiger, schwerer Goldrahmen – Bildmotiv und Beschriftung bleiben unverändert
+ box(exhibit.x-82,exhibit.y-80,164,190,"#201827");
+ box(exhibit.x-78,exhibit.y-76,156,182,"#6f482f");
+ box(exhibit.x-73,exhibit.y-71,146,172,"#d7b16e");
+ box(exhibit.x-68,exhibit.y-66,136,162,"#f2d9a4");
+ box(exhibit.x-63,exhibit.y-61,126,152,"#39283d");
+ ctx.strokeStyle="#fff0c2";ctx.lineWidth=1.5;
+ ctx.strokeRect(exhibit.x-75,exhibit.y-73,150,176);
+ ctx.strokeStyle="#9d7044";ctx.lineWidth=2;
+ ctx.strokeRect(exhibit.x-59,exhibit.y-57,118,144);
 
  const colors=[
   ["#b46b70","#f2cb9b"],
   ["#648d91","#e8d0a3"],
   ["#8d668e","#f4d6a2"]
  ][i];
-
  box(exhibit.x-51,exhibit.y-49,102,118,colors[0]);
+ // dezente malerische Lichtfläche im Bild
+ glow(exhibit.x+15,exhibit.y-22,48,"#fff0c333");
  ctx.fillStyle=colors[1];
- ctx.beginPath();
- ctx.arc(exhibit.x+24,exhibit.y-23,15,0,Math.PI*2);
- ctx.fill();
-
+ ctx.beginPath();ctx.arc(exhibit.x+24,exhibit.y-23,15,0,Math.PI*2);ctx.fill();
  ctx.beginPath();
  ctx.moveTo(exhibit.x-51,exhibit.y+15);
  ctx.lineTo(exhibit.x-20,exhibit.y-8);
@@ -364,92 +394,108 @@ function drawExhibit(exhibit,i){
  ctx.lineTo(exhibit.x+30,exhibit.y-4);
  ctx.lineTo(exhibit.x+51,exhibit.y+18);
  ctx.lineTo(exhibit.x+51,exhibit.y+69);
- ctx.lineTo(exhibit.x-51,exhibit.y+69);
- ctx.fill();
-
+ ctx.lineTo(exhibit.x-51,exhibit.y+69);ctx.fill();
  ctx.fillStyle="#38273c";
  for(let j=0;j<2;j++){
   const xx=exhibit.x-13+j*26;
-  ctx.beginPath();
-  ctx.arc(xx,exhibit.y+33,7,0,Math.PI*2);
-  ctx.fill();
+  ctx.beginPath();ctx.arc(xx,exhibit.y+33,7,0,Math.PI*2);ctx.fill();
   ctx.fillRect(xx-6,exhibit.y+40,12,17);
  }
-
- ctx.textAlign="center";
- ctx.fillStyle="#f6d9a4";
- ctx.font="11px Arial";
- ctx.fillText(exhibit.caption,exhibit.x,exhibit.y+105);
-
+ // kleine goldene Zierpunkte in den Rahmenecken
+ [[-70,-63],[70,-63],[-70,91],[70,91]].forEach(([dx,dy])=>{
+  ctx.fillStyle="#fff0bd";ctx.beginPath();ctx.arc(exhibit.x+dx,exhibit.y+dy,2.5,0,Math.PI*2);ctx.fill();
+ });
+ ctx.textAlign="center";ctx.fillStyle="#f6d9a4";ctx.font="bold 12px Arial";
+ ctx.shadowColor="#160f19";ctx.shadowBlur=5;
+ ctx.fillText(exhibit.caption,exhibit.x,exhibit.y+125);ctx.shadowBlur=0;
  if(near){
-  box(exhibit.x-65,exhibit.y+118,130,25,"#f5dfb9");
-  ctx.fillStyle="#432b3c";
-  ctx.font="12px Arial";
-  ctx.fillText("E · ANSEHEN",exhibit.x,exhibit.y+135);
+  box(exhibit.x-69,exhibit.y+137,138,27,"#f5dfb9");
+  ctx.strokeStyle="#b58b56";ctx.lineWidth=1;ctx.strokeRect(exhibit.x-69,exhibit.y+137,138,27);
+  ctx.fillStyle="#432b3c";ctx.font="bold 12px Arial";
+  ctx.fillText("E · ANSEHEN",exhibit.x,exhibit.y+155);
  }
 }
 
 function drawRoom(){
- box(0,0,W,365,"#423047");
- box(0,365,W,255,"#79556a");
- glow(500,100,340,"#dba66c35");
- glow(180,250,150,"#e9b56c22");
- glow(820,250,150,"#e9b56c22");
+ // Cinematische, imposante Museumshalle – die drei Erinnerungsbilder bleiben der Mittelpunkt
+ box(0,0,W,365,"#211b2d");
+ box(0,365,W,255,"#574052");
 
- for(let x=25;x<1000;x+=95){
-  box(x,35,2,300,"#5b4158");
-  box(x+5,35,1,300,"#362b40");
+ // Tiefe Rückwand mit warmem Stein und hohen Wandfeldern
+ box(0,0,W,350,"#382b40");
+ box(18,25,964,315,"#49364a");
+ box(28,35,944,300,"#3b2d42");
+
+ // Hohe Rundbogenfenster und goldene Lichtflächen
+ for(let x of [95,500,905]){
+  ctx.fillStyle="#18202b";ctx.beginPath();ctx.moveTo(x-66,270);ctx.lineTo(x-66,105);
+  ctx.quadraticCurveTo(x,20,x+66,105);ctx.lineTo(x+66,270);ctx.closePath();ctx.fill();
+  const win=ctx.createLinearGradient(x,55,x,270);win.addColorStop(0,"#d9b879");win.addColorStop(.55,"#9d7770");win.addColorStop(1,"#46364b");
+  ctx.fillStyle=win;ctx.beginPath();ctx.moveTo(x-57,264);ctx.lineTo(x-57,107);ctx.quadraticCurveTo(x,38,x+57,107);ctx.lineTo(x+57,264);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#d6b477";ctx.lineWidth=5;ctx.stroke();
+  line(x,55,x,265,"#e6c88f",3);line(x-55,180,x+55,180,"#e6c88f",3);
+  glow(x,170,125,"#e9bd7b25");
  }
 
- box(0,0,W,18,"#211b2c");
- box(0,18,W,7,"#bd9561");
- box(0,350,W,15,"#bd9561");
- box(0,365,W,5,"#d6b17a");
+ // Wandvertäfelung und breite Pilaster
+ for(let x of [22,180,340,660,820,978]){
+  box(x-9,30,18,315,"#8c674f");
+  box(x-5,30,10,315,"#c19a68");
+  box(x-17,28,34,9,"#d8b77c");
+  box(x-17,337,34,10,"#d8b77c");
+  line(x-1,42,x-1,326,"#f0d6a0",1);
+ }
+ // Deckengesims und ornamental wirkende Leisten
+ box(0,0,W,17,"#171421");box(0,17,W,8,"#9c754e");box(0,25,W,5,"#e0bd7e");
+ box(0,337,W,8,"#b38b5d");box(0,345,W,8,"#e0bd7e");
+ line(0,355,W,355,"#f8dfaa",2);
 
- for(let y=390;y<620;y+=48)line(0,y,W,y,"#a47a78",2);
- for(let x=0;x<W;x+=125)line(x,365,x-35,620,"#68485d",2);
+ // Zentrales Schild mit doppeltem Goldrand
+ box(345,39,310,55,"#211925");
+ ctx.strokeStyle="#d4ad70";ctx.lineWidth=3;ctx.strokeRect(351,45,298,43);
+ ctx.strokeStyle="#f5dfae";ctx.lineWidth=1;ctx.strokeRect(357,51,286,31);
+ ctx.textAlign="center";ctx.fillStyle="#f4d8a5";ctx.font="bold 19px Georgia";
+ ctx.fillText("UNSER MUSEUM",500,70);
+ ctx.font="10px Georgia";ctx.fillStyle="#d9bd8b";ctx.fillText("EINE AUSSTELLUNG IN DREI ERINNERUNGEN",500,82);
 
- ctx.fillStyle="#6d3048";
- ctx.beginPath();
- ctx.ellipse(500,510,280,78,0,0,Math.PI*2);
- ctx.fill();
- ctx.strokeStyle="#dfb477";
- ctx.lineWidth=4;
- ctx.beginPath();
- ctx.ellipse(500,510,260,61,0,0,Math.PI*2);
- ctx.stroke();
+ // Kronleuchter als Blickfang über der Ausstellung
+ line(500,0,500,29,"#d7b77b",3);glow(500,63,100,"#f6d58b35");
+ ctx.strokeStyle="#d9b77b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(500,45,25,0,Math.PI*2);ctx.stroke();
+ for(let i=0;i<8;i++){
+  const a=i*Math.PI/4,x=500+Math.cos(a)*31,y=45+Math.sin(a)*17;
+  line(500+Math.cos(a)*20,45+Math.sin(a)*12,x,y,"#d9b77b",2);
+  ctx.fillStyle="#ffe1a0";ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
+ }
 
- box(365,35,270,58,"#6b293b");
- ctx.strokeStyle="#d4ad70";
- ctx.lineWidth=2;
- ctx.strokeRect(371,41,258,46);
- ctx.textAlign="center";
- ctx.fillStyle="#f4d8a5";
- ctx.font="bold 18px Georgia";
- ctx.fillText("UNSER MUSEUM",500,66);
- ctx.font="11px Georgia";
- ctx.fillText("EST. JAHR EINS",500,81);
+ // Marmorboden mit perspektivischen Fugen und großem Medaillon
+ const floor=ctx.createLinearGradient(0,365,0,620);floor.addColorStop(0,"#8c6a70");floor.addColorStop(.45,"#5e465d");floor.addColorStop(1,"#34283f");
+ box(0,365,W,255,"#574052");ctx.fillStyle=floor;ctx.fillRect(0,365,W,255);
+ for(let y of [390,425,468,520,580])line(0,y,W,y,"#c19b86",1.5);
+ for(let x=-300;x<=1300;x+=125)line(500,365,x,620,"#b38a77",1.4);
+ ctx.fillStyle="#493143";ctx.beginPath();ctx.ellipse(500,514,300,82,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#d9b77b";ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(500,514,286,72,0,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle="#f0d9a5";ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(500,514,265,58,0,0,Math.PI*2);ctx.stroke();
 
- plant(75,355);
- plant(925,355);
- books(60,325);
- books(855,325);
- candle(125,290);
- candle(875,290);
+ // Samtvorhänge an den Seiten und massive Sockel
+ box(0,0,18,365,"#241a2b");box(982,0,18,365,"#241a2b");
+ for(let x of [40,960]){
+  box(x-13,35,26,300,"#6c3b50");
+  for(let y=45;y<335;y+=35)line(x-12,y,x+12,y,"#a96b70",2);
+  box(x-20,31,40,8,"#d3ad73");box(x-20,335,40,8,"#d3ad73");
+ }
+ plant(75,355);plant(925,355);
+ candle(125,305);candle(875,305);
  exhibits.forEach(drawExhibit);
 
- for(let i=0;i<25;i++){
+ // Dezente Staubpartikel im Licht
+ for(let i=0;i<32;i++){
   const x=(i*173+41)%980;
-  const y=(i*79+110)%225;
-  ctx.fillStyle="#f8d8a0";
-  ctx.globalAlpha=.3+Math.sin(time/400+i)*.2;
-  ctx.beginPath();
-  ctx.arc(x,y,1.5,0,Math.PI*2);
-  ctx.fill();
+  const y=(i*79+110)%285;
+  ctx.fillStyle="#f8d8a0";ctx.globalAlpha=.2+Math.sin(time/400+i)*.18;
+  ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();
  }
  ctx.globalAlpha=1;
-
- // Kleines Herz als Shortcut
+ // Kleines Herz als Shortcut bleibt an seiner bisherigen Position
  drawHeart(31,581,30,null);
 }
 
@@ -471,11 +517,120 @@ function drawAchievementToast(){
 function showApartmentMessage(message){
  apartmentMessage=message;apartmentMessageUntil=performance.now()+2600;
 }
-function enterMetaverse(){
- scene="metaverse";hasan.x=120;hasan.y=480;jill.x=170;jill.y=480;
- document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
- document.getElementById("pageSubtitle").textContent="Eure Erinnerungen werden zu eurer Welt ♥";
- document.getElementById("help").innerHTML="Erkundet die Inseln mit Hasan (Pfeiltasten) und Jill (WASD). Drückt E an den Erinnerungsorten oder am Portal zum Redewendungs-Chaos.";
+function startStreetStory(){
+ scene="streetStory";
+ streetStoryStartedAt=performance.now();
+ streetStoryPhase="walk";
+ streetDialogueIndex=-1;
+ hasan.x=420;hasan.y=510;hasan.direction="right";
+ jill.x=340;jill.y=510;jill.direction="right";
+ document.getElementById("pageTitle").textContent="Ein kleiner Spaziergang durch den Kiez";
+ document.getElementById("pageSubtitle").textContent="Dieffenbachstraße · kurz vor dem Italien-Urlaub ♥";
+ document.getElementById("help").innerHTML="Ein kleines Kapitel eurer Geschichte. Drückt E, die Leertaste oder klickt, um den Dialog weiterzuführen.";
+}
+function advanceStreetStory(){
+ if(scene!=="streetStory"||streetStoryPhase!=="dialogue")return;
+ streetDialogueIndex++;
+ if(streetDialogueIndex>=streetDialogue.length){
+  startSayingsLevel();
+ }
+}
+function drawStreetSpeechBubble(speaker,text){
+ box(125,45,750,130,"#fff4dfef");
+ ctx.strokeStyle="#7b4c50";ctx.lineWidth=3;ctx.strokeRect(125,45,750,130);
+ ctx.fillStyle="#8b4051";ctx.font="bold 17px Arial";ctx.textAlign="left";
+ ctx.fillText(speaker,150,76);
+ ctx.fillStyle="#38283a";ctx.font="bold 21px Georgia";
+ const words=text.split(" ");let lineText="",lines=[];
+ for(const word of words){const test=lineText?lineText+" "+word:word;if(ctx.measureText(test).width>690){lines.push(lineText);lineText=word;}else lineText=test;}
+ if(lineText)lines.push(lineText);
+ lines.slice(0,3).forEach((lineText,i)=>ctx.fillText(lineText,150,112+i*27));
+ ctx.fillStyle="#8b4051";ctx.font="13px Arial";ctx.textAlign="right";
+ ctx.fillText("E / Leertaste / Klick – weiter",850,158);
+}
+function drawStreetStory(now){
+ const elapsed=now-streetStoryStartedAt;
+ // Gründerzeitfassaden, Läden, Bäume, parkende Fahrräder und Kopfsteinpflaster des Graefekiezes.
+ box(0,0,W,H,"#c9d2c0");
+ const buildings=[
+  {x:0,w:245,c:"#d8b69b",roof:"#75505a"},{x:250,w:250,c:"#e6c9a7",roof:"#6d4b50"},
+  {x:505,w:240,c:"#c9a18e",roof:"#704c53"},{x:750,w:250,c:"#e0c5a7",roof:"#79565b"}
+ ];
+ for(const b of buildings){
+  ctx.fillStyle=b.c;ctx.fillRect(b.x,90,b.w,300);
+  ctx.fillStyle=b.roof;ctx.fillRect(b.x,75,b.w,18);
+  ctx.fillStyle="#f0ddc4";ctx.fillRect(b.x+8,102,b.w-16,9);
+  for(let row=0;row<3;row++)for(let col=0;col<3;col++){
+   const wx=b.x+22+col*(b.w-55)/3,wy=135+row*76;
+   ctx.fillStyle="#6f8790";ctx.fillRect(wx,wy,42,48);
+   ctx.strokeStyle="#f4e4ce";ctx.lineWidth=5;ctx.strokeRect(wx,wy,42,48);
+   ctx.beginPath();ctx.moveTo(wx+21,wy);ctx.lineTo(wx+21,wy+48);ctx.moveTo(wx,wy+24);ctx.lineTo(wx+42,wy+24);ctx.stroke();
+   ctx.fillStyle="#9c705c";ctx.fillRect(wx-4,wy+49,50,5);
+  }
+ }
+ // Erdgeschoss mit kleinen Läden und Markisen.
+ ctx.fillStyle="#684b45";ctx.fillRect(0,330,W,60);
+ for(let i=0;i<4;i++){
+  const x=35+i*250;ctx.fillStyle=["#a95d55","#d2a36d","#638078","#a76f79"][i];ctx.fillRect(x,300,165,32);
+  ctx.fillStyle="#f4dfc5";ctx.fillRect(x+8,338,149,47);
+  ctx.fillStyle="#536a70";ctx.fillRect(x+18,345,54,40);ctx.fillRect(x+91,345,54,40);
+ }
+ // Straße und Gehwege
+ ctx.fillStyle="#a9a39a";ctx.fillRect(0,390,W,230);
+ ctx.fillStyle="#d8c9b5";ctx.fillRect(0,390,W,36);
+ ctx.fillStyle="#807b78";ctx.fillRect(0,426,W,194);
+ for(let y=435;y<620;y+=24)for(let x=(y%48?0:12);x<W;x+=48){ctx.strokeStyle="#99928a";ctx.lineWidth=1;ctx.strokeRect(x,y,46,22);}
+ ctx.fillStyle="#e9dfcf";ctx.fillRect(0,390,W,7);
+ // Bäume in Baumscheiben
+ for(const x of [90,315,700,920]){
+  ctx.fillStyle="#655348";ctx.fillRect(x-5,270,10,130);
+  for(const [ox,oy,r] of [[0,0,36],[-22,18,26],[23,20,27],[0,-25,27]]){ctx.fillStyle="#52765e";ctx.beginPath();ctx.arc(x+ox,oy+245,r,0,Math.PI*2);ctx.fill();}
+ }
+ // Litfaßsäule und abgestellte Räder als Kiezdetails
+ ctx.fillStyle="#e9d5b8";ctx.fillRect(55,260,34,125);ctx.fillStyle="#9c4e55";ctx.fillRect(58,275,28,80);ctx.fillStyle="#fff0d5";ctx.font="bold 10px Arial";ctx.textAlign="center";ctx.fillText("KINO",72,300);ctx.fillText("HEUTE",72,320);
+ for(const x of [820,865]){ctx.strokeStyle="#34383a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,385,16,0,Math.PI*2);ctx.arc(x+35,385,16,0,Math.PI*2);ctx.moveTo(x,385);ctx.lineTo(x+18,360);ctx.lineTo(x+35,385);ctx.lineTo(x+12,385);ctx.stroke();}
+ // Phasen der kleinen Fahrrad-Episode
+ let hx=450,jx=365,hy=510,jy=510;
+ if(streetStoryPhase==="walk"){
+  const t=Math.min(1,elapsed/2400);hx=450+t*120;jx=365+t*120;
+  if(t>=1){streetStoryPhase="bike";streetStoryStartedAt=now;}
+ }else if(streetStoryPhase==="bike"){
+  const t=Math.min(1,elapsed/1700);hx=570+t*100;jx=485;
+  drawStreetBicycle(560+t*100,505,false);
+  if(t>=1){streetStoryPhase="fall";streetStoryStartedAt=now;}
+ }else if(streetStoryPhase==="fall"){
+  hx=680;hy=530;jx=500;
+  drawStreetBicycle(700,535,true);
+  if(elapsed>1300){streetStoryPhase="dialogue";streetDialogueIndex=0;}
+ }
+ if(streetStoryPhase==="dialogue"){
+  hx=680;hy=530;jx=500;jy=510;
+  drawStreetBicycle(700,535,true);
+ }
+ if(streetStoryPhase==="fall"){
+  ctx.save();ctx.translate(hx,hy-75);ctx.rotate(-0.72);
+  drawCharacter(hasanImages,0,75,"front",true);
+  ctx.restore();
+ }else{
+  drawCharacter(hasanImages,hx,hy,streetStoryPhase==="dialogue"?"front":"right",streetStoryPhase==="walk"||streetStoryPhase==="bike");
+ }
+ drawCharacter(jillImages,jx,jy,"right",streetStoryPhase==="walk");
+ if(streetStoryPhase==="fall"||streetStoryPhase==="dialogue"){
+  // Rechter Arm in einer hellen Schiene – der gebrochene Ellenbogen ist sichtbar markiert.
+  ctx.strokeStyle="#fff4dc";ctx.lineWidth=12;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(hx+28,hy-115);ctx.lineTo(hx+43,hy-78);ctx.stroke();
+  ctx.strokeStyle="#b99b83";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(hx+23,hy-105);ctx.lineTo(hx+36,hy-93);ctx.moveTo(hx+29,hy-91);ctx.lineTo(hx+42,hy-79);ctx.stroke();
+  ctx.fillStyle="#fff0d5";ctx.font="bold 15px Arial";ctx.textAlign="center";ctx.fillText("Autsch! Rechter Ellenbogen gebrochen!",680,590);
+ }
+ if(streetStoryPhase==="dialogue"){
+  const line=streetDialogue[streetDialogueIndex];
+  if(line)drawStreetSpeechBubble(line.speaker,line.text);
+ }
+ ctx.fillStyle="#fff0d5";ctx.font="bold 17px Georgia";ctx.textAlign="left";ctx.fillText("DIEFFENBACHSTRASSE · GRAEFEKIEZ",22,600);
+}
+function drawStreetBicycle(x,y,fallen){
+ ctx.save();ctx.translate(x,y);if(fallen)ctx.rotate(-.42);
+ ctx.strokeStyle="#252a32";ctx.lineWidth=4;ctx.beginPath();ctx.arc(-27,0,18,0,Math.PI*2);ctx.arc(28,0,18,0,Math.PI*2);ctx.moveTo(-27,0);ctx.lineTo(-5,-25);ctx.lineTo(28,0);ctx.lineTo(0,0);ctx.lineTo(-27,0);ctx.moveTo(-5,-25);ctx.lineTo(8,-30);ctx.moveTo(28,0);ctx.lineTo(22,-31);ctx.stroke();
+ ctx.strokeStyle="#b45b43";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-8,-27);ctx.lineTo(8,-27);ctx.stroke();ctx.restore();
 }
 
 function drawCharacter(images,x,y,direction,moving){
@@ -540,7 +695,7 @@ function sayYes(){
  document.getElementById("pageSubtitle").textContent="Zwei Fahrräder, ein Ziel und ganz viel Wir ♥";
  document.getElementById("help").innerHTML=
  '<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>'+
- 'Sammelt gemeinsam 52 Herzen in 60 Sekunden und weicht den Hindernissen aus!';
+ 'Sammelt gemeinsam 52 Herzen in 60 Sekunden. Goldene Herzen zählen 5, Doppelherzen bringen euch zu dritt weiter – sammelt sie gemeinsam!';
 
  resetBikeGame();
 }
@@ -556,7 +711,15 @@ function resetBikeGame(){
  collectibles=[];
  lastObstacleAt=0;
  roadOffset=0;
-
+ bikeParticles=[];
+ bikeCelebrationAt=0;
+ bikeBossStarted=false;
+ bikeBossObjects=[];
+ streetSceneryOffset=0;
+ teamBonusAt=0;
+ shieldUntil=0;
+ turboUntil=0;
+ bikePowerups=[];
  bikePlayers.hasan.x=735;
  bikePlayers.hasan.y=500;
  bikePlayers.jill.x=265;
@@ -567,9 +730,11 @@ function resetBikeGame(){
 // Fahrradspiel
 // --------------------------------------------------
 
-function drawBike(x,y,color,hair,name){
+function drawBike(x,y,color,hair,name,direction="back"){
  ctx.save();
  ctx.translate(x,y);
+ const bikeAngle=direction==="left"?-Math.PI/2:direction==="right"?Math.PI/2:direction==="front"?Math.PI:0;
+ ctx.rotate(bikeAngle);
 
  for(const wy of [-25,25]){
   ctx.fillStyle="#20232a";
@@ -753,6 +918,33 @@ function drawHeart(x,y,size,number){
    ctx.stroke();
   }
 
+ }else if(o.type==="uber"){
+  ctx.rotate(.12);
+  ctx.fillStyle="#17191d";ctx.beginPath();ctx.arc(-13,9,7,0,Math.PI*2);ctx.arc(14,9,7,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#20252a";ctx.beginPath();ctx.roundRect(-17,-13,34,22,7);ctx.fill();
+  ctx.fillStyle="#111";ctx.fillRect(-8,-23,16,12);
+  ctx.fillStyle="#f4c542";ctx.fillRect(-7,-20,14,7);
+  ctx.fillStyle="#f5f0df";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("UBER",0,-15);
+  ctx.fillStyle="#20252a";ctx.beginPath();ctx.roundRect(-10,-31,20,15,3);ctx.fill();
+  ctx.fillStyle="#f5f0df";ctx.font="bold 7px Arial";ctx.fillText("EATS",0,-21);
+ }else if(o.type==="bus"){
+  ctx.fillStyle="#f2c94c";ctx.beginPath();ctx.roundRect(-35,-25,70,50,8);ctx.fill();
+  ctx.fillStyle="#263746";ctx.fillRect(-27,-17,54,17);
+  ctx.fillStyle="#d9e8e8";ctx.fillRect(-22,-13,18,10);ctx.fillRect(4,-13,18,10);
+  ctx.fillStyle="#292a2d";ctx.fillRect(-29,19,12,7);ctx.fillRect(17,19,12,7);
+  ctx.fillStyle="#2c3d4a";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("M 41 · BVG",0,12);
+ }else if(o.type==="spati"){
+  ctx.fillStyle="#f3d39b";ctx.beginPath();ctx.roundRect(-22,-19,44,38,5);ctx.fill();
+  ctx.fillStyle="#8c4050";ctx.fillRect(-22,-19,44,10);
+  ctx.fillStyle="#fff0d5";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("SPÄTI",0,-12);
+  ctx.fillStyle="#8fc0bc";ctx.fillRect(-15,-5,30,17);
+  ctx.fillStyle="#d8a86e";ctx.fillRect(-5,-4,10,16);
+ }else if(o.type==="dachshund"){
+  ctx.fillStyle="#9b633c";ctx.beginPath();ctx.ellipse(0,4,22,9,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(18,-2,9,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(19,3,5,10,-.5,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#573a2b";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-13,8);ctx.lineTo(-15,17);ctx.moveTo(10,8);ctx.lineTo(12,17);ctx.stroke();
+  ctx.fillStyle="#20191a";ctx.beginPath();ctx.arc(21,-4,1.5,0,Math.PI*2);ctx.fill();
  }else{
   ctx.fillStyle="#79513b";
   ctx.beginPath();
@@ -774,16 +966,19 @@ function spawnThings(){
   lastObstacleAt=t;
   const laneX=145+Math.random()*710;
   const roll=Math.random();
-  const type=roll<.20?"syringe":
-   roll<.39?"bottle":
-   roll<.58?"puddle":
-   roll<.76?"scooter":
-   roll<.90?"construction":"dogpoop";
+  const type=roll<.13?"syringe":
+   roll<.25?"bottle":
+   roll<.37?"puddle":
+   roll<.49?"scooter":
+   roll<.61?"construction":
+   roll<.72?"dachshund":
+   roll<.82?"spati":
+   roll<.92?"uber":"dogpoop";
 
   obstacles.push({
-   x:laneX,y:-35,type,
-   r:type==="puddle"?25:type==="construction"?25:19,
-   hitPlayers:{}
+   x:laneX,y:-45,type,
+   r:["puddle","construction","bus"].includes(type)?27:["dachshund","spati","uber"].includes(type)?23:19,
+   hitPlayers:{},speed:4.4+Math.random()*1.1
   });
  }
 
@@ -795,30 +990,106 @@ function spawnThings(){
  const target=Math.min(100,Math.floor(t/560)+1);
  while(heartsSpawned<target){
   heartsSpawned++;
+  const specialRoll=Math.random();
   collectibles.push({
    x:145+Math.random()*710,
-   y:-35
+   y:-35,
+   type:specialRoll<.10?"gold":specialRoll<.18?"duo":"normal",
+   value:specialRoll<.10?5:1,
+   collectedBy:{},
+   createdAt:performance.now()
   });
  }
+}
+
+function drawBerlinBackdrop(now){
+ const sectionNames=["NEUKÖLLN","KREUZBERG","BAUSTELLEN-KIEZ","KOPFSTEINPFLASTER"];
+ const sectionIndex=Math.min(3,Math.floor((now-bikeStart)/15000));
+ bikeSection=sectionNames[sectionIndex];
+ box(0,0,W,H,"#b9b1a1");
+ // Bürgersteige und Häuserfronten
+ box(0,0,100,H,"#d4c2a8");box(900,0,100,H,"#d4c2a8");
+ box(100,0,800,H,"#4a4954");
+ for(let side=0;side<2;side++){
+  const sx=side?906:8;
+  for(let y=-150+(streetSceneryOffset%300);y< H+120;y+=300){
+   box(sx,y,86,270,side?"#b98573":"#c59b7f");
+   box(sx+7,y+12,72,8,"#ead7b9");
+   for(let wy=0;wy<3;wy++)for(let wx=0;wx<2;wx++){
+    box(sx+14+wx*34,y+38+wy*62,22,37,"#42505a");
+    box(sx+17+wx*34,y+41+wy*62,16,30,"#9db2ad");
+    box(sx+14+wx*34,y+55+wy*62,22,3,"#ead7b9");
+   }
+   if((Math.floor(y/300)+side)%3===0){
+    box(sx+4,y+235,78,28,"#653b45");
+    ctx.fillStyle="#ffe0a5";ctx.font="bold 10px Arial";ctx.textAlign="center";ctx.fillText("SPÄTI",sx+43,y+253);
+   }
+  }
+ }
+ // Gehwege, Bordsteine und Radwegmarkierungen
+ box(95,0,15,H,"#b7a994");box(890,0,15,H,"#b7a994");
+ box(110,0,4,H,"#e6d6b7");box(886,0,4,H,"#e6d6b7");
+ for(let y=-60+(roadOffset%100);y<H;y+=100){
+  box(120,y,760,3,"#77717a");
+  box(497,y,6,46,"#e3c98f");
+ }
+ // Graffiti und Plakate an den Häuserkanten
+ for(let i=0;i<4;i++){
+  const y=((i*177+streetSceneryOffset*.72)%(H+120))-60;
+  ctx.save();ctx.globalAlpha=.72;
+  ctx.fillStyle=i%2?"#7e405e":"#3d7180";ctx.font="italic bold 18px Arial";ctx.textAlign="center";
+  ctx.fillText(i%2?"LIEBE BLEIBT":"KIEZ ♥",i%2?48:952,y);
+  ctx.restore();
+ }
+ // Laternen, Bäume und Straßenschilder als bewegte Parallax-Details
+ for(let i=0;i<4;i++){
+  const y=((i*190+streetSceneryOffset*1.15)%(H+130))-70;
+  for(const x of [82,918]){
+   ctx.strokeStyle="#35343a";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x,y+18);ctx.lineTo(x,y-40);ctx.lineTo(x+(x<500?20:-20),y-40);ctx.stroke();
+   ctx.fillStyle="#f8dda0";ctx.beginPath();ctx.arc(x+(x<500?20:-20),y-40,7,0,Math.PI*2);ctx.fill();
+  }
+ }
+ // Kopfsteinpflaster-Abschnitt mit sichtbaren Steinfugen
+ if(sectionIndex===3){
+  ctx.strokeStyle="#777078";ctx.lineWidth=2;
+  for(let y=-20+(roadOffset%34);y<H;y+=34){ctx.beginPath();ctx.moveTo(115,y);ctx.lineTo(885,y);ctx.stroke();}
+  for(let x=135;x<885;x+=48){ctx.beginPath();ctx.moveTo(x,-10);ctx.lineTo(x,H);ctx.stroke();}
+ }
+ // Kleine Straßenkulisse oben rechts
+ box(755,12,126,34,"#211b2cbb");ctx.fillStyle="#ffe0a5";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText("BERLIN · "+bikeSection,818,34);
+}
+function drawBikeCollectible(c){
+ if(c.type==="gold"){
+  ctx.save();ctx.shadowColor="#ffe27a";ctx.shadowBlur=18;ctx.fillStyle="#ffd34e";ctx.beginPath();ctx.arc(c.x,c.y,13,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle="#fff4bc";ctx.lineWidth=3;ctx.stroke();ctx.fillStyle="#7c4d24";ctx.font="bold 13px Arial";ctx.textAlign="center";ctx.fillText("5",c.x,c.y+5);ctx.restore();
+ }else if(c.type==="duo"){
+  drawHeart(c.x-8,c.y,22,null);drawHeart(c.x+8,c.y,22,null);
+  ctx.fillStyle="#fff5db";ctx.font="bold 9px Arial";ctx.textAlign="center";ctx.fillText("ZU ZWEIT",c.x,c.y+24);
+ }else drawHeart(c.x,c.y,25,null);
+}
+function spawnBikeParticles(x,y,count=9){
+ for(let i=0;i<count;i++)bikeParticles.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-.8)*4,life:35+Math.random()*18,emoji:Math.random()<.55?"♥":"✦"});
+}
+function drawBikeParticles(){
+ bikeParticles=bikeParticles.filter(p=>p.life>0);
+ for(const p of bikeParticles){p.x+=p.vx;p.y+=p.vy;p.vy+=.035;p.life--;ctx.globalAlpha=Math.min(1,p.life/18);ctx.fillStyle="#ff8eae";ctx.font="bold 17px Arial";ctx.textAlign="center";ctx.fillText(p.emoji,p.x,p.y);}
+ ctx.globalAlpha=1;
+}
+function drawTrafficBoss(now){
+ const remaining=60-bikeElapsed;
+ if(remaining>12)return;
+ if(!bikeBossStarted){bikeBossStarted=true;bikeBossObjects=[{x:500,y:-85,type:"bus",r:38,hitPlayers:{},speed:3.5},{x:265,y:-250,type:"construction",r:28,hitPlayers:{},speed:4.1},{x:735,y:-410,type:"uber",r:25,hitPlayers:{},speed:4.8}];}
+ box(215,53,570,34,"#702f46dd");ctx.fillStyle="#fff0d5";ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText("ENDSPURT: DER BERLINER VERKEHR!",500,76);
+ for(const o of bikeBossObjects){o.y+=o.speed;drawObstacle(o);for(const p of Object.values(bikePlayers)){if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+18){o.hitPlayers[p.name]=true;if(now<shieldUntil){shieldUntil=0;}else{p.x+=p.x<500?-28:28;bikeStart-=350;spawnBikeParticles(p.x,p.y,5);}}}}
+ bikeBossObjects=bikeBossObjects.filter(o=>o.y<H+70);
+ if(bikeBossObjects.length<2&&Math.random()<.035){const type=Math.random()<.5?"bus":"construction";bikeBossObjects.push({x:170+Math.random()*660,y:-70,type,r:type==="bus"?38:28,hitPlayers:{},speed:4.2});}
 }
 
 function drawBikeScene(now){
  const elapsed=now-bikeStart;
  bikeElapsed=Math.min(60,elapsed/1000);
 
- box(0,0,W,H,"#3b5b49");
- box(70,0,860,H,"#5e5c65");
- box(90,0,820,H,"#4a4954");
- box(0,0,70,H,"#536d50");
- box(930,0,70,H,"#536d50");
-
- for(let y=-40+(roadOffset%100);y<H;y+=100){
-  box(105,y,790,3,"#77717a");
-  box(482,y,5,48,"#e3c98f");
- }
- const sectionNames=["NEUKÖLLN","KREUZUNG","BAUSTELLE","KOPFSTEINPFLASTER"];
- bikeSection=sectionNames[Math.min(3,Math.floor(elapsed/15000))];
- box(365,8,270,31,"#211b2caa");ctx.fillStyle="#ffe0a5";ctx.font="bold 14px Arial";ctx.textAlign="center";ctx.fillText("BERLIN · "+bikeSection,500,29);
+ streetSceneryOffset+=4.4;
+ drawBerlinBackdrop(now);
 
  if(!restaurantReached&&!bikeFailed){
   spawnThings();
@@ -837,13 +1108,19 @@ function drawBikeScene(now){
     if(keys.s)dy++;
    }
    if(dx&&dy){dx*=.707;dy*=.707}
+   if(dx<0)p.direction="left";
+   if(dx>0)p.direction="right";
+   if(dy<0)p.direction="back";
+   if(dy>0)p.direction="front";
    const rideSpeed=now<turboUntil?5.1:3.4;
+   p.moving=!!(dx||dy);
+   if(p.moving){p.bob=(p.bob||0)+.24;p.direction=dx<0?"left":dx>0?"right":dy<0?"back":"front";}
    p.x=Math.max(125,Math.min(875,p.x+dx*rideSpeed));
    p.y=Math.max(95,Math.min(555,p.y+dy*rideSpeed));
   }
 
   roadOffset+=4.4;
-  obstacles.forEach(o=>o.y+=4.4);
+  obstacles.forEach(o=>o.y+=o.speed||4.4);
   collectibles.forEach(c=>c.y+=4.4);
   bikePowerups.forEach(power=>power.y+=4.4);
   for(const power of bikePowerups){
@@ -863,22 +1140,31 @@ function drawBikeScene(now){
     if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
      o.hitPlayers[p.name]=true;
      if(now<shieldUntil){shieldUntil=0;achievements.add("Schutzengel");}
-     else {p.x=Math.max(125,p.x-30);bikeStart-=450;}
+     else {p.x=Math.max(125,p.x-30);bikeStart-=450;spawnBikeParticles(p.x,p.y,5);p.hitUntil=now+300;}
     }
    }
   }
 
+  drawTrafficBoss(now);
   for(const c of collectibles){
    if(now<turboUntil){const nearest=[bikePlayers.hasan,bikePlayers.jill].sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];c.x+=(nearest.x-c.x)*.025;}
-   drawHeart(c.x,c.y,25,null);
+   drawBikeCollectible(c);
    for(const p of Object.values(bikePlayers)){
-    if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<27){
-     c.x=-100;
-     score++;
+    if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<29){
+     if(c.type==="duo"){
+      c.collectedBy[p.name]=now;
+      const other=p.name==="HASAN"?"JILL":"HASAN";
+      if(c.collectedBy[other]&&now-c.collectedBy[other]<2600){const px=c.x,py=c.y;c.x=-100;score+=3;spawnBikeParticles(px,py,15);achievements.add("Doppelherz-Teamwork");}
+     }else{
+      c.x=-100;score+=c.value||1;spawnBikeParticles(p.x,p.y,c.type==="gold"?16:7);
+      if(c.type==="gold")achievements.add("Goldherz gefunden");
+     }
+     if(c.type!=="duo")p.collectUntil=now+380;
      break;
     }
    }
   }
+  drawBikeParticles();
 
   obstacles=obstacles.filter(o=>o.y<H+55);
   collectibles=collectibles.filter(c=>c.y<H+55);
@@ -886,10 +1172,13 @@ function drawBikeScene(now){
    teamBonusAt=now;score++;achievements.add("Teamwork-Profi");
   }
 
-  drawBike(bikePlayers.hasan.x,bikePlayers.hasan.y,
-   bikePlayers.hasan.color,bikePlayers.hasan.hair,"HASAN");
-  drawBike(bikePlayers.jill.x,bikePlayers.jill.y,
-   bikePlayers.jill.color,bikePlayers.jill.hair,"JILL");
+  for(const p of [bikePlayers.hasan,bikePlayers.jill]){
+   const bounce=p.collectUntil>now?Math.sin((p.collectUntil-now)*.04)*7:0;
+   ctx.save();if(p.hitUntil>now)ctx.globalAlpha=.55+.35*Math.sin(now*.05);
+   drawBike(p.x,p.y+bounce,p.color,p.hair,p.name,p.direction);
+   if(p.collectUntil>now){ctx.fillStyle="#fff0d5";ctx.font="bold 20px Arial";ctx.textAlign="center";ctx.fillText("♥",p.x,p.y-38+bounce);}
+   ctx.restore();
+  }
 
   ctx.fillStyle="#fff0d5";
   ctx.font="bold 18px Arial";
@@ -904,10 +1193,18 @@ function drawBikeScene(now){
   drawHeart(31,581,30,null);
 
   if(score>=52){
-   restaurantReached=true;
-   stopBikeMusic();
-   scene="arrival";
-   setArrivalPositions();
+   if(!bikeCelebrationAt)bikeCelebrationAt=now;
+   box(225,205,550,150,"#211b2cdd");
+   ctx.fillStyle="#ffe0a5";ctx.font="bold 30px Georgia";ctx.textAlign="center";ctx.fillText("52 HERZEN – IHR HABT ES GESCHAFFT!",500,255);
+   ctx.font="20px Georgia";ctx.fillText("Eine für jede gemeinsame Woche ♥",500,295);
+   for(let i=0;i<9;i++)drawHeart(270+i*58,330+Math.sin(now/180+i)*9,24,null);
+   drawBikeParticles();
+   if(now-bikeCelebrationAt>2100){
+    restaurantReached=true;
+    stopBikeMusic();
+    scene="arrival";
+    setArrivalPositions();
+   }
   }
 
   if(elapsed>=60000&&score<52){
@@ -1491,34 +1788,7 @@ function interactApartment(){
    apartmentFound[o.key]=true;addInventory(o.label,"✨");achievements.add("Zuhause gefunden");showApartmentMessage(o.label+" – Erinnerung eingesammelt!");return;
   }
  }
- if(Object.values(apartmentFound).every(Boolean)&&Math.hypot(h.x-500,h.y-550)<100&&Math.hypot(j.x-500,j.y-550)<100){
-  enterMetaverse();return;
- }
  showApartmentMessage("Sucht die drei Erinnerungsstücke im Zimmer.");
-}
-function drawMetaverse(){
- box(0,0,W,H,"#11152f");
- const colors=["#4a2d78","#245b78","#7a3e83","#2e786e"];
- for(let i=0;i<24;i++){
-  const x=(i*173+time*.18)%W,y=(i*97+Math.sin(time/35+i)*18)%H;
-  glow(x,y,55,colors[i%4]+"88");ctx.fillStyle=colors[i%4];ctx.fillRect(x-13,y-13,26,26);
- }
- // Vier kleine begehbare Erinnerungsinseln
- const islands=[{x:205,y:310,c:"#b46b70",title:"BADFISH",emoji:"🍹"},{x:420,y:220,c:"#648d91",title:"BERLIN",emoji:"🏙️"},{x:650,y:315,c:"#8d668e",title:"REISEN",emoji:"🌴"},{x:820,y:210,c:"#b58a52",title:"ZUKUNFT",emoji:"✨"}];
- for(const island of islands){glow(island.x,island.y,100,island.c+"88");ctx.fillStyle=island.c;ctx.beginPath();ctx.ellipse(island.x,island.y+28,82,24,0,0,Math.PI*2);ctx.fill();ctx.font="34px Arial";ctx.textAlign="center";ctx.fillText(island.emoji,island.x,island.y);ctx.fillStyle="#fff0d5";ctx.font="bold 12px Arial";ctx.fillText(island.title,island.x,island.y+57);}
- // Neues Bonusportal zum Redewendungs-Chaos
- glow(500,425,115,"#f4c66b99");
- ctx.fillStyle="#6b3b62";ctx.beginPath();ctx.ellipse(500,447,105,25,0,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle="#f4d18c";ctx.lineWidth=5;ctx.beginPath();ctx.ellipse(500,405,58,75,0,0,Math.PI*2);ctx.stroke();
- ctx.font="42px Arial";ctx.textAlign="center";ctx.fillText("🗯️",500,420);
- ctx.fillStyle="#fff0d5";ctx.font="bold 13px Arial";ctx.fillText("REDEWENDUNGS-CHAOS",500,485);
- // Figuren bewegen sich hier gemeinsam durch die Welt
- drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
- drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
- ctx.textAlign="center";ctx.fillStyle="#f5d8a0";ctx.font="bold 32px Georgia";ctx.fillText("EURE KLEINE WELT",500,72);
- ctx.font="17px Georgia";ctx.fillText("Jede Erinnerung ist ein Ort. Und jedes Kapitel gehört euch. ♥",500,105);
- drawInventoryHUD();drawAchievementToast();drawHeart(31,581,30,null);
- if(metaverseMessage&&performance.now()<metaverseMessageUntil){box(270,520,460,42,"#211b2cee");ctx.fillStyle="#ffe0a5";ctx.font="bold 16px Arial";ctx.fillText(metaverseMessage,500,547);}
 }
 
 function shuffledSayingsOptions(correct){
@@ -1705,6 +1975,60 @@ function sayingsSceneArt(index,now){
  }
  ctx.restore();
 }
+function drawWrongSayingsArt(index,now){
+ // Die Bilder zeigen bewusst Hasans falsche, wörtliche Formulierungen – niemals die Lösung.
+ ctx.save();ctx.textAlign="center";
+ const emoji=(symbol,x,y,size=70)=>{ctx.font=size+"px Arial";ctx.fillText(symbol,x,y);};
+ switch(index){
+  case 0: // Gerüchte reißen sich darum
+   emoji("🗣️",260,245,65);emoji("🗣️",740,245,65);emoji("💬",500,210,85);
+   line(320,230,430,220,"#f2c47e",8);line(680,230,570,220,"#f2c47e",8);
+   emoji("🫳",390,290,42);emoji("🫴",610,290,42);break;
+  case 1: // Aus den Socken/Schuhen fallen
+   emoji("🧍",500,280,100);emoji("🧦",380,325,58);emoji("🧦",620,325,58);emoji("👟",300,270,48);emoji("👞",700,270,48);
+   for(let i=0;i<5;i++)line(360+i*70,130,350+i*70,165,"#f5d38d",3);break;
+  case 2: // Feuerbändiger in die Knie besiegt
+   box(0,300,W,55,"#513c42");emoji("🔥",330,220,78);emoji("🔥",670,220,78);emoji("🧎",500,300,100);emoji("🥷",350,300,65);emoji("🥷",650,300,65);break;
+  case 3: // Leiern aus sich herausziehen
+   emoji("🧍",500,290,115);emoji("🪕",330,245,85);emoji("🪕",680,245,85);
+   line(410,235,350,245,"#f2c47e",5);line(590,235,650,245,"#f2c47e",5);emoji("😣",500,170,48);break;
+  case 4: // Drops in den Brunnen gefallen
+   ctx.fillStyle="#8b6c57";ctx.beginPath();ctx.ellipse(500,285,150,52,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#253d50";ctx.beginPath();ctx.ellipse(500,280,112,34,0,0,Math.PI*2);ctx.fill();
+   emoji("🍬",500,205,62);line(500,150,500,245,"#f6d89b",3);emoji("💧",620,320,35);break;
+  case 5: // Gegen eine Wand kämpfen
+   for(let y=170;y<355;y+=42)for(let x=620;x<970;x+=70)sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);
+   emoji("🥊",470,260,90);emoji("🧍",330,300,95);emoji("💥",560,210,48);break;
+  case 6: // Gegen eine Wand fahren
+   for(let y=170;y<355;y+=42)for(let x=680;x<990;x+=70)sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);
+   emoji("🚗",490,285,105);emoji("💥",630,245,62);break;
+  case 7: // Zug schon abgelaufen
+   emoji("🚂",500,270,110);sayingsRounded(350,135,300,90,12,"#f0dfbf","#b68b63",3);emoji("📅",430,205,48);ctx.fillStyle="#a33e48";ctx.font="bold 24px Arial";ctx.fillText("ABGELAUFEN",540,190);break;
+  case 8: // Schuh auf Goldwaage
+   line(500,145,500,305,"#e4c78f",8);line(370,195,630,195,"#e4c78f",7);line(395,195,365,275,"#d5bd94",3);line(605,195,635,275,"#d5bd94",3);
+   ctx.strokeStyle="#d5bd94";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(365,280,55,14,0,0,Math.PI*2);ctx.ellipse(635,280,55,14,0,0,Math.PI*2);ctx.stroke();emoji("👞",365,265,65);emoji("⚖️",500,165,55);break;
+  case 9: // ans Zahnfleisch gehen
+   emoji("🦷",390,250,100);emoji("🦷",610,250,100);emoji("🦷",500,190,75);emoji("🦵",500,315,70);emoji("😬",500,120,55);break;
+  case 10: // Was ist, kann werden
+   emoji("📦",500,275,105);emoji("✨",500,175,55);emoji("➡️",650,260,55);emoji("❓",350,180,55);break;
+  case 11: // Herz auf der rechten Seite
+   emoji("🧍",500,300,150);emoji("🫀",570,245,65);line(530,245,560,245,"#efb0a9",4);break;
+  case 12: // an die Wand gegangen
+   for(let y=170;y<355;y+=42)for(let x=650;x<990;x+=70)sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);
+   emoji("🚶",500,290,105);emoji("💥",620,250,55);break;
+  case 13: // vom alten Hasen
+   emoji("🐇",500,275,120);emoji("👴",350,245,70);emoji("🕰️",650,200,55);emoji("🧓",700,300,60);break;
+  case 14: // ganzen Hasen nicht trauen
+   emoji("🐇",500,260,125);emoji("🕵️",330,260,70);emoji("👀",650,190,65);emoji("❓",500,145,50);break;
+  case 15: // viel im Keller haben
+   box(0,190,W,165,"#40343b");sayingsRounded(330,150,340,205,8,"#6d5549","#c79d6c",5);sayingsRounded(365,180,270,175,5,"#211e2b","#9c7757",4);
+   emoji("📦",430,285,65);emoji("🪑",560,290,65);emoji("🧹",500,220,55);emoji("🔦",610,210,45);break;
+  case 16: // Pool offen halten
+   box(0,245,W,110,"#254e60");for(let y=260;y<350;y+=25){ctx.strokeStyle="#72b8c1";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,y+Math.sin(now/300+y)*5);ctx.quadraticCurveTo(250,y-12,500,y);ctx.quadraticCurveTo(750,y+12,1000,y);ctx.stroke();}
+   emoji("🏊",500,315,82);emoji("🚪",500,205,80);emoji("🔓",640,175,48);break;
+ }
+ ctx.restore();
+}
+
 function drawSayingsAtmosphere(now,idx){
  // Mehr Tiefe: ferne Silhouetten, Lichtkegel, Partikel und eine weiche Vignette.
  ctx.save();
@@ -1764,7 +2088,7 @@ function drawSayingsBackdrop(item){
  glow(500,235,390,"#f1c78319");
  // Dekorative Seitenbauten und Bodenschichten
  box(0,345,W,275,"#171b2a99");box(0,348,W,5,"#c59b68");
- if(idx>=0&&idx<17){sayingsSceneArt(idx,now);}else{ctx.textAlign="center";ctx.font="76px Arial";ctx.fillText(item.art||"🏆 🗯️ ❤️",500,270);}
+ if(idx>=0&&idx<17){drawWrongSayingsArt(idx,now);}else{ctx.textAlign="center";ctx.font="76px Arial";ctx.fillText(item.art||"🏆 🗯️ ❤️",500,270);}
  drawSayingsAtmosphere(now,idx);
  // Kopfzeile im Stil eines Kapitel-Interfaces
  sayingsRounded(22,17,956,78,14,"#171523d9","#c49b69",2);
@@ -1873,7 +2197,6 @@ function drawFoodGame(){
 
  drawFoodHUD();
 
- // Kleines Herz als Shortcut direkt ins Metaverse
  drawHeart(31,581,30,null);
 
  if(deliciousCount>=40&&greenSauceHits<=2){
@@ -1896,13 +2219,10 @@ function finishFoodGame(won){
   document.getElementById("resultText").textContent=
    "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
-  button.textContent="Nach Hause ♥";
+  button.textContent="Weiter auf die Straße ♥";
   button.onclick=()=>{
    document.getElementById("result").style.display="none";
-   scene="apartment";setArrivalPositions();
-   document.getElementById("pageTitle").textContent="Zuhause – unser kleines Glück";
-   document.getElementById("pageSubtitle").textContent="Findet drei Erinnerungsstücke ♥";
-   document.getElementById("help").innerHTML="Hasan: Pfeiltasten · Jill: WASD · E/Leertaste zum Interagieren";
+   startStreetStory();
   };
 
  }else{
@@ -2057,25 +2377,24 @@ function update(now=performance.now()){
  }else if(scene==="apartment"){
   moveRestaurantPlayers();drawApartment();
 
+ }else if(scene==="streetStory"){
+  drawStreetStory(now);
  }else if(scene==="sayings"){
   let dx=0,dy=0;
   if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++;
-  if(dx&&dy){dx*=.707;dy*=.707;}hasan.x=Math.max(80,Math.min(920,hasan.x+dx*3.4));hasan.y=Math.max(365,Math.min(555,hasan.y+dy*3.4));
+  if(dx&&dy){dx*=.707;dy*=.707;}
+  if(dx<0)hasan.direction="left";if(dx>0)hasan.direction="right";if(dy<0)hasan.direction="back";if(dy>0)hasan.direction="front";
+  hasan.x=Math.max(80,Math.min(920,hasan.x+dx*3.4));hasan.y=Math.max(365,Math.min(555,hasan.y+dy*3.4));
   let jx=0,jy=0;if(keys.a)jx--;if(keys.d)jx++;if(keys.w)jy--;if(keys.s)jy++;
-  if(jx&&jy){jx*=.707;jy*=.707;}jill.x=Math.max(80,Math.min(920,jill.x+jx*3.4));jill.y=Math.max(365,Math.min(555,jill.y+jy*3.4));
+  if(jx&&jy){jx*=.707;jy*=.707;}
+  if(jx<0)jill.direction="left";if(jx>0)jill.direction="right";if(jy<0)jill.direction="back";if(jy>0)jill.direction="front";
+  jill.x=Math.max(80,Math.min(920,jill.x+jx*3.4));jill.y=Math.max(365,Math.min(555,jill.y+jy*3.4));
   drawSayingsLevel();
  }else if(scene==="sayingsComplete"){
   drawSayingsBackdrop({scene:"Sprachprüfung bestanden",art:"🏆 🗯️ ❤️",wrong:"17 Redewendungen gerettet – Hasan bleibt trotzdem Hasan."});
   ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 31px Georgia";ctx.fillText("DOKTOR DER SPRICHWORTWISSENSCHAFT",500,475);
   ctx.font="19px Georgia";ctx.fillText("Hasan – 17 kreative Neuinterpretationen. Keine davon ganz freiwillig.",500,520);
-  ctx.font="16px Arial";ctx.fillText("Klickt oder drückt E, um ins Metaverse zurückzukehren.",500,570);
- }else if(scene==="metaverse"){
-  let dx=0,dy=0;
-  if(keys.ArrowLeft)dx--;if(keys.ArrowRight)dx++;if(keys.ArrowUp)dy--;if(keys.ArrowDown)dy++;
-  if(dx&&dy){dx*=.707;dy*=.707;}hasan.x=Math.max(60,Math.min(940,hasan.x+dx*3));hasan.y=Math.max(180,Math.min(550,hasan.y+dy*3));
-  let jx=0,jy=0;if(keys.a)jx--;if(keys.d)jx++;if(keys.w)jy--;if(keys.s)jy++;
-  if(jx&&jy){jx*=.707;jy*=.707;}jill.x=Math.max(60,Math.min(940,jill.x+jx*3));jill.y=Math.max(180,Math.min(550,jill.y+jy*3));
-  drawMetaverse();
+  ctx.font="16px Arial";ctx.fillText("Klickt oder drückt E, um zum Museum zurückzukehren.",500,570);
  }
 
  requestAnimationFrame(update);
@@ -2099,17 +2418,13 @@ function interact(){
  if(scene==="apartment"){
   interactApartment();
  }
- if(scene==="metaverse"){
-  if(Math.hypot(hasan.x-500,hasan.y-425)<125||Math.hypot(jill.x-500,jill.y-425)<125){startSayingsLevel();return;}
-  const spots=[{x:205,y:310,t:"Hier begann alles mit zwei Frozen Margaritas."},{x:420,y:220,t:"Berlin – eure gemeinsame kleine Welt."},{x:650,y:315,t:"Noch viele Reisen warten auf euch."},{x:820,y:210,t:"Das nächste Kapitel schreibt ihr zusammen."}];
-  const near=spots.find(o=>Math.hypot(hasan.x-o.x,hasan.y-o.y)<95||Math.hypot(jill.x-o.x,jill.y-o.y)<95);
-  if(near){metaverseMessage=near.t;metaverseMessageUntil=performance.now()+3000;achievements.add("Weltentdecker:innen");}
- }
+ if(scene==="streetStory"&&streetStoryPhase==="dialogue"){advanceStreetStory();return;}
  if(scene==="sayings"){interactSayings();}
  if(scene==="sayingsComplete"){
-  scene="metaverse";hasan.x=500;hasan.y=500;jill.x=550;jill.y=500;
-  document.getElementById("pageTitle").textContent="Willkommen im Metaverse";
-  document.getElementById("pageSubtitle").textContent="Eure Erinnerungen werden zu eurer Welt ♥";
+  scene="museum";hasan.x=500;hasan.y=460;jill.x=-80;jill.y=460;
+  document.getElementById("pageTitle").textContent="Das Museum unserer kleinen Welt";
+  document.getElementById("pageSubtitle").textContent="Ein Abenteuer für Hasan ♥";
+  document.getElementById("help").innerHTML="Steuerung: Pfeiltasten oder WASD zum Laufen. Laufe zu einem Bilderrahmen und drücke E oder die Leertaste.";
  }
  if(scene==="interior"){
   const h=restaurantPlayers.hasan;
@@ -2172,6 +2487,7 @@ canvas.addEventListener("click",e=>{
   }
  }
  if(scene==="sayingsComplete"){interact();return;}
+ if(scene==="streetStory"&&streetStoryPhase==="dialogue"){advanceStreetStory();return;}
 
  // Herz im Museum: direkter Einstieg ins Fahrradspiel
  if(scene==="museum"&&!finaleStarted&&x>=8&&x<=62&&y>=552&&y<=605){
@@ -2207,14 +2523,6 @@ canvas.addEventListener("click",e=>{
   return;
  }
 
- // Herz in der Wohnung: direkt ins Metaverse
- if(scene==="apartment"&&x>=8&&x<=62&&y>=552&&y<=605){enterMetaverse();return;}
- // Shortcut aus dem Essensspiel direkt ins Metaverse
- if(scene==="food"&&x>=8&&x<=62&&y>=552&&y<=605){
-  enterMetaverse();
-  return;
- }
- if(scene==="metaverse"&&Math.abs(x-500)<115&&y>345&&y<500){startSayingsLevel();return;}
 
  // Shortcut zum Restaurant
  if(scene==="bikes"&&x>=8&&x<=75&&y>=552&&y<=610){
@@ -2242,7 +2550,7 @@ canvas.addEventListener("mousemove",e=>{
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
 
  canvas.style.cursor=overHeart&&
-  (scene==="museum"||scene==="landing"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="metaverse"||scene==="sayings"||scene==="sayingsComplete")?"pointer":"default";
+  (scene==="museum"||scene==="landing"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete")?"pointer":"default";
 });
 
 update();
