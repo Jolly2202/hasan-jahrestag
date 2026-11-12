@@ -38,7 +38,7 @@ button:hover{background:#6d3048}
 
 <div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
-<audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
+<audio id="museumMusic" src="museum-music.mp3" preload="auto" loop autoplay muted></audio>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -140,7 +140,15 @@ function startMuseumMusic(){
  const music=document.getElementById("museumMusic");
  if(!music)return;
  music.volume=.32;
+ music.muted=false;
  if(music.paused)music.play().catch(()=>{});
+}
+function startMuseumMusicMuted(){
+ const music=document.getElementById("museumMusic");
+ if(!music)return;
+ music.volume=.32;
+ music.muted=true;
+ music.play().catch(()=>{});
 }
 function stopMuseumMusic(){
  const music=document.getElementById("museumMusic");
@@ -745,7 +753,7 @@ function resetBikeGame(){
 function drawBike(x,y,color,hair,name,direction="back"){
  ctx.save();
  ctx.translate(x,y);
- const bikeAngle=direction==="left"?-Math.PI/2:direction==="right"?Math.PI/2:direction==="front"?Math.PI:0;
+ const bikeAngle=0; // Fahrräder bleiben immer senkrecht ausgerichtet.
  ctx.rotate(bikeAngle);
 
  for(const wy of [-25,25]){
@@ -1172,13 +1180,10 @@ function drawBikeScene(now){
     if(keys.s)dy++;
    }
    if(dx&&dy){dx*=.707;dy*=.707}
-   if(dx<0)p.direction="left";
-   if(dx>0)p.direction="right";
-   if(dy<0)p.direction="back";
-   if(dy>0)p.direction="front";
+    p.direction="back"; // Lenken verändert nur die Spur, nicht die Ausrichtung.
    const rideSpeed=now<turboUntil?5.1:3.4;
    p.moving=!!(dx||dy);
-   if(p.moving){p.bob=(p.bob||0)+.24;p.direction=dx<0?"left":dx>0?"right":dy<0?"back":"front";}
+   if(p.moving){p.bob=(p.bob||0)+.24;p.direction="back";}
    p.x=Math.max(125,Math.min(875,p.x+dx*rideSpeed));
    p.y=Math.max(95,Math.min(555,p.y+dy*rideSpeed));
   }
@@ -2581,7 +2586,8 @@ function update(now=performance.now()){
   ctx.font="16px Arial";ctx.fillText("Klickt oder drückt E, um zum Museum zurückzukehren.",500,570);
  }
 
- requestAnimationFrame(update);
+ startMuseumMusicMuted();
+requestAnimationFrame(update);
 }
 
 // --------------------------------------------------
