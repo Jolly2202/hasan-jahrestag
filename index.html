@@ -273,6 +273,14 @@ let sayingsBossLeft=3;
 let sayingsBossPool=[];
 let sayingsCompleted=false;
 let sayingsWrongCount=0;
+let sayingsEnergy=5;
+let sayingsStreak=0;
+let sayingsBestStreak=0;
+let sayingsHintAvailable=false;
+let sayingsHintUsed=false;
+let sayingsEliminated=-1;
+let sayingsSpark={x:500,y:320,phase:0,collected:false};
+let sayingsLastFeedbackAt=0;
 
 
 // --------------------------------------------------
@@ -1516,31 +1524,66 @@ function drawMetaverse(){
 function shuffledSayingsOptions(correct){
  const alternatives=sayingsData.map(item=>item.right).filter(value=>value!==correct);
  for(let i=alternatives.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[alternatives[i],alternatives[j]]=[alternatives[j],alternatives[i]];}
- return [correct,...alternatives.slice(0,2)].sort(()=>Math.random()-.5);
+ const options=[correct,...alternatives.slice(0,2)];
+ for(let i=options.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[options[i],options[j]]=[options[j],options[i]];}
+ return options;
 }
 function startSayingsLevel(){
  scene="sayings";sayingsIndex=0;sayingsSolved=false;sayingsFeedback="";sayingsBossMode=false;sayingsBossLeft=3;sayingsCompleted=false;sayingsWrongCount=0;
- sayingsBossPool=[];hasan.x=410;hasan.y=555;hasan.direction="front";jill.x=590;jill.y=555;jill.direction="front";
+ sayingsBossPool=[];sayingsEnergy=5;sayingsStreak=0;sayingsBestStreak=0;
+ hasan.x=410;hasan.y=555;hasan.direction="front";jill.x=590;jill.y=555;jill.direction="front";
  prepareSayingsRound();
  document.getElementById("pageTitle").textContent="Hasan hat die Sprache kaputt gemacht";
  document.getElementById("pageSubtitle").textContent="Das große Redewendungs-Chaos 🗯️";
- document.getElementById("help").innerHTML="Hasan: Pfeiltasten · Jill: WASD · Lauft zu einer Antwort und drückt E oder Leertaste. Ihr könnt die Antwortfelder auch anklicken.";
+ document.getElementById("help").innerHTML="Hasan: Pfeiltasten · Jill: WASD · Sammelt den leuchtenden Wortfunken und drückt H für einen Hinweis. Falsche Antworten kosten Sprachenergie; richtige Antworten bauen sie wieder auf. Antwort mit E / Leertaste oder Klick auswählen.";
 }
 function prepareSayingsRound(){
  const item=sayingssCurrent();
  sayingsOptions=shuffledSayingsOptions(item.right);
- sayingsSolved=false;sayingsFeedback="";
+ sayingsSolved=false;sayingsFeedback="";sayingsHintAvailable=false;sayingsHintUsed=false;sayingsEliminated=-1;
+ sayingsSpark={x:135+Math.random()*730,y:300+Math.random()*45,phase:Math.random()*Math.PI*2,collected:false};
 }
 function chooseSayingsOption(index){
- if(sayingsSolved||sayingsCompleted||!sayingsOptions[index])return;
+ if(sayingsSolved||sayingsCompleted||!sayingsOptions[index]||index===sayingsEliminated)return;
  const selected=sayingsOptions[index];
- const correct= sayingssCurrent().right;
+ const correct=sayingssCurrent().right;
  if(selected===correct){
-  sayingsSolved=true;sayingsFeedback="Richtig! Die Redewendung ist repariert. ♥";
+  sayingsSolved=true;sayingsStreak++;sayingsBestStreak=Math.max(sayingsBestStreak,sayingsStreak);
+  sayingsFeedback=sayingsStreak>=3?"Dreier-Serie! Sprachcombo x"+sayingsStreak+" – großartig! ♥":"Richtig! Die Redewendung ist repariert. ♥";
+  sayingsEnergy=Math.min(5,sayingsEnergy+1);
   achievements.add("Sprachretter:innen");
  }else{
-  sayingsWrongCount++;sayingsFeedback="Knapp daneben! Hasan hat die Sprache noch nicht repariert. Versucht es noch einmal.";
+  sayingsWrongCount++;sayingsEnergy--;sayingsStreak=0;
+  sayingsFeedback="Falsches Portal! Sprachenergie -1. Noch einmal überlegen.";
+  sayingsLastFeedbackAt=performance.now();
+  if(sayingsEnergy<=0){
+   sayingsEnergy=5;sayingsHintAvailable=false;sayingsHintUsed=false;sayingsEliminated=-1;
+   sayingsOptions=shuffledSayingsOptions(correct);
+   sayingsFeedback="Sprachwirbel! Die Szene sortiert sich neu – ihr bekommt neue Energie, aber eure Serie ist weg.";
+  }
  }
+}
+function collectSayingsSpark(){
+ if(sayingsSpark.collected||sayingsSolved)return;
+ const players=[hasan,jill];
+ for(const player of players){
+  if(Math.hypot(player.x-sayingsSpark.x,player.y-20-sayingsSpark.y)<58){
+   sayingsSpark.collected=true;sayingsHintAvailable=true;
+   sayingsFeedback="Wortfunke gefunden! Drückt H, um einen falschen Antwortweg auszuschließen.";
+   sayingsLastFeedbackAt=performance.now();
+   return;
+  }
+ }
+}
+function useSayingsHint(){
+ if(scene!=="sayings"||sayingsSolved||!sayingsHintAvailable||sayingsHintUsed)return;
+ const correct=sayingssCurrent().right;
+ const wrong=sayingsOptions.map((v,i)=>({v,i})).filter(o=>o.v&&o.v!==correct&&o.i!==sayingsEliminated);
+ if(!wrong.length)return;
+ const remove=wrong[Math.floor(Math.random()*wrong.length)];
+ sayingsEliminated=remove.i;sayingsHintUsed=true;sayingsHintAvailable=false;
+ sayingsFeedback="Hinweis eingesetzt: Ein falsches Portal ist verschwunden. Wählt mit Bedacht!";
+ sayingsLastFeedbackAt=performance.now();
 }
 function sayingssCurrent(){
  if(sayingsBossMode)return sayingsBossPool[0];
@@ -1572,51 +1615,208 @@ function finishSayingsLevel(){
  document.getElementById("pageSubtitle").textContent="Hasans Redewendungen sind wieder ganz ♥";
  document.getElementById("help").innerHTML="Ihr habt alle 17 Redewendungen und den Endgegner gemeistert. Das Diplom wartet auf euch!";
 }
-function drawSayingsBackdrop(item){
- const palettes=["#344b4b","#46506e","#68404a","#55435e","#56452f","#3e5260"];
- const c=palettes[sayingsIndex%palettes.length];box(0,0,W,H,c);
- for(let i=0;i<12;i++){glow((i*97+90)%W,(i*61+85)%440,75,"#f7d58b24");}
- box(0,0,W,105,"#211b2cdd");
- ctx.textAlign="center";ctx.fillStyle="#f7d9a4";ctx.font="bold 17px Arial";
- ctx.fillText(item.scene,500,31);
- ctx.fillStyle="#fff0d5";ctx.font="bold 23px Georgia";
- ctx.fillText(sayingsBossMode?"BOSS-RUNDE – HASANS SPRICHWORTSALAT":"Redewendung "+(sayingsIndex+1)+" / 17",500,70);
- // Die absurde, wörtliche Mini-Szene: jedes Sprichwort erhält sein eigenes Motiv.
- ctx.fillStyle="#ffffff12";ctx.beginPath();ctx.roundRect(210,125,580,145,18);ctx.fill();
- ctx.font="62px Arial";ctx.fillText(item.art,500,215);
- // Hasan als Urheber des Sprach-Chaos
- ctx.fillStyle="#f5d9b1";ctx.beginPath();ctx.roundRect(90,285,820,76,14);ctx.fill();
- ctx.fillStyle="#4a2e3a";ctx.font="bold 12px Arial";ctx.fillText("HASANS ORIGINALVERSION",500,308);
- ctx.font="bold 20px Georgia";wrapSayingsText("„"+item.wrong+"“",500,333,760,23);
- if(sayingsBossMode){
-  ctx.font="58px Arial";ctx.fillText("👑🤪",500,425);
-  ctx.fillStyle="#ffe0a5";ctx.font="bold 13px Arial";ctx.fillText("DER WANDLENDE SPRICHWORTSALAT",500,458);
+function sayingsRounded(x,y,w,h,r,fill,stroke=null,lineWidth=1){
+ ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
+ if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lineWidth;ctx.stroke();}
+}
+function sayingsCloud(x,y,scale=1,alpha=1){
+ ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle="#fff0dc";
+ ctx.beginPath();ctx.arc(x-25*scale,y,20*scale,0,Math.PI*2);ctx.arc(x,y-10*scale,27*scale,0,Math.PI*2);ctx.arc(x+28*scale,y,19*scale,0,Math.PI*2);ctx.fill();ctx.restore();
+}
+function sayingsTree(x,y,scale=1,color="#274b43"){
+ ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);box(-7,0,14,65,"#533b36");
+ for(let i=0;i<3;i++){ctx.fillStyle=color;ctx.beginPath();ctx.arc(0,-12-i*22,31-i*5,0,Math.PI*2);ctx.fill();}
+ ctx.restore();
+}
+function sayingsDrawWindmill(x,y,scale=1){
+ ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.fillStyle="#d7c3a2";ctx.beginPath();ctx.moveTo(-22,65);ctx.lineTo(-13,-35);ctx.lineTo(13,-35);ctx.lineTo(22,65);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#5a4039";ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(0,-92);ctx.moveTo(-52,-56);ctx.lineTo(52,16);ctx.moveTo(52,-56);ctx.lineTo(-52,16);ctx.stroke();ctx.fillStyle="#b98d5c";ctx.beginPath();ctx.arc(0,-20,9,0,Math.PI*2);ctx.fill();ctx.restore();
+}
+function sayingsSceneArt(index,now){
+ const pulse=1+Math.sin(now/330)*.035;
+ ctx.save();
+ switch(index){
+  case 0: // brodelnde Gerüchteküche
+   box(0,270,W,85,"#30443d");sayingsTree(95,280,.9);sayingsTree(900,280,.9);
+   sayingsRounded(370,220,260,100,18,"#68433b","#d4a66b",5);box(390,250,220,55,"#2d2831");
+   ctx.fillStyle="#d9a45f";ctx.beginPath();ctx.ellipse(500,246,138,24,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle="#51303b";ctx.beginPath();ctx.ellipse(500,244,119,17,0,0,Math.PI*2);ctx.fill();
+   for(let i=0;i<9;i++){let x=410+(i*37)%180,y=225+Math.sin(now/240+i)*18;glow(x,y,23,"#b9e6dc66");ctx.fillStyle="#e8d5a7";ctx.beginPath();ctx.arc(x,y,5+(i%3),0,Math.PI*2);ctx.fill();}
+   ctx.font="34px Arial";ctx.fillText("🗣️",300,210);ctx.fillText("💬",690,205);ctx.fillText("🫧",720,275);break;
+  case 1: // Socken-Wolken
+   for(let i=0;i<5;i++)sayingsCloud(170+i*170,190+(i%2)*45,.8+(i%3)*.12,.8);
+   ctx.font="72px Arial";ctx.fillText("🧦",380,280);ctx.fillText("🧦",610,255);ctx.font="48px Arial";ctx.fillText("😲",500,170);
+   for(let i=0;i<6;i++){ctx.strokeStyle="#f8dba5";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(120+i*150,295);ctx.lineTo(100+i*150,325);ctx.stroke();}break;
+  case 2: // Feuerbändiger-Festung
+   box(80,235,840,115,"#443b43");for(let x=100;x<930;x+=75){box(x,180,55,170,"#6b4b47");box(x+8,165,39,24,"#b47b58");}
+   for(let i=0;i<7;i++){let x=190+i*105;glow(x,260,60,"#f0783e55");ctx.font="40px Arial";ctx.fillText("🔥",x,275);}
+   ctx.font="76px Arial";ctx.fillText("🛡️",500,235);ctx.font="34px Arial";ctx.fillText("⚔️",500,320);break;
+  case 3: // Leier-Werkstatt
+   box(140,300,720,30,"#704b3c");for(let x=190;x<850;x+=110){box(x,180,12,125,"#c79b65");}
+   ctx.strokeStyle="#e5c58f";ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(300,285);ctx.quadraticCurveTo(300,145,500,160);ctx.quadraticCurveTo(700,145,700,285);ctx.stroke();
+   for(let x=360;x<=640;x+=35){line(x,190,x+(x-500)*.15,285,"#f1d9ac",2);}
+   ctx.font="55px Arial";ctx.fillText("🎼",500,250);ctx.font="34px Arial";ctx.fillText("🦴",280,300);ctx.fillText("🪕",720,300);break;
+  case 4: // Drops-Brunnen
+   ctx.fillStyle="#8a624e";ctx.beginPath();ctx.moveTo(340,330);ctx.lineTo(375,215);ctx.lineTo(625,215);ctx.lineTo(660,330);ctx.closePath();ctx.fill();
+   box(365,205,270,25,"#d4ad79");ctx.fillStyle="#243e46";ctx.beginPath();ctx.ellipse(500,255,105,31,0,0,Math.PI*2);ctx.fill();
+   ctx.font="76px Arial";ctx.fillText("🍬",500,205);ctx.font="35px Arial";ctx.fillText("🪣",690,295);break;
+  case 5: // Windmühlen-Ebene
+   box(0,300,W,55,"#8b7653");for(let i=0;i<6;i++)sayingsDrawWindmill(140+i*145,265,.62+(i%2)*.12);
+   ctx.fillStyle="#a7b9a0";ctx.beginPath();ctx.moveTo(0,290);ctx.quadraticCurveTo(300,235,520,295);ctx.quadraticCurveTo(760,230,1000,285);ctx.lineTo(1000,355);ctx.lineTo(0,355);ctx.fill();
+   ctx.font="48px Arial";ctx.fillText("⚔️",500,300);break;
+  case 6: // Auto gegen Mauer
+   box(0,280,W,75,"#51434a");for(let y=185;y<355;y+=42)for(let x=690;x<980;x+=70){sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);}
+   ctx.save();ctx.translate(480,280);ctx.rotate(-.12);sayingsRounded(-100,-40,200,85,24,"#476d7a","#d6c7a7",4);ctx.fillStyle="#e7d7b5";ctx.fillRect(-55,-27,110,30);ctx.font="40px Arial";ctx.fillText("🚗",0,25);ctx.restore();
+   ctx.font="45px Arial";ctx.fillText("💥",640,280);break;
+  case 7: // Bahnhof
+   box(0,285,W,70,"#3e3d4b");box(120,155,760,165,"#755a4d");box(145,175,710,125,"#b58a62");
+   for(let x=180;x<850;x+=130){box(x,190,90,90,"#354650");line(x+45,190,x+45,280,"#cba978",4);}
+   ctx.fillStyle="#ead6ae";ctx.beginPath();ctx.arc(500,180,60,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#6b4b43";ctx.lineWidth=5;ctx.stroke();line(500,180,500,140,"#6b4b43",5);line(500,180,535,195,"#6b4b43",5);
+   ctx.font="58px Arial";ctx.fillText("🚂",500,300);break;
+  case 8: // Goldwaage
+   line(500,160,500,315,"#e4c78f",8);line(390,205,610,205,"#e4c78f",7);line(410,205,380,275,"#d5bd94",3);line(590,205,620,275,"#d5bd94",3);
+   ctx.strokeStyle="#d5bd94";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(380,280,55,14,0,0,Math.PI*2);ctx.ellipse(620,280,55,14,0,0,Math.PI*2);ctx.stroke();
+   ctx.font="65px Arial";ctx.fillText("👞",370,260);ctx.font="54px Arial";ctx.fillText("⚖️",500,170);ctx.font="50px Arial";ctx.fillText("🪙",625,260);break;
+  case 9: // Zahnfleisch-Wüste
+   box(0,300,W,55,"#a97850");for(let i=0;i<8;i++){ctx.fillStyle=i%2?"#c99463":"#d9ad76";ctx.beginPath();ctx.ellipse(i*145-20,315,90,28,0,0,Math.PI*2);ctx.fill();}
+   ctx.font="82px Arial";ctx.fillText("🦷",500,265);ctx.font="48px Arial";ctx.fillText("🥵",370,300);ctx.fillText("👟",630,310);break;
+  case 10: // Möglichkeitsgarten
+   box(0,300,W,55,"#435b45");for(let i=0;i<9;i++){let x=100+i*100;line(x,300,x,225-(i%3)*18,"#8caa71",4);ctx.fillStyle=i%2?"#e5a6a5":"#e9c77c";ctx.beginPath();ctx.arc(x-10,220-(i%3)*18,12,0,Math.PI*2);ctx.arc(x+10,220-(i%3)*18,12,0,Math.PI*2);ctx.arc(x,205-(i%3)*18,12,0,Math.PI*2);ctx.fill();}
+   glow(500,220,150,"#f3df9b44");ctx.font="66px Arial";ctx.fillText("🌱",500,290);break;
+  case 11: // Herz-Kompass
+   glow(500,250,180,"#e66a7955");ctx.strokeStyle="#e5c18a";ctx.lineWidth=5;ctx.beginPath();ctx.arc(500,245,100,0,Math.PI*2);ctx.stroke();
+   line(500,130,500,360,"#e5c18a",3);line(385,245,615,245,"#e5c18a",3);
+   ctx.font="90px Arial";ctx.fillText("❤️",500,275);ctx.font="30px Arial";ctx.fillText("N",500,125);ctx.fillText("E",630,255);ctx.fillText("S",500,390);ctx.fillText("W",370,255);break;
+  case 12: // Crash-Kino
+   box(0,275,W,80,"#3d3848");for(let y=165;y<355;y+=42)for(let x=720;x<990;x+=70){box(x,y,62,35,"#99745d");}
+   ctx.font="80px Arial";ctx.fillText("🚙",470,285);ctx.font="54px Arial";ctx.fillText("💥",640,255);ctx.font="36px Arial";ctx.fillText("🎬",270,205);break;
+  case 13: // Alter Hase
+   box(0,300,W,55,"#4a493f");sayingsTree(150,300,.9,"#455b48");sayingsTree(850,300,.9,"#455b48");
+   ctx.fillStyle="#795b48";ctx.beginPath();ctx.roundRect(350,205,300,125,22);ctx.fill();ctx.font="78px Arial";ctx.fillText("🐇",500,290);ctx.font="42px Arial";ctx.fillText("🎩",380,210);ctx.fillText("🕰️",620,210);break;
+  case 14: // Misstrauische Hasenküche
+   box(0,300,W,55,"#493b3d");sayingsRounded(320,205,360,125,20,"#73513f","#d3ad78",5);ctx.font="74px Arial";ctx.fillText("🍖",500,285);ctx.font="52px Arial";ctx.fillText("🐇",350,230);ctx.fillText("👀",650,220);for(let i=0;i<7;i++)glow(360+i*45,195,20,"#e8c78c55");break;
+  case 15: // Keller
+   box(0,185,W,170,"#40343b");sayingsRounded(330,150,340,205,8,"#6d5549","#c79d6c",5);sayingsRounded(365,180,270,175,5,"#211e2b","#9c7757",4);
+   ctx.font="76px Arial";ctx.fillText("🚪",500,310);ctx.font="36px Arial";ctx.fillText("💀",420,275);ctx.fillText("💀",580,275);ctx.font="28px Arial";ctx.fillText("🔒",500,205);break;
+  case 16: // Pool der Möglichkeiten
+   box(0,245,W,110,"#254e60");for(let y=260;y<350;y+=25){ctx.strokeStyle="#72b8c1";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,y+Math.sin(now/300+y)*5);ctx.quadraticCurveTo(250,y-12,500,y);ctx.quadraticCurveTo(750,y+12,1000,y);ctx.stroke();}
+   for(let i=0;i<5;i++){let x=170+i*165;sayingsRounded(x-38,135,76,130,8,i%2?"#805b4d":"#9b765b","#e3c38e",4);ctx.font="30px Arial";ctx.fillText(i%2?"🚪":"🔑",x,210);}
+   ctx.font="58px Arial";ctx.fillText("🏊",500,325);break;
  }
+ ctx.restore();
+}
+function drawSayingsAtmosphere(now,idx){
+ // Mehr Tiefe: ferne Silhouetten, Lichtkegel, Partikel und eine weiche Vignette.
+ ctx.save();
+ const horizon=330;
+ ctx.globalAlpha=.22;
+ for(let layer=0;layer<3;layer++){
+  const y=235+layer*38;
+  ctx.fillStyle=layer===0?"#17232c":(layer===1?"#101923":"#0b111b");
+  ctx.beginPath();ctx.moveTo(0,y+70);
+  for(let x=0;x<=W;x+=80){const wave=Math.sin(x*.012+idx+layer)*13+Math.cos(x*.021+now/1700+layer)*8;ctx.lineTo(x,y+wave);}
+  ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();ctx.fill();
+ }
+ ctx.globalAlpha=1;
+ // Perspektivische Bodenkanten
+ const floor=354;
+ ctx.strokeStyle="#e7c68e";ctx.globalAlpha=.12;ctx.lineWidth=1;
+ for(let x=-400;x<=1400;x+=100){ctx.beginPath();ctx.moveTo(500,floor);ctx.lineTo(x,H);ctx.stroke();}
+ for(let y=floor+35;y<H;y+=42){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+ ctx.globalAlpha=1;
+ // Lichtkegel in der Mitte der Szene
+ const beam=ctx.createRadialGradient(500,250,12,500,250,430);
+ beam.addColorStop(0,"#f5d99b19");beam.addColorStop(1,"#05071100");
+ ctx.fillStyle=beam;ctx.fillRect(0,100,W,H-100);
+ // Randabdunklung
+ const vignette=ctx.createRadialGradient(500,300,190,500,300,650);
+ vignette.addColorStop(.45,"#05071300");vignette.addColorStop(1,"#05071399");
+ ctx.fillStyle=vignette;ctx.fillRect(0,90,W,H-90);
+ // Glühende Staubteilchen
+ for(let i=0;i<24;i++){
+  const x=(i*197+Math.sin(now/1100+i*2)*26+W)%W;
+  const y=145+((i*67+now*(.012+(i%3)*.004))%390);
+  const a=.16+(Math.sin(now/260+i)*.12);
+  ctx.globalAlpha=a;ctx.fillStyle=i%4===0?"#a8e6db":"#f6d79b";
+  ctx.beginPath();ctx.arc(x,y,1+(i%3)*.65,0,Math.PI*2);ctx.fill();
+ }
+ ctx.globalAlpha=1;ctx.restore();
+}
+function drawSayingsSpark(){
+ if(!sayingsSpark||sayingsSpark.collected||sayingsSolved)return;
+ const t=performance.now()/260+sayingsSpark.phase;
+ const x=sayingsSpark.x+Math.sin(t)*9,y=sayingsSpark.y+Math.sin(t*1.7)*7;
+ glow(x,y,55,"#7ce7e099");
+ ctx.save();ctx.translate(x,y);ctx.rotate(t*.55);
+ ctx.fillStyle="#b9fff0";ctx.strokeStyle="#f4fff0";ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(6,-5);ctx.lineTo(16,0);ctx.lineTo(6,6);ctx.lineTo(0,16);ctx.lineTo(-6,6);ctx.lineTo(-16,0);ctx.lineTo(-6,-5);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.restore();
+ ctx.textAlign="center";ctx.fillStyle="#d5fff2";ctx.font="bold 10px Arial";ctx.fillText("WORTFUNKEN · HINWEIS",x,y+31);
+}
+function drawSayingsBackdrop(item){
+ const now=performance.now();
+ const palettes=["#182f35","#283a59","#4b2f38","#44364f","#3e3338","#263d4c","#44353b","#263946","#3b3544","#4b3d32","#29443c","#3d2e43","#34313f","#39433b","#3d3032","#302f3d","#1e4050"];
+ const idx=sayingsBossMode?sayingsData.indexOf(item):sayingsIndex;
+ const c=palettes[Math.max(0,idx)%palettes.length];
+ const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,c);g.addColorStop(.68,"#171b2b");g.addColorStop(1,"#100f1c");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ // Sternenstaub und atmosphärische Lichtinseln
+ for(let i=0;i<42;i++){let x=(i*173+37)%W,y=(i*71+Math.sin(now/800+i)*9)%370;ctx.globalAlpha=.2+(i%4)*.12;ctx.fillStyle=i%3?"#f8dca7":"#b7d9d4";ctx.beginPath();ctx.arc(x,y,1+(i%3),0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+ glow(500,235,390,"#f1c78319");
+ // Dekorative Seitenbauten und Bodenschichten
+ box(0,345,W,275,"#171b2a99");box(0,348,W,5,"#c59b68");
+ if(idx>=0&&idx<17){sayingsSceneArt(idx,now);}else{ctx.textAlign="center";ctx.font="76px Arial";ctx.fillText(item.art||"🏆 🗯️ ❤️",500,270);}
+ drawSayingsAtmosphere(now,idx);
+ // Kopfzeile im Stil eines Kapitel-Interfaces
+ sayingsRounded(22,17,956,78,14,"#171523d9","#c49b69",2);
+ ctx.textAlign="left";ctx.fillStyle="#d8b77e";ctx.font="bold 11px Arial";ctx.fillText("DAS GROSSE SPRICHWORT-CHAOS",48,43);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 23px Georgia";ctx.fillText(item.scene,48,73);
+ ctx.textAlign="right";ctx.fillStyle="#f5d8a0";ctx.font="bold 14px Arial";ctx.fillText(sayingsBossMode?"BOSS-KAMPF · "+(4-sayingsBossLeft)+" / 3":"KAPITEL "+String(sayingsIndex+1).padStart(2,"0")+" / 17",950,47);
+ // Fortschrittsleiste mit 17 kleinen Runen
+ for(let i=0;i<17;i++){sayingsRounded(48+i*53,105,39,7,4,i<sayingsIndex?"#e6bd78":(i===sayingsIndex?"#f8e6b8":"#ffffff24"));}
+ // Sprachenergie, Serie und Hilfsstatus
+ sayingsRounded(745,118,210,34,10,"#151522cc","#8b765f",1);
+ ctx.textAlign="left";ctx.font="bold 11px Arial";ctx.fillStyle="#f6dca8";ctx.fillText("SPRACHENERGIE",758,131);
+ for(let i=0;i<5;i++){ctx.fillStyle=i<sayingsEnergy?"#ef718b":"#ffffff25";ctx.beginPath();ctx.arc(865+i*17,130,5.5,0,Math.PI*2);ctx.fill();}
+ ctx.textAlign="right";ctx.fillStyle="#c8e9df";ctx.font="bold 11px Arial";ctx.fillText("SERIE x"+sayingsStreak,950,146);
+ // Die Originalaussage als zentrales Sammlerstück
+ sayingsRounded(105,365,790,62,13,"#f7ead5","#d4ad78",3);
+ ctx.textAlign="center";ctx.fillStyle="#8a4c50";ctx.font="bold 10px Arial";ctx.fillText("HASANS ORIGINALVERSION",500,382);
+ ctx.fillStyle="#38283a";ctx.font="bold 17px Georgia";wrapSayingsText("„"+item.wrong+"“",500,407,745,19);
 }
 function drawSayingsLevel(){
  const item=sayingssCurrent();drawSayingsBackdrop(item);
+ collectSayingsSpark();drawSayingsSpark();
  const positions=[235,500,765];
  for(let i=0;i<3;i++){
-  const x=positions[i];
-  ctx.fillStyle="#f3e4cf";ctx.beginPath();ctx.roundRect(x-118,385,236,105,12);ctx.fill();
-  ctx.strokeStyle="#cda66c";ctx.lineWidth=4;ctx.stroke();
-  ctx.fillStyle="#7b4350";ctx.font="bold 13px Arial";ctx.textAlign="center";ctx.fillText("TOR "+(i+1),x,408);
-  ctx.fillStyle="#38283a";ctx.font="bold 14px Arial";
-  wrapSayingsText(sayingsOptions[i],x,435,205,18);
-  if(sayingsSolved&&sayingsOptions[i]===item.right){ctx.strokeStyle="#4e9c6b";ctx.lineWidth=6;ctx.strokeRect(x-118,385,236,105);}
+  const x=positions[i],isCorrect=sayingsOptions[i]===item.right,eliminated=i===sayingsEliminated;
+  const selected=isCorrect&&sayingsSolved;
+  const active=Math.hypot(hasan.x-x,hasan.y-505)<105||Math.hypot(jill.x-x,jill.y-505)<105;
+  const portalColor=selected?"#68d69a":(eliminated?"#59606a":(active?"#f2cf85":"#a88b72"));
+  const portalFill=selected?"#dff4e5":(eliminated?"#4a4650":"#f2e3cf");
+  glow(x,485,112,selected?"#65d69b55":(active?"#f4ce8645":"#b6a0a022"));
+  ctx.fillStyle="#111522";ctx.beginPath();ctx.ellipse(x,500,116,65,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=portalColor;ctx.lineWidth=selected?7:4;ctx.beginPath();ctx.ellipse(x,485,104,58,0,Math.PI,Math.PI*2);ctx.stroke();
+  if(!eliminated){
+   sayingsRounded(x-101,458,202,88,14,portalFill,portalColor,selected?5:3);
+   ctx.textAlign="center";ctx.fillStyle=selected?"#286345":"#785044";ctx.font="bold 10px Arial";ctx.fillText(selected?"✓ RICHTIG":"PORTAL "+(i+1),x,475);
+   ctx.fillStyle="#38283a";ctx.font="bold 13px Georgia";wrapSayingsText(sayingsOptions[i],x,496,176,16);
+  }else{
+   sayingsRounded(x-101,458,202,88,14,"#34323b","#6d6872",2);
+   ctx.fillStyle="#aaa3a8";ctx.font="bold 12px Arial";ctx.fillText("DURCH HINWEIS GESPERRT",x,495);
+   ctx.font="25px Arial";ctx.fillText("✕",x,527);
+  }
+  if(active&&!sayingsSolved&&!eliminated){ctx.strokeStyle="#fff0c5";ctx.lineWidth=2;ctx.setLineDash([5,5]);ctx.beginPath();ctx.ellipse(x,493,109,57,0,Math.PI,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
  }
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
- ctx.fillStyle="#fff0d5";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText("HASAN",hasan.x,602);ctx.fillText("JILL",jill.x,602);
- ctx.fillStyle="#fff0d5";ctx.font="12px Arial";
- ctx.fillText("Lauft zu einem Antwort-Tor und drückt E / Leertaste – oder klickt es an.",500,520);
- if(sayingsFeedback){
-  box(170,535,660,55,"#211b2cee");ctx.fillStyle=sayingsSolved?"#a8e0ad":"#ffe0a5";ctx.font="bold 16px Arial";ctx.fillText(sayingsFeedback,500,568);
- }
+ ctx.textAlign="center";ctx.font="bold 11px Arial";ctx.fillStyle="#b8d7f1";ctx.fillText("HASAN · PFEILE",hasan.x,604);ctx.fillStyle="#f0b4c7";ctx.fillText("JILL · WASD",jill.x,604);
+ sayingsRounded(250,431,500,23,9,sayingsFeedback?(sayingsSolved?"#244c3b":"#493747"):"#171523dd",sayingsFeedback?(sayingsSolved?"#8fd4a4":"#d5a66d"):null,1);
+ ctx.fillStyle=sayingsFeedback?(sayingsSolved?"#c8f0d0":"#ffe0b5"):"#f8dfae";ctx.font="bold 11px Arial";ctx.fillText(sayingsFeedback||"Sammelt den Wortfunken für einen Hinweis · H nutzt ihn · E bestätigt",500,447);
  if(sayingsSolved){
-  box(330,575,340,36,"#f5dfb9");ctx.fillStyle="#442d3d";ctx.font="bold 14px Arial";
-  ctx.fillText(sayingsBossMode?"Weiter im Bosskampf →":"Redewendung repariert – weiter →",500,598);
+  sayingsRounded(355,588,290,27,9,"#f5dfb9","#d2aa70",2);ctx.fillStyle="#442d3d";ctx.font="bold 12px Arial";ctx.fillText(sayingsBossMode?"WEITER ZUM NÄCHSTEN ANGRIFF →":"SZENE REPARIERT · WEITER →",500,606);
+  ctx.font="26px Arial";ctx.fillText("✨",500,340);
  }
+ if(sayingsBossMode){ctx.font="36px Arial";ctx.fillText("👑",500,330);}
 }
 function wrapSayingsText(text,x,y,maxWidth,lineHeight){
  const words=text.split(" ");let line="",lines=[];
@@ -1629,7 +1829,7 @@ function interactSayings(){
  const positions=[235,500,765];
  const candidates=[{x:hasan.x,y:hasan.y},{x:jill.x,y:jill.y}];
  let best=-1,bestDistance=Infinity;
- positions.forEach((x,i)=>candidates.forEach(p=>{const d=Math.hypot(p.x-x,p.y-435);if(d<bestDistance){bestDistance=d;best=i;}}));
+ positions.forEach((x,i)=>candidates.forEach(p=>{const d=Math.hypot(p.x-x,p.y-500);if(d<bestDistance){bestDistance=d;best=i;}}));
  if(bestDistance<145)chooseSayingsOption(best);
  else sayingsFeedback="Geht näher an eines der drei Antwort-Tore heran.";
 }
@@ -1947,6 +2147,7 @@ document.addEventListener("keydown",e=>{
  if(e.key.toLowerCase()==="e"||e.key===" "){
   interact();
  }
+ if(e.key.toLowerCase()==="h")useSayingsHint();
  if(e.key==="Escape"&&opened)closeMemory();
 });
 
@@ -1964,7 +2165,8 @@ canvas.addEventListener("click",e=>{
 
  if(scene==="sayings"){
   if(sayingsSolved&&x>=300&&x<=700&&y>=565&&y<=615){continueSayings();return;}
-  if(!sayingsSolved&&y>=380&&y<=500){
+  if(!sayingsSpark.collected&&Math.hypot(x-sayingsSpark.x,y-sayingsSpark.y)<42){sayingsSpark.collected=true;sayingsHintAvailable=true;sayingsFeedback="Wortfunken gefunden! Drückt H für einen Hinweis.";return;}
+  if(!sayingsSolved&&y>=450&&y<=550){
    const positions=[235,500,765];
    for(let i=0;i<3;i++){if(Math.abs(x-positions[i])<=120){chooseSayingsOption(i);return;}}
   }
