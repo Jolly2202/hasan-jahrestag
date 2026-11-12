@@ -974,7 +974,7 @@ function drawHeart(x,y,size,number){
 function spawnThings(){
  const t=performance.now()-bikeStart;
 
- if(t-lastObstacleAt>570){
+ if(t-lastObstacleAt>520){
   lastObstacleAt=t;
   const laneX=145+Math.random()*710;
   const roll=Math.random();
@@ -990,7 +990,7 @@ function spawnThings(){
   obstacles.push({
    x:laneX,y:-45,type,
    r:["puddle","construction","bus"].includes(type)?27:["dachshund","spati","uber"].includes(type)?23:19,
-   hitPlayers:{},speed:4.4+Math.random()*1.1
+   hitPlayers:{},speed:4.75+Math.random()*1.2
   });
  }
 
@@ -1409,61 +1409,143 @@ function drawRestaurantArrival(){
 // --------------------------------------------------
 
 function drawShopkeeper(){
- // Detaillierte Weinblatt-Mitarbeiterin: erwachsene Frau mit dunklem,
- // offen getragenem Haar, ohne Kopftuch, in einer bestickten Bluse und Schürze.
+ // Neu gezeichnete Weinblatt-Mitarbeiterin: erwachsene Frau mit
+ // offenem, welligem dunklem Haar, feinen Gesichtszügen und eleganter Bluse.
  ctx.save();
  ctx.translate(385,278);
 
- // Körper und Kleidung
- ctx.fillStyle="#3d2925";
- ctx.beginPath();ctx.ellipse(0,48,53,66,0,0,Math.PI*2);ctx.fill();
- const blouse=ctx.createLinearGradient(-40,0,42,95);
- blouse.addColorStop(0,"#e9d7bd");blouse.addColorStop(.55,"#d7bd9d");blouse.addColorStop(1,"#b99575");
- ctx.fillStyle=blouse;
- ctx.beginPath();ctx.moveTo(-37,4);ctx.quadraticCurveTo(-52,22,-48,91);ctx.lineTo(48,91);ctx.quadraticCurveTo(52,22,37,4);ctx.quadraticCurveTo(0,-8,-37,4);ctx.fill();
- // Ärmel
- ctx.fillStyle="#d8c1a3";
- ctx.beginPath();ctx.moveTo(-34,9);ctx.quadraticCurveTo(-54,17,-62,57);ctx.quadraticCurveTo(-60,68,-48,69);ctx.lineTo(-28,36);ctx.fill();
- ctx.beginPath();ctx.moveTo(34,9);ctx.quadraticCurveTo(54,17,62,57);ctx.quadraticCurveTo(60,68,48,69);ctx.lineTo(28,36);ctx.fill();
- // dunkle Weinrot-Schürze
- ctx.fillStyle="#713d42";
- ctx.beginPath();ctx.moveTo(-28,23);ctx.lineTo(28,23);ctx.lineTo(38,106);ctx.quadraticCurveTo(0,116,-38,106);ctx.closePath();ctx.fill();
- ctx.strokeStyle="#d5b27c";ctx.lineWidth=2;
- ctx.beginPath();ctx.moveTo(-23,30);ctx.lineTo(-30,99);ctx.moveTo(23,30);ctx.lineTo(30,99);ctx.stroke();
- // kleine Stickerei auf der Schürze
- ctx.fillStyle="#e3c58f";
- for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(-12+i*6,58+(i%2)*5,1.7,0,Math.PI*2);ctx.fill();}
- ctx.strokeStyle="#d7b87f";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-10,77);ctx.quadraticCurveTo(0,68,10,77);ctx.stroke();
- // Hals
- ctx.fillStyle="#b87958";ctx.fillRect(-10,-20,20,29);
- // Gesicht
- const skin=ctx.createRadialGradient(-8,-47,3,0,-40,36);
- skin.addColorStop(0,"#dba17b");skin.addColorStop(1,"#a9654c");
- ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,-48,27,34,0,0,Math.PI*2);ctx.fill();
- // Ohren
- ctx.fillStyle="#b87557";ctx.beginPath();ctx.ellipse(-27,-45,6,9,0,0,Math.PI*2);ctx.ellipse(27,-45,6,9,0,0,Math.PI*2);ctx.fill();
- // Haare: offene, wellige dunkelbraune Haare, seitlicher Scheitel
+ // Hintere Haarpartie und Silhouette
  ctx.fillStyle="#302321";
- ctx.beginPath();ctx.moveTo(-27,-54);ctx.quadraticCurveTo(-34,-91,1,-88);ctx.quadraticCurveTo(34,-88,30,-54);ctx.lineTo(31,-5);ctx.quadraticCurveTo(22,8,17,-8);ctx.lineTo(19,-43);ctx.quadraticCurveTo(4,-58,-9,-42);ctx.lineTo(-17,-7);ctx.quadraticCurveTo(-31,3,-34,-17);ctx.closePath();ctx.fill();
- // Haarsträhnen
- ctx.strokeStyle="#594039";ctx.lineWidth=3;ctx.lineCap="round";
- for(const a of [-28,-21,22,29]){ctx.beginPath();ctx.moveTo(a,-72);ctx.quadraticCurveTo(a+(a<0?-8:8),-42,a+(a<0?-3:3),-13);ctx.stroke();}
- ctx.beginPath();ctx.moveTo(-23,-72);ctx.quadraticCurveTo(-5,-91,18,-72);ctx.stroke();
- // Augenbrauen und Augen
- ctx.strokeStyle="#49302b";ctx.lineWidth=2.5;
- ctx.beginPath();ctx.moveTo(-17,-57);ctx.quadraticCurveTo(-9,-62,-3,-57);ctx.moveTo(4,-57);ctx.quadraticCurveTo(12,-62,18,-56);ctx.stroke();
- ctx.fillStyle="#302522";ctx.beginPath();ctx.ellipse(-10,-49,2.4,3.2,0,0,Math.PI*2);ctx.ellipse(10,-49,2.4,3.2,0,0,Math.PI*2);ctx.fill();
- // Nase und freundliches Lächeln
- ctx.strokeStyle="#925642";ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(0,-46);ctx.lineTo(-2,-36);ctx.quadraticCurveTo(1,-33,4,-36);ctx.stroke();
- ctx.strokeStyle="#87483f";ctx.lineWidth=2;ctx.beginPath();ctx.arc(1,-31,8,.15,Math.PI-.15);ctx.stroke();
- ctx.strokeStyle="#e4b28d";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-7,-27);ctx.quadraticCurveTo(1,-23,8,-27);ctx.stroke();
- // goldene Creolen
- ctx.strokeStyle="#d8b36e";ctx.lineWidth=2.2;ctx.beginPath();ctx.arc(-29,-39,5,0,Math.PI*2);ctx.arc(29,-39,5,0,Math.PI*2);ctx.stroke();
- // Hände auf der Theke
- ctx.fillStyle="#c88968";ctx.beginPath();ctx.ellipse(-53,66,10,7,-.2,0,Math.PI*2);ctx.ellipse(53,66,10,7,.2,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();
+ ctx.moveTo(-39,-45);
+ ctx.quadraticCurveTo(-48,-103,-4,-108);
+ ctx.quadraticCurveTo(42,-112,43,-61);
+ ctx.lineTo(40,15);
+ ctx.quadraticCurveTo(30,32,18,12);
+ ctx.lineTo(-20,12);
+ ctx.quadraticCurveTo(-38,24,-43,5);
+ ctx.closePath();
+ ctx.fill();
+
+ // Schultern und Oberkörper
+ const blouse=ctx.createLinearGradient(-55,0,55,118);
+ blouse.addColorStop(0,"#f0e3ce");
+ blouse.addColorStop(.52,"#dfc9a9");
+ blouse.addColorStop(1,"#c5a17e");
+ ctx.fillStyle=blouse;
+ ctx.beginPath();
+ ctx.moveTo(-22,-5);
+ ctx.quadraticCurveTo(-51,1,-65,38);
+ ctx.lineTo(-78,111);
+ ctx.quadraticCurveTo(0,128,78,111);
+ ctx.lineTo(65,38);
+ ctx.quadraticCurveTo(50,1,22,-5);
+ ctx.closePath();
+ ctx.fill();
+ // dezente Ärmel- und Stofffalten
+ ctx.strokeStyle="#b99b7e";ctx.lineWidth=2;ctx.lineCap="round";
+ ctx.beginPath();
+ ctx.moveTo(-43,18);ctx.quadraticCurveTo(-56,52,-54,87);
+ ctx.moveTo(43,18);ctx.quadraticCurveTo(56,52,54,87);
+ ctx.moveTo(-20,10);ctx.quadraticCurveTo(-8,25,0,35);
+ ctx.moveTo(20,10);ctx.quadraticCurveTo(8,25,0,35);
+ ctx.stroke();
+
+ // Schürze mit feiner Paspelierung
+ ctx.fillStyle="#713d45";
+ ctx.beginPath();
+ ctx.moveTo(-31,20);ctx.lineTo(31,20);ctx.lineTo(43,124);
+ ctx.quadraticCurveTo(0,133,-43,124);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#d8b77e";ctx.lineWidth=2.5;
+ ctx.beginPath();ctx.moveTo(-25,27);ctx.lineTo(-35,119);
+ ctx.moveTo(25,27);ctx.lineTo(35,119);ctx.stroke();
+ ctx.strokeStyle="#9c6c59";ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(-18,91);ctx.lineTo(18,91);ctx.stroke();
+ // kleine bestickte Blätter
+ for(let i=0;i<3;i++){
+  ctx.fillStyle="#e3c58f";
+  ctx.beginPath();ctx.ellipse(-9+i*9,69+(i%2)*4,3,6,(i-1)*.45,0,Math.PI*2);ctx.fill();
+ }
+
+ // Hals und Gesicht
+ ctx.fillStyle="#b97758";
+ ctx.beginPath();ctx.moveTo(-11,-28);ctx.lineTo(11,-28);ctx.lineTo(13,7);
+ ctx.quadraticCurveTo(0,14,-13,7);ctx.closePath();ctx.fill();
+ const skin=ctx.createRadialGradient(-10,-66,4,0,-55,43);
+ skin.addColorStop(0,"#e6b18a");skin.addColorStop(.7,"#cb8c68");skin.addColorStop(1,"#a96850");
+ ctx.fillStyle=skin;
+ ctx.beginPath();ctx.ellipse(0,-57,31,39,0,0,Math.PI*2);ctx.fill();
+
+ // Ohren und dezente goldene Creolen
+ ctx.fillStyle="#bd7c5d";
+ ctx.beginPath();ctx.ellipse(-30,-54,6,9,0,0,Math.PI*2);ctx.ellipse(30,-54,6,9,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#d9b66f";ctx.lineWidth=2.2;
+ ctx.beginPath();ctx.arc(-32,-48,5,0,Math.PI*2);ctx.arc(32,-48,5,0,Math.PI*2);ctx.stroke();
+
+ // Vordere Haarpartie mit Seitenscheitel und weichen Wellen
+ ctx.fillStyle="#302321";
+ ctx.beginPath();
+ ctx.moveTo(-31,-66);
+ ctx.quadraticCurveTo(-34,-106,1,-105);
+ ctx.quadraticCurveTo(34,-104,32,-67);
+ ctx.quadraticCurveTo(17,-83,4,-82);
+ ctx.quadraticCurveTo(-12,-82,-20,-65);
+ ctx.quadraticCurveTo(-25,-40,-28,-12);
+ ctx.quadraticCurveTo(-39,-14,-39,-35);
+ ctx.closePath();ctx.fill();
+ // rechte Haarsträhne
+ ctx.beginPath();
+ ctx.moveTo(25,-78);
+ ctx.quadraticCurveTo(40,-55,35,-17);
+ ctx.quadraticCurveTo(32,-2,23,5);
+ ctx.quadraticCurveTo(27,-30,19,-55);
+ ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#594039";ctx.lineWidth=2.4;ctx.lineCap="round";
+ ctx.beginPath();
+ ctx.moveTo(-24,-89);ctx.quadraticCurveTo(-37,-53,-29,-17);
+ ctx.moveTo(-11,-99);ctx.quadraticCurveTo(-2,-91,15,-91);
+ ctx.moveTo(29,-83);ctx.quadraticCurveTo(38,-48,29,-12);
+ ctx.stroke();
+
+ // Augenbrauen, Augen und Wimpern
+ ctx.strokeStyle="#654034";ctx.lineWidth=2.2;
+ ctx.beginPath();
+ ctx.moveTo(-19,-66);ctx.quadraticCurveTo(-11,-72,-3,-67);
+ ctx.moveTo(4,-67);ctx.quadraticCurveTo(13,-72,20,-65);ctx.stroke();
+ ctx.fillStyle="#382721";
+ ctx.beginPath();ctx.ellipse(-11,-57,2.6,3.3,0,0,Math.PI*2);ctx.ellipse(11,-57,2.6,3.3,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#fff0dc";
+ ctx.beginPath();ctx.arc(-10.3,-58,0.8,0,Math.PI*2);ctx.arc(11.7,-58,0.8,0,Math.PI*2);ctx.fill();
+
+ // Nase, Wangen und freundliches Lächeln
+ ctx.fillStyle="#d98f7c";ctx.globalAlpha=.36;
+ ctx.beginPath();ctx.ellipse(-20,-45,7,4,0,0,Math.PI*2);ctx.ellipse(20,-45,7,4,0,0,Math.PI*2);ctx.fill();
+ ctx.globalAlpha=1;
+ ctx.strokeStyle="#a96750";ctx.lineWidth=1.5;
+ ctx.beginPath();ctx.moveTo(0,-55);ctx.quadraticCurveTo(-2,-43,2,-42);ctx.stroke();
+ ctx.strokeStyle="#8d4b43";ctx.lineWidth=2.2;
+ ctx.beginPath();ctx.moveTo(-10,-35);ctx.quadraticCurveTo(0,-26,10,-35);ctx.stroke();
+ ctx.strokeStyle="#f2c2a3";ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(-7,-32);ctx.quadraticCurveTo(0,-29,7,-32);ctx.stroke();
+
+ // Feine, leicht geschwungene goldene Brille statt großer runder Ringe
+ ctx.strokeStyle="#c9a45f";ctx.lineWidth=1.8;
+ ctx.beginPath();
+ ctx.moveTo(-26,-60);ctx.quadraticCurveTo(-25,-69,-12,-68);
+ ctx.quadraticCurveTo(-1,-68,-1,-58);ctx.quadraticCurveTo(-2,-48,-13,-48);
+ ctx.quadraticCurveTo(-25,-48,-26,-60);
+ ctx.moveTo(1,-58);ctx.quadraticCurveTo(2,-68,13,-68);
+ ctx.quadraticCurveTo(25,-69,26,-60);ctx.quadraticCurveTo(25,-48,13,-48);
+ ctx.quadraticCurveTo(2,-48,1,-58);
+ ctx.moveTo(-1,-59);ctx.lineTo(1,-59);
+ ctx.moveTo(-26,-59);ctx.lineTo(-33,-55);
+ ctx.moveTo(26,-59);ctx.lineTo(33,-55);ctx.stroke();
+
+ // Hände locker auf der Theke
+ ctx.fillStyle="#c88968";
+ ctx.beginPath();ctx.ellipse(-57,68,13,8,-.12,0,Math.PI*2);ctx.ellipse(57,68,13,8,.12,0,Math.PI*2);ctx.fill();
  ctx.restore();
 }
-
 function drawWeinblattMenuBoard(){
  // Speisetafel nach der vom Nutzer gesendeten Weinblatt-Karte
  const x=535,y=62,w=435,h=220;
@@ -1706,17 +1788,17 @@ function restartFoodGame(){
 function spawnFood(){
  const now=performance.now();
  // Erhöhter Schwierigkeitsgrad: kürzere Spawn-Abstände, schnellere Speisen
- if(now-lastFoodSpawn<420)return;
+ if(now-lastFoodSpawn<330)return;
  lastFoodSpawn=now;
 
  const column=Math.floor(Math.random()*FOOD_COLUMNS);
- const sauce=Math.random()<.32;
+ const sauce=Math.random()<.36;
 
  fallingFood.push({
   column,
   x:FOOD_X[column],
   y:-35,
-  speed:3.45+Math.random()*1.05,
+  speed:4.15+Math.random()*1.25,
   sauce,
   dish:sauce?{emoji:"🥣",name:"Grüne Soße"}:foodItems[Math.floor(Math.random()*foodItems.length)],
   emoji:sauce?"🥣":null,
