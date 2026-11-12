@@ -376,7 +376,11 @@ function candle(x,y){
 
 function drawExhibit(exhibit,i){
  const near=Math.hypot(hasan.x-exhibit.x,hasan.y-(exhibit.y+150))<145;
- // Größere Lichtkegel passend zu den deutlich vergrößerten Museumsbildern
+ // Das gesamte Exponat wird um 35 % verkleinert und bleibt um seine Mitte zentriert.
+ ctx.save();
+ ctx.translate(exhibit.x*0.35,exhibit.y*0.35);
+ ctx.scale(0.65,0.65);
+ // Lichtkegel und Rahmen bleiben proportional zum verkleinerten Museumsbild.
  ctx.save();
  const beam=ctx.createLinearGradient(exhibit.x,35,exhibit.x,exhibit.y+210);
  beam.addColorStop(0,"#f8d99a00");
@@ -430,6 +434,7 @@ function drawExhibit(exhibit,i){
   ctx.fillStyle="#432b3c";ctx.font="bold 15px Arial";
   ctx.fillText("E · ANSEHEN",exhibit.x,exhibit.y+262);
  }
+ ctx.restore();
 }
 function drawRoom(){
  // Cinematische, imposante Museumshalle – die drei Erinnerungsbilder bleiben der Mittelpunkt
