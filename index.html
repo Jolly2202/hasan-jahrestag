@@ -79,10 +79,10 @@ button:hover{background:#6d3048}
  <div class="card">
   <div style="font-size:34px">🥖 🧀 🍅</div>
   <h2>Einmal quer durch die Frischetheke!</h2>
-  <p>Jetzt wird es ernst: Die Gerichte von der echten Weinblatt-Speisekarte fliegen auf euch zu.</p>
+  <p>Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.</p>
   <p>Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
   <p><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
-  <p><b>Euer Ziel:</b> Sammelt gemeinsam 40 Gerichte von der Weinblatt-Speisekarte. Höchstens zweimal darf euch die Frankfurter Grüne Soße erwischen. Achtet außerdem auf die kleine Tagesbestellung – die richtige Reihenfolge bringt Bonuspunkte!</p>
+  <p><b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen. Achtet außerdem auf die kleine Tagesbestellung – die richtige Reihenfolge bringt Bonuspunkte!</p>
   <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
   <button onclick="startFoodGame()">Start</button>
  </div>
@@ -206,29 +206,16 @@ const foodPlayers={
 };
 
 const foodItems=[
- {name:"Antipasti Mediterran",kind:"antipasti",colors:["#b94d38","#71934d","#e4c77d"]},
- {name:"Antipasti Orient",kind:"orient",colors:["#a96a36","#71904d","#d9c49a"]},
- {name:"Antipasti Weinblatt",kind:"weinblatt",colors:["#477b48","#d6c58b","#8b5b43"]},
- {name:"Antipasti Sultan",kind:"sultan",colors:["#a95d43","#6c8c50","#e0c18b"]},
- {name:"Dolma",kind:"dolma",colors:["#426b3d","#6f8b4d","#e6d5a7"]},
- {name:"Karnıyarık",kind:"karniyarik",colors:["#563b2d","#9d4933","#71904d"]},
- {name:"Kichererbsen-Eintopf",kind:"chickpea",colors:["#c28b42","#d9b66c","#64834b"]},
- {name:"Türlü",kind:"turli",colors:["#9b5739","#c58a42","#6e8b4d"]},
- {name:"Sultan Spezial",kind:"sultan",colors:["#a95d43","#6c8c50","#e0c18b"]},
- {name:"Köfte",kind:"koefte",colors:["#79452e","#a75a37","#6f8b4d"]},
- {name:"Penne Tomate",kind:"penneTomate",colors:["#c44f2f","#e2c98c","#64834b"]},
- {name:"Penne Pesto",kind:"pennePesto",colors:["#668347","#e2c98c","#c9a85f"]},
- {name:"Penne Hack",kind:"penneHack",colors:["#a84e35","#75452f","#e2c98c"]},
- {name:"Mantı",kind:"manti",colors:["#e0c58f","#f1e4c8","#b84e36"]},
- {name:"Gözsie Veggie",kind:"gozVeggie",colors:["#b97842","#62834d","#e4d19e"]},
- {name:"Gözsie ala Turka",kind:"gozTurka",colors:["#b97842","#a94732","#71904d"]},
- {name:"Gözsie Pastirma",kind:"gozPastirma",colors:["#b97842","#9b4937","#e3c58a"]},
- {name:"Gözsie Mediteran",kind:"gozMediterran",colors:["#b97842","#b94d38","#71904d"]},
- {name:"Gözsie Cheese & Egg",kind:"gozCheese",colors:["#d7b65c","#f0dfad","#71904d"]},
- {name:"Linsensuppe",kind:"soupLentil",colors:["#9a6339","#d2a35d","#6e8b4d"]},
- {name:"Karotten-Ingwer-Suppe",kind:"soupCarrot",colors:["#d67d2f","#f0b75a","#66834b"]},
- {name:"Hühnersuppe",kind:"soupChicken",colors:["#d6b66e","#f0dfb0","#6e8b4d"]},
- {name:"Kürbissuppe",kind:"soupPumpkin",colors:["#d77b32","#f1b65a","#66834b"]}
+ {emoji:"🫒",name:"Dolma"},
+ {emoji:"🍚",name:"Couscous"},
+ {emoji:"🧆",name:"Falafel"},
+ {emoji:"🥣",name:"Hummus"},
+ {emoji:"🥗",name:"Taboulé"},
+ {emoji:"🍆",name:"Baba Ghanoush"},
+ {emoji:"🥙",name:"Kibbeh"},
+ {emoji:"🫓",name:"Fladenbrot"},
+ {emoji:"🍅",name:"Gefüllte Tomaten"},
+ {emoji:"🥬",name:"Weinblätter"}
 ];
 let fallingFood=[];
 let deliciousCount=0;
@@ -1023,19 +1010,67 @@ function drawBerlinBackdrop(now){
  // Bürgersteige und Häuserfronten
  box(0,0,100,H,"#d4c2a8");box(900,0,100,H,"#d4c2a8");
  box(100,0,800,H,"#4a4954");
+ const facadePalettes=[
+  {wall:"#c99579",trim:"#f0d8b8",roof:"#744b4b",window:"#405b68",glass:"#9bb6b5",shop:"#765044",awning:"#a85e55"},
+  {wall:"#d7c3a0",trim:"#f4e5cc",roof:"#66505a",window:"#354c5a",glass:"#a8c0bd",shop:"#526c68",awning:"#d09b68"},
+  {wall:"#b77f70",trim:"#e8cdb5",roof:"#59434b",window:"#344653",glass:"#8fa9a9",shop:"#714b56",awning:"#7f9a89"},
+  {wall:"#d9b995",trim:"#f3dfc3",roof:"#765a50",window:"#3d5360",glass:"#b3c8c0",shop:"#66504a",awning:"#b36e60"},
+  {wall:"#b9a18e",trim:"#e7d7c4",roof:"#55444b",window:"#34434d",glass:"#9bb0ae",shop:"#4f6668",awning:"#b78b62"}
+ ];
  for(let side=0;side<2;side++){
   const sx=side?906:8;
-  for(let y=-150+(streetSceneryOffset%300);y< H+120;y+=300){
-   box(sx,y,86,270,side?"#b98573":"#c59b7f");
-   box(sx+7,y+12,72,8,"#ead7b9");
-   for(let wy=0;wy<3;wy++)for(let wx=0;wx<2;wx++){
-    box(sx+14+wx*34,y+38+wy*62,22,37,"#42505a");
-    box(sx+17+wx*34,y+41+wy*62,16,30,"#9db2ad");
-    box(sx+14+wx*34,y+55+wy*62,22,3,"#ead7b9");
+  let buildingIndex=0;
+  for(let y=-150+(streetSceneryOffset%300);y< H+120;y+=300,buildingIndex++){
+   const style=(buildingIndex*2+side*3+sectionIndex)%facadePalettes.length;
+   const pal=facadePalettes[style];
+   // Unterschiedliche Gründerzeitfassaden: Putzfarben, Gesimse und Sockel variieren.
+   box(sx,y,86,270,pal.wall);
+   box(sx,y+8,86,5,pal.roof);
+   box(sx+4,y+14,78,5,pal.trim);
+   box(sx+4,y+219,78,8,pal.trim);
+   // Jedes Haus erhält eine andere Fensteranordnung und Stuckdetails.
+   const windowRows=style%2===0?3:2;
+   for(let wy=0;wy<windowRows;wy++)for(let wx=0;wx<2;wx++){
+    const wxp=sx+12+wx*37+(style%2?4:0);
+    const wyp=y+35+wy*(windowRows===3?57:78);
+    const ww=style===2?25:21, wh=style===1?43:36;
+    box(wxp-3,wyp-4,ww+6,wh+8,pal.trim);
+    box(wxp,wyp,ww,wh,pal.window);
+    box(wxp+3,wyp+3,ww-6,wh-6,pal.glass);
+    box(wxp+ww/2-1,wyp,2,wh,pal.trim);
+    box(wxp,wyp+Math.floor(wh*.55),ww,2,pal.trim);
+    // Kleine Fensterbänke und gelegentlich französische Balkone.
+    box(wxp-5,wyp+wh+3,ww+10,4,pal.trim);
+    if((style+wx+wy)%4===0){
+     ctx.strokeStyle="#343b40";ctx.lineWidth=2;ctx.strokeRect(wxp-3,wyp+wh-10,ww+6,13);
+     for(let bx=1;bx<4;bx++)line(wxp-3+bx*(ww+6)/4,wyp+wh-10,wxp-3+bx*(ww+6)/4,wyp+wh+3,"#343b40",1);
+    }
    }
-   if((Math.floor(y/300)+side)%3===0){
-    box(sx+4,y+235,78,28,"#653b45");
-    ctx.fillStyle="#ffe0a5";ctx.font="bold 10px Arial";ctx.textAlign="center";ctx.fillText("SPÄTI",sx+43,y+253);
+   // Erdgeschoss: wechselnde Läden, Markisen oder Hauseingänge.
+   box(sx+4,y+235,78,30,pal.shop);
+   if((buildingIndex+side)%3===0){
+    box(sx+4,y+229,78,10,pal.awning);
+    for(let stripe=0;stripe<6;stripe++)box(sx+5+stripe*13,y+229,6,10,pal.trim);
+    box(sx+12,y+242,26,21,"#344c50");box(sx+46,y+242,27,21,"#344c50");
+    ctx.fillStyle="#ffe5bb";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("CAFÉ",sx+43,y+225);
+   }else if((buildingIndex+side)%3===1){
+    box(sx+12,y+239,25,26,"#344c50");box(sx+44,y+239,28,26,"#a9c2ba");
+    box(sx+39,y+238,4,27,pal.trim);
+    ctx.fillStyle="#ffe0a5";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("SPÄTI",sx+43,y+235);
+   }else{
+    box(sx+27,y+236,32,29,"#493b3d");
+    box(sx+31,y+240,24,25,"#9a7865");
+    ctx.strokeStyle=pal.trim;ctx.lineWidth=3;ctx.strokeRect(sx+24,y+233,38,34);
+   }
+   // Fallrohre, Stucklinien und kleine Blumenkästen sorgen für mehr Kiez-Charakter.
+   box(sx+2,y+18,3,205,"#8a6758");
+   for(let band=0;band<3;band++)box(sx+5,y+28+band*62,76,2,pal.trim);
+   if(style===1||style===3){
+    box(sx+10,y+195,28,5,"#59453f");
+    for(let flower=0;flower<4;flower++){
+     ctx.fillStyle=["#b75d65","#d7a05d","#7f9c76"][flower%3];
+     ctx.beginPath();ctx.arc(sx+13+flower*7,y+190,3,0,Math.PI*2);ctx.fill();
+    }
    }
   }
  }
@@ -1050,8 +1085,12 @@ function drawBerlinBackdrop(now){
  for(let i=0;i<4;i++){
   const y=((i*177+streetSceneryOffset*.72)%(H+120))-60;
   ctx.save();ctx.globalAlpha=.72;
-  ctx.fillStyle=i%2?"#7e405e":"#3d7180";ctx.font="italic bold 18px Arial";ctx.textAlign="center";
-  ctx.fillText(i%2?"LIEBE BLEIBT":"KIEZ ♥",i%2?48:952,y);
+  // Linke Häuserreihe ohne den Schriftzug „LIEBE BLEIBT“.
+  // Das bisherige Kiez-Graffiti auf der rechten Seite bleibt erhalten.
+  if(i%2===0){
+   ctx.fillStyle="#3d7180";ctx.font="italic bold 18px Arial";ctx.textAlign="center";
+   ctx.fillText("KIEZ ♥",952,y);
+  }
   ctx.restore();
  }
  // Laternen, Bäume und Straßenschilder als bewegte Parallax-Details
@@ -1358,56 +1397,89 @@ function drawRestaurantArrival(){
 // --------------------------------------------------
 
 function drawShopkeeper(){
+ // Detaillierte Weinblatt-Mitarbeiterin: erwachsene Frau mit dunklem,
+ // offen getragenem Haar, ohne Kopftuch, in einer bestickten Bluse und Schürze.
  ctx.save();
- ctx.translate(500,280);
+ ctx.translate(385,278);
 
- ctx.fillStyle="#e7d2b9";
- ctx.beginPath();
- ctx.roundRect(-25,-5,50,80,12);
- ctx.fill();
+ // Körper und Kleidung
+ ctx.fillStyle="#3d2925";
+ ctx.beginPath();ctx.ellipse(0,48,53,66,0,0,Math.PI*2);ctx.fill();
+ const blouse=ctx.createLinearGradient(-40,0,42,95);
+ blouse.addColorStop(0,"#e9d7bd");blouse.addColorStop(.55,"#d7bd9d");blouse.addColorStop(1,"#b99575");
+ ctx.fillStyle=blouse;
+ ctx.beginPath();ctx.moveTo(-37,4);ctx.quadraticCurveTo(-52,22,-48,91);ctx.lineTo(48,91);ctx.quadraticCurveTo(52,22,37,4);ctx.quadraticCurveTo(0,-8,-37,4);ctx.fill();
+ // Ärmel
+ ctx.fillStyle="#d8c1a3";
+ ctx.beginPath();ctx.moveTo(-34,9);ctx.quadraticCurveTo(-54,17,-62,57);ctx.quadraticCurveTo(-60,68,-48,69);ctx.lineTo(-28,36);ctx.fill();
+ ctx.beginPath();ctx.moveTo(34,9);ctx.quadraticCurveTo(54,17,62,57);ctx.quadraticCurveTo(60,68,48,69);ctx.lineTo(28,36);ctx.fill();
+ // dunkle Weinrot-Schürze
+ ctx.fillStyle="#713d42";
+ ctx.beginPath();ctx.moveTo(-28,23);ctx.lineTo(28,23);ctx.lineTo(38,106);ctx.quadraticCurveTo(0,116,-38,106);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#d5b27c";ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(-23,30);ctx.lineTo(-30,99);ctx.moveTo(23,30);ctx.lineTo(30,99);ctx.stroke();
+ // kleine Stickerei auf der Schürze
+ ctx.fillStyle="#e3c58f";
+ for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(-12+i*6,58+(i%2)*5,1.7,0,Math.PI*2);ctx.fill();}
+ ctx.strokeStyle="#d7b87f";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-10,77);ctx.quadraticCurveTo(0,68,10,77);ctx.stroke();
+ // Hals
+ ctx.fillStyle="#b87958";ctx.fillRect(-10,-20,20,29);
+ // Gesicht
+ const skin=ctx.createRadialGradient(-8,-47,3,0,-40,36);
+ skin.addColorStop(0,"#dba17b");skin.addColorStop(1,"#a9654c");
+ ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(0,-48,27,34,0,0,Math.PI*2);ctx.fill();
+ // Ohren
+ ctx.fillStyle="#b87557";ctx.beginPath();ctx.ellipse(-27,-45,6,9,0,0,Math.PI*2);ctx.ellipse(27,-45,6,9,0,0,Math.PI*2);ctx.fill();
+ // Haare: offene, wellige dunkelbraune Haare, seitlicher Scheitel
+ ctx.fillStyle="#302321";
+ ctx.beginPath();ctx.moveTo(-27,-54);ctx.quadraticCurveTo(-34,-91,1,-88);ctx.quadraticCurveTo(34,-88,30,-54);ctx.lineTo(31,-5);ctx.quadraticCurveTo(22,8,17,-8);ctx.lineTo(19,-43);ctx.quadraticCurveTo(4,-58,-9,-42);ctx.lineTo(-17,-7);ctx.quadraticCurveTo(-31,3,-34,-17);ctx.closePath();ctx.fill();
+ // Haarsträhnen
+ ctx.strokeStyle="#594039";ctx.lineWidth=3;ctx.lineCap="round";
+ for(const a of [-28,-21,22,29]){ctx.beginPath();ctx.moveTo(a,-72);ctx.quadraticCurveTo(a+(a<0?-8:8),-42,a+(a<0?-3:3),-13);ctx.stroke();}
+ ctx.beginPath();ctx.moveTo(-23,-72);ctx.quadraticCurveTo(-5,-91,18,-72);ctx.stroke();
+ // Augenbrauen und Augen
+ ctx.strokeStyle="#49302b";ctx.lineWidth=2.5;
+ ctx.beginPath();ctx.moveTo(-17,-57);ctx.quadraticCurveTo(-9,-62,-3,-57);ctx.moveTo(4,-57);ctx.quadraticCurveTo(12,-62,18,-56);ctx.stroke();
+ ctx.fillStyle="#302522";ctx.beginPath();ctx.ellipse(-10,-49,2.4,3.2,0,0,Math.PI*2);ctx.ellipse(10,-49,2.4,3.2,0,0,Math.PI*2);ctx.fill();
+ // Nase und freundliches Lächeln
+ ctx.strokeStyle="#925642";ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(0,-46);ctx.lineTo(-2,-36);ctx.quadraticCurveTo(1,-33,4,-36);ctx.stroke();
+ ctx.strokeStyle="#87483f";ctx.lineWidth=2;ctx.beginPath();ctx.arc(1,-31,8,.15,Math.PI-.15);ctx.stroke();
+ ctx.strokeStyle="#e4b28d";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-7,-27);ctx.quadraticCurveTo(1,-23,8,-27);ctx.stroke();
+ // goldene Creolen
+ ctx.strokeStyle="#d8b36e";ctx.lineWidth=2.2;ctx.beginPath();ctx.arc(-29,-39,5,0,Math.PI*2);ctx.arc(29,-39,5,0,Math.PI*2);ctx.stroke();
+ // Hände auf der Theke
+ ctx.fillStyle="#c88968";ctx.beginPath();ctx.ellipse(-53,66,10,7,-.2,0,Math.PI*2);ctx.ellipse(53,66,10,7,.2,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+}
 
- ctx.fillStyle="#7b4650";
- ctx.beginPath();
- ctx.roundRect(-29,20,58,65,7);
- ctx.fill();
-
- box(-7,-15,14,20,"#d6a17e");
-
- ctx.fillStyle="#d6a17e";
- ctx.beginPath();
- ctx.arc(0,-38,24,0,Math.PI*2);
- ctx.fill();
-
- ctx.fillStyle="#594036";
- ctx.beginPath();
- ctx.arc(0,-48,25,Math.PI,Math.PI*2);
- ctx.lineTo(25,-25);
- ctx.lineTo(18,-12);
- ctx.lineTo(-20,-12);
- ctx.lineTo(-25,-25);
- ctx.fill();
-
- ctx.fillStyle="#513a35";
- ctx.beginPath();
- ctx.arc(-8,-39,2,0,Math.PI*2);
- ctx.arc(8,-39,2,0,Math.PI*2);
- ctx.fill();
-
- ctx.strokeStyle="#8b5146";
- ctx.lineWidth=2;
- ctx.beginPath();
- ctx.arc(0,-31,7,.1,Math.PI-.1);
- ctx.stroke();
-
- ctx.strokeStyle="#d6a17e";
- ctx.lineWidth=9;
- ctx.beginPath();
- ctx.moveTo(-22,5);
- ctx.lineTo(-43,35);
- ctx.moveTo(22,5);
- ctx.lineTo(43,35);
- ctx.stroke();
-
+function drawWeinblattMenuBoard(){
+ // Speisetafel nach der vom Nutzer gesendeten Weinblatt-Karte
+ const x=535,y=62,w=435,h=220;
+ ctx.save();
+ // Schatten und goldbrauner Rahmen
+ ctx.fillStyle="#2d1d18";ctx.fillRect(x-8,y-8,w+16,h+16);
+ ctx.fillStyle="#a87843";ctx.fillRect(x-5,y-5,w+10,h+10);
+ ctx.fillStyle="#332a25";ctx.fillRect(x,y,w,h);
+ ctx.strokeStyle="#e0c18a";ctx.lineWidth=2;ctx.strokeRect(x+4,y+4,w-8,h-8);
+ // Aufhängung
+ ctx.strokeStyle="#6d4b30";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+95,y-8);ctx.lineTo(x+95,y-18);ctx.moveTo(x+w-95,y-8);ctx.lineTo(x+w-95,y-18);ctx.stroke();
+ ctx.textAlign="center";ctx.fillStyle="#e9c98c";ctx.font="bold 17px Georgia";ctx.fillText("WEINBLATT",x+w/2,y+23);
+ ctx.strokeStyle="#b98b57";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+12,y+31);ctx.lineTo(x+w-12,y+31);ctx.stroke();
+ const cols=[x+14,x+160,x+305];
+ ctx.textAlign="left";
+ function heading(t,cx,yy,color){ctx.fillStyle=color;ctx.font="bold 10px Georgia";ctx.fillText(t,cx,yy);}
+ function lines(arr,cx,yy){ctx.fillStyle="#f1e7d2";ctx.font="8px Arial";arr.forEach((t,i)=>ctx.fillText(t,cx,yy+i*10));}
+ heading("ANTIPASTI",cols[0],y+48,"#e9a2a0");
+ lines(["Mediterran      11,80 €","Orient             10,80 €","Weinblatt        12,50 €","Sultan              11,90 €","Eigener Teller: 2,80 €/100 g"],cols[0],y+63);
+ heading("WARME GERICHTE",cols[1],y+48,"#b7d29b");
+ lines(["Dolma             14,90 €","Karnıyarık       16,90 €","Kichererbsen-Eintopf 14,90 €","Türlü                16,90 €","Sultan Spezial 13,90 €","Köfte                16,90 €"],cols[1],y+63);
+ heading("GÖZSIES",cols[2],y+48,"#e5d4a7");
+ lines(["Veggie             11,80 €","ala Turka         11,80 €","Pastırma          11,80 €","Mediterran       11,80 €","Cheese & Egg  11,20 €"],cols[2],y+63);
+ heading("SUPPEN",cols[2],y+133,"#e6a0a0");
+ lines(["Linsen 5,50 € · Karotte-Ingwer 5,50 €","Hühner 6,80 € · Kürbis 5,50 €"],cols[2],y+148);
+ // Kreide-Schnörkel in den Ecken
+ ctx.strokeStyle="#d5b77f";ctx.lineWidth=1.2;
+ for(const [cx,cy] of [[x+14,y+14],[x+w-14,y+14],[x+14,y+h-14],[x+w-14,y+h-14]]){ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.stroke();}
  ctx.restore();
 }
 
@@ -1448,6 +1520,9 @@ function drawRestaurantInterior(){
   }
   box(x,245,240,9,"#4c342d");
  }
+
+ // Speisetafel an der Wand hinter der Theke
+ drawWeinblattMenuBoard();
 
  // Kacheln
  box(0,270,W,100,"#e8d7bd");
@@ -1618,12 +1693,23 @@ function restartFoodGame(){
 
 function spawnFood(){
  const now=performance.now();
- if(now-lastFoodSpawn<560)return;
+ // Erhöhter Schwierigkeitsgrad: kürzere Spawn-Abstände, schnellere Speisen
+ if(now-lastFoodSpawn<420)return;
  lastFoodSpawn=now;
+
  const column=Math.floor(Math.random()*FOOD_COLUMNS);
- const sauce=Math.random()<.25;
- const dish=sauce?{name:"Frankfurter Grüne Soße",kind:"greenSauce"}:foodItems[Math.floor(Math.random()*foodItems.length)];
- fallingFood.push({column,x:FOOD_X[column],y:-45,speed:2.65+Math.random()*.85,sauce,dish,caught:false});
+ const sauce=Math.random()<.32;
+
+ fallingFood.push({
+  column,
+  x:FOOD_X[column],
+  y:-35,
+  speed:3.45+Math.random()*1.05,
+  sauce,
+  dish:sauce?{emoji:"🥣",name:"Grüne Soße"}:foodItems[Math.floor(Math.random()*foodItems.length)],
+  emoji:sauce?"🥣":null,
+  caught:false
+ });
 }
 
 function moveFoodPlayers(){
@@ -1687,53 +1773,34 @@ function drawFoodBackground(){
 }
 
 function drawFallingFood(item){
- ctx.save();ctx.translate(item.x,item.y);
- ctx.fillStyle="#24170f55";ctx.beginPath();ctx.ellipse(2,10,31,11,0,0,Math.PI*2);ctx.fill();
- const plate=ctx.createRadialGradient(-7,-9,3,0,0,34);
- plate.addColorStop(0,"#fffdf6");plate.addColorStop(.72,"#f3ead9");plate.addColorStop(1,"#c8b69d");
- ctx.fillStyle=plate;ctx.beginPath();ctx.ellipse(0,0,31,25,0,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle="#c7b18d";ctx.lineWidth=1.5;ctx.stroke();
- ctx.strokeStyle="#fff";ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,0,26,20,0,0,Math.PI*2);ctx.stroke();
+ ctx.save();
+ ctx.font="34px Arial";
+ ctx.textAlign="center";
+ ctx.textBaseline="middle";
+
  if(item.sauce){
-  ctx.fillStyle="#6f9850";ctx.beginPath();ctx.ellipse(0,0,22,16,0,0,Math.PI*2);ctx.fill();
-  for(let i=0;i<13;i++){const x=Math.sin(i*8.3)*15,y=Math.cos(i*4.7)*10;ctx.fillStyle=i%2?"#d7e4b8":"#8fb36b";ctx.beginPath();ctx.arc(x,y,1.8,0,Math.PI*2);ctx.fill();}
-  ctx.fillStyle="#f5f0dc";ctx.font="bold 7px Arial";ctx.textAlign="center";ctx.fillText("GRÜNE SOSSE",0,3);
- }else{drawRealisticDish(item.dish.kind);}
- ctx.restore();
-}
-function drawRealisticDish(kind){
- const palette={
-  antipasti:["#b94d38","#71934d","#e4c77d"],orient:["#a96a36","#71904d","#d9c49a"],weinblatt:["#477b48","#d6c58b","#8b5b43"],
-  sultan:["#a95d43","#6c8c50","#e0c18b"],dolma:["#426b3d","#6f8b4d","#e6d5a7"],karniyarik:["#563b2d","#9d4933","#71904d"],
-  chickpea:["#c28b42","#d9b66c","#64834b"],turli:["#9b5739","#c58a42","#6e8b4d"],koefte:["#79452e","#a75a37","#6f8b4d"],
-  penneTomate:["#c44f2f","#e2c98c","#64834b"],pennePesto:["#668347","#e2c98c","#c9a85f"],penneHack:["#a84e35","#75452f","#e2c98c"],
-  manti:["#e0c58f","#f1e4c8","#b84e36"],gozVeggie:["#b97842","#62834d","#e4d19e"],gozTurka:["#b97842","#a94732","#71904d"],
-  gozPastirma:["#b97842","#9b4937","#e3c58a"],gozMediterran:["#b97842","#b94d38","#71904d"],gozCheese:["#d7b65c","#f0dfad","#71904d"],
-  soupLentil:["#9a6339","#d2a35d","#6e8b4d"],soupCarrot:["#d67d2f","#f0b75a","#66834b"],soupChicken:["#d6b66e","#f0dfb0","#6e8b4d"],soupPumpkin:["#d77b32","#f1b65a","#66834b"]
- };
- const c=palette[kind]||palette.antipasti;
- if(kind.startsWith("soup")){
-  ctx.fillStyle="#b8a18a";ctx.beginPath();ctx.ellipse(0,0,22,16,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=c[0];ctx.beginPath();ctx.ellipse(0,-2,18,12,0,0,Math.PI*2);ctx.fill();
-  for(let i=0;i<7;i++){ctx.fillStyle=i%2?c[1]:c[2];ctx.beginPath();ctx.arc(Math.sin(i*5)*12,Math.cos(i*3)*7,2,0,Math.PI*2);ctx.fill();}
- }else if(kind.startsWith("penne")){
-  for(let i=0;i<9;i++){ctx.save();ctx.translate(Math.sin(i*4)*13,Math.cos(i*7)*9);ctx.rotate(i*.55);ctx.fillStyle=c[0];ctx.beginPath();ctx.roundRect(-7,-2,14,4,2);ctx.fill();ctx.strokeStyle=c[1];ctx.lineWidth=1;ctx.stroke();ctx.restore();}
-  for(let i=0;i<5;i++){ctx.fillStyle=c[2];ctx.beginPath();ctx.arc(Math.sin(i*9)*14,Math.cos(i*6)*9,1.5,0,Math.PI*2);ctx.fill();}
- }else if(kind==="dolma"||kind==="weinblatt"){
-  for(let i=0;i<7;i++){ctx.save();ctx.translate(Math.sin(i*5)*14,Math.cos(i*4)*9);ctx.rotate(i*.6);ctx.fillStyle="#466b3c";ctx.beginPath();ctx.ellipse(0,0,8,4,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#9ab276";ctx.beginPath();ctx.moveTo(-6,0);ctx.lineTo(6,0);ctx.stroke();ctx.restore();}
-  ctx.fillStyle=c[2];ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();
- }else if(kind.startsWith("goz")){
-  ctx.fillStyle="#c58a4e";ctx.beginPath();ctx.moveTo(-20,-4);ctx.lineTo(17,-13);ctx.lineTo(22,7);ctx.lineTo(-15,15);ctx.closePath();ctx.fill();ctx.strokeStyle="#e7c58d";ctx.lineWidth=2;ctx.stroke();
-  ctx.fillStyle=c[1];ctx.beginPath();ctx.ellipse(0,0,12,5,-.25,0,Math.PI*2);ctx.fill();ctx.fillStyle=c[2];ctx.beginPath();ctx.arc(8,-3,3,0,Math.PI*2);ctx.fill();
- }else if(kind==="manti"){
-  for(let i=0;i<8;i++){const x=Math.sin(i*8)*14,y=Math.cos(i*5)*9;ctx.fillStyle="#dfc28e";ctx.beginPath();ctx.moveTo(x-5,y-3);ctx.lineTo(x,y+4);ctx.lineTo(x+5,y-3);ctx.lineTo(x,y-6);ctx.closePath();ctx.fill();}
-  ctx.fillStyle="#f5ead4";ctx.beginPath();ctx.ellipse(0,0,8,4,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#b64d36";ctx.beginPath();ctx.arc(0,0,2,0,Math.PI*2);ctx.fill();
- }else if(kind==="koefte"||kind==="karniyarik"){
-  for(let i=0;i<(kind==="koefte"?4:2);i++){const x=(i%2)*15-7,y=Math.floor(i/2)*9-5;ctx.fillStyle=c[0];ctx.beginPath();ctx.ellipse(x,y,7,4,.25,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#d39b68";ctx.lineWidth=1;ctx.stroke();}
-  ctx.fillStyle=c[1];ctx.beginPath();ctx.arc(12,-10,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#6b9a52";
+  ctx.beginPath();
+  ctx.ellipse(item.x,item.y,24,20,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#d7e7b8";
+  ctx.lineWidth=3;
+  ctx.stroke();
+  ctx.fillStyle="#fff";
+  ctx.font="25px Arial";
+  ctx.fillText("🥣",item.x,item.y+1);
  }else{
-  for(let i=0;i<9;i++){const x=Math.sin(i*7)*15,y=Math.cos(i*5)*10;ctx.fillStyle=c[i%3];ctx.beginPath();ctx.arc(x,y,3+(i%2),0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle="#fff7e8";
+  ctx.beginPath();
+  ctx.arc(item.x,item.y,25,0,Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle="#c8a77f";
+  ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.fillText(item.dish?item.dish.emoji:item.emoji,item.x,item.y+1);
+  if(item.dish&&!item.sauce){ctx.fillStyle="#684b3c";ctx.font="9px Arial";ctx.fillText(item.dish.name,item.x,item.y+39);}
  }
+ ctx.restore();
 }
 
 function drawFoodPlayer(player,images){
@@ -1766,7 +1833,7 @@ function drawFoodHUD(){
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 18px Arial";
  ctx.textAlign="left";
- ctx.fillText("Gerichte: "+deliciousCount+" / 40",35,49);
+ ctx.fillText("🍽️ Leckereien: "+deliciousCount+" / 40",35,49);
 
  box(710,15,270,55,"#4d3832dd");
  ctx.fillStyle="#fff0d5";
@@ -2239,7 +2306,7 @@ function finishFoodGame(won){
   document.getElementById("resultEmoji").textContent="🥂❤️";
   document.getElementById("resultTitle").textContent="Das perfekte Weinblatt-Menü!";
   document.getElementById("resultText").textContent=
-   "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Ihr habt euch einmal quer durch die echte Weinblatt-Speisekarte gespielt. Guten Appetit, ihr zwei!";
+   "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
   button.textContent="Weiter auf die Straße ♥";
   button.onclick=()=>{
@@ -2499,10 +2566,6 @@ canvas.addEventListener("click",e=>{
  const y=(e.clientY-r.top)*canvas.height/r.height;
 
  if(opened)return;
-
- // Herz-Shortcut im Essenspiel: Runde überspringen und regulär zur Abschlusssequenz.
- if(scene==="food"&&x>=8&&x<=75&&y>=552&&y<=610){finishFoodGame(true);return;}
-
 
  if(scene==="sayings"){
   if(sayingsSolved&&x>=300&&x<=700&&y>=565&&y<=615){continueSayings();return;}
