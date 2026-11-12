@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#211b2c;color:#fff0d5;font-family:Georgia,serif;text-align:center}
-header{padding:14px 10px 6px}
+header{display:none}
 h1{margin:5px;color:#f3cf91;font-size:clamp(23px,4vw,36px)}
 header p{color:#d6c1b3;margin:5px}
 #game{width:min(100%,1100px);margin:auto}
@@ -38,7 +38,7 @@ button:hover{background:#6d3048}
 
 <div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
-<audio id="museumMusic" src="museum-music.mp3" preload="auto" loop autoplay muted></audio>
+<audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -141,14 +141,12 @@ function startMuseumMusic(){
  if(!music)return;
  music.volume=.32;
  music.muted=false;
- if(music.paused)music.play().catch(()=>{});
-}
-function startMuseumMusicMuted(){
- const music=document.getElementById("museumMusic");
- if(!music)return;
- music.volume=.32;
- music.muted=true;
- music.play().catch(()=>{});
+ // play() wird direkt im Pfeiltasten-Ereignis aufgerufen:
+ // damit gilt die Taste als bewusste Nutzerinteraktion für die Browser-Autoplay-Regel.
+ if(music.paused){
+  const playback=music.play();
+  if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+ }
 }
 function stopMuseumMusic(){
  const music=document.getElementById("museumMusic");
@@ -469,14 +467,6 @@ function drawRoom(){
  box(0,0,W,17,"#171421");box(0,17,W,8,"#9c754e");box(0,25,W,5,"#e0bd7e");
  box(0,337,W,8,"#b38b5d");box(0,345,W,8,"#e0bd7e");
  line(0,355,W,355,"#f8dfaa",2);
-
- // Zentrales Schild mit doppeltem Goldrand
- box(345,39,310,55,"#211925");
- ctx.strokeStyle="#d4ad70";ctx.lineWidth=3;ctx.strokeRect(351,45,298,43);
- ctx.strokeStyle="#f5dfae";ctx.lineWidth=1;ctx.strokeRect(357,51,286,31);
- ctx.textAlign="center";ctx.fillStyle="#f4d8a5";ctx.font="bold 19px Georgia";
- ctx.fillText("UNSER MUSEUM",500,70);
- ctx.font="10px Georgia";ctx.fillStyle="#d9bd8b";ctx.fillText("DREI ERINNERUNGEN AUS UNSEREM ALLTAG",500,82);
 
  // Kronleuchter als Blickfang über der Ausstellung
  line(500,0,500,29,"#d7b77b",3);glow(500,63,100,"#f6d58b35");
@@ -2586,7 +2576,7 @@ function update(now=performance.now()){
   ctx.font="16px Arial";ctx.fillText("Klickt oder drückt E, um zum Museum zurückzukehren.",500,570);
  }
 
- startMuseumMusicMuted();
+ 
 requestAnimationFrame(update);
 }
 
@@ -2643,7 +2633,9 @@ document.getElementById("noButton").addEventListener("pointerenter",dodgeNoButto
 document.getElementById("noButton").addEventListener("click",dodgeNoButton);
 
 document.addEventListener("keydown",e=>{
- if(scene==="museum")startMuseumMusic();
+ if(scene==="museum"&&["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){
+  startMuseumMusic();
+ }
  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)){
   e.preventDefault();
  }
@@ -2663,7 +2655,6 @@ document.addEventListener("keyup",e=>{
 });
 
 canvas.addEventListener("click",e=>{
- if(scene==="museum")startMuseumMusic();
  const r=canvas.getBoundingClientRect();
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
