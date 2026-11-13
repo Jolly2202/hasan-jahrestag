@@ -88,7 +88,7 @@ button:hover{background:#6d3048}
   <p>Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.</p>
   <p>Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
   <p><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
-  <p><b>Euer Ziel:</b> Sammelt gemeinsam 40 leckere Essenssachen. Höchstens zweimal darf euch Grüne Soße erwischen. Achtet außerdem auf die kleine Tagesbestellung – die richtige Reihenfolge bringt Bonuspunkte!</p>
+  <p><b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen. Achtet außerdem auf die kleine Tagesbestellung – die richtige Reihenfolge bringt Bonuspunkte!</p>
   <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
   <button onclick="startFoodGame()">Start</button>
  </div>
@@ -654,16 +654,16 @@ function drawStreetStory(now){
   if(t>=1){streetStoryPhase="bike";streetStoryStartedAt=now;}
  }else if(streetStoryPhase==="bike"){
   const t=Math.min(1,elapsed/1700);hx=570+t*100;jx=485;
-  drawStreetBicycle(560+t*100,505,false);
+  drawStreetBicycle(560+t*100,518,false);
   if(t>=1){streetStoryPhase="fall";streetStoryStartedAt=now;}
  }else if(streetStoryPhase==="fall"){
   hx=680;hy=530;jx=500;
-  drawStreetBicycle(700,535,true);
+  drawStreetBicycle(700,548,true);
   if(elapsed>1300){streetStoryPhase="dialogue";streetDialogueIndex=0;}
  }
  if(streetStoryPhase==="dialogue"){
   hx=680;hy=530;jx=500;jy=510;
-  drawStreetBicycle(700,535,true);
+  drawStreetBicycle(700,548,true);
  }
  if(streetStoryPhase==="fall"){
   ctx.save();ctx.translate(hx,hy-75);ctx.rotate(-0.72);
@@ -673,10 +673,22 @@ function drawStreetStory(now){
   drawCharacter(hasanImages,hx,hy,streetStoryPhase==="dialogue"?"front":"right",streetStoryPhase==="walk"||streetStoryPhase==="bike");
  }
  drawCharacter(jillImages,jx,jy,"right",streetStoryPhase==="walk");
+ if(streetStoryPhase==="bike"||streetStoryPhase==="fall"||streetStoryPhase==="dialogue"){
+  // Gips sitzt direkt auf Hasans rechtem Unterarm; er folgt dem angewinkelten Arm bis zur Hosentasche.
+  ctx.save();
+  ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.strokeStyle="#d7c9b7";ctx.lineWidth=20;
+  ctx.beginPath();ctx.moveTo(hx+28,hy-137);ctx.quadraticCurveTo(hx+42,hy-116,hx+36,hy-91);ctx.stroke();
+  ctx.strokeStyle="#fff4df";ctx.lineWidth=15;
+  ctx.beginPath();ctx.moveTo(hx+28,hy-137);ctx.quadraticCurveTo(hx+42,hy-116,hx+36,hy-91);ctx.stroke();
+  ctx.strokeStyle="#c5b39c";ctx.lineWidth=1.5;
+  for(let k=0;k<4;k++){
+   const yy=hy-132+k*10;
+   ctx.beginPath();ctx.moveTo(hx+23,yy);ctx.lineTo(hx+39,yy+4);ctx.stroke();
+  }
+  ctx.restore();
+ }
  if(streetStoryPhase==="fall"||streetStoryPhase==="dialogue"){
-  // Rechter Arm in einer hellen Schiene – der gebrochene Ellenbogen ist sichtbar markiert.
-  ctx.strokeStyle="#fff4dc";ctx.lineWidth=12;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(hx+28,hy-115);ctx.lineTo(hx+43,hy-78);ctx.stroke();
-  ctx.strokeStyle="#b99b83";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(hx+23,hy-105);ctx.lineTo(hx+36,hy-93);ctx.moveTo(hx+29,hy-91);ctx.lineTo(hx+42,hy-79);ctx.stroke();
   ctx.fillStyle="#fff0d5";ctx.font="bold 15px Arial";ctx.textAlign="center";ctx.fillText("Autsch! Rechter Ellenbogen gebrochen!",680,590);
  }
  if(streetStoryPhase==="dialogue"){
@@ -1766,8 +1778,8 @@ function drawWeinblattMenuBoard(){
  lines(["Dolma             14,90 €","Karnıyarık       16,90 €","Kichererbsen-Eintopf 14,90 €","Türlü                16,90 €","Sultan Spezial 13,90 €","Köfte                16,90 €"],cols[1],y+63);
  heading("GÖZSIES",cols[2],y+48,"#e5d4a7");
  lines(["Veggie             11,80 €","ala Turka         11,80 €","Pastırma          11,80 €","Mediterran       11,80 €","Cheese & Egg  11,20 €"],cols[2],y+63);
- heading("SUPPEN",cols[2],y+133,"#e6a0a0");
- lines(["Linsen 5,50 € · Karotte-Ingwer 5,50 €","Hühner 6,80 € · Kürbis 5,50 €"],cols[2],y+148);
+ heading("SUPPEN",cols[2],y+124,"#e6a0a0");
+ lines(["Linsen 5,50 €","Karotte-Ingwer 5,50 €","Hühner 6,80 €","Kürbis 5,50 €"],cols[2],y+138);
  // Kreide-Schnörkel in den Ecken
  ctx.strokeStyle="#d5b77f";ctx.lineWidth=1.2;
  for(const [cx,cy] of [[x+14,y+14],[x+w-14,y+14],[x+14,y+h-14],[x+w-14,y+h-14]]){ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.stroke();}
@@ -1917,10 +1929,17 @@ function drawRestaurantInterior(){
  box(95,470,810,25,"#4d342d");
 
  // Auslage mit erkennbaren Speisen von der Weinblatt-Speisekarte
- const counterDishes=["Dolma","Karnıyarık","Kichererbsen-Eintopf","Türlü","Köfte",
-  "Antipasti Mediterran","Gözsies Veggie","Hummus","Gefüllte Tomaten","Weinblätter"];
+ const counterDishes=[
+  "Dolma","Karnıyarık","Kichererbsen-Eintopf","Türlü","Köfte",
+  "Antipasti Mediterran","Gözsies Veggie","Hummus","Gefüllte Tomaten","Weinblätter",
+  "Dolma","Köfte","Türlü","Karnıyarık","Gözsies Veggie",
+  "Kichererbsen-Eintopf","Antipasti Mediterran","Gefüllte Tomaten","Weinblätter","Hummus",
+  "Köfte","Dolma","Gözsies Veggie","Türlü","Karnıyarık",
+  "Gefüllte Tomaten","Kichererbsen-Eintopf","Antipasti Mediterran","Hummus","Weinblätter"
+ ];
  for(let i=0;i<counterDishes.length;i++){
-  drawDishIllustration(counterDishes[i],130+i*78,414,0.72);
+  const x=112+i*27.2;
+  drawDishIllustration(counterDishes[i],x,414,0.43);
  }
 
  // Flaschen
@@ -1939,7 +1958,7 @@ function drawRestaurantInterior(){
  ctx.fillStyle="#62473b";
  ctx.font="bold 18px Georgia";
  ctx.textAlign="center";
- ctx.fillText("FRISCHE & FEINKOST",500,314);
+
 
  // Die Mitarbeiterin steht hinter der Theke; die Thekenkante verdeckt ihren Unterkörper.
 
@@ -1951,7 +1970,7 @@ function drawRestaurantInterior(){
 
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 16px Arial";
- ctx.fillText("Willkommen im Weinblatt!",500,40);
+
  ctx.font="bold 13px Arial";
  ctx.fillText("Geht zur Theke und drückt E oder Leertaste",500,585);
  drawHeart(31,581,30,null);
@@ -2181,7 +2200,7 @@ function drawFoodHUD(){
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 18px Arial";
  ctx.textAlign="left";
- ctx.fillText("🍽️ Leckereien: "+deliciousCount+" / 40",35,49);
+ ctx.fillText("🍽️ Leckereien: "+deliciousCount+" / 52",35,49);
 
  box(710,15,270,55,"#4d3832dd");
  ctx.fillStyle="#fff0d5";
@@ -2234,12 +2253,12 @@ const sayingsCloseOptions=[
  ["Die Feuerbändiger in die Knie gezwungen","Die Feuerbändiger auf die Knie gelegt"],
  ["Sich etwas aus den Leiern leiern","Sich etwas aus den Rippen ziehen"],
  ["Der Drops ist im Brunnen gelutscht","Das Kind ist in den Brunnen geplumpst"],
- ["Gegen Windmühlen kämpfen","Gegen Fäuste kämpfen"],
+ ["Gegen eine Betonwand anrennen","Gegen eine Mauer ankämpfen"],
  ["Mit dem Auto gegen die Wand fahren","Mit dem Kopf gegen eine Mauer rennen"],
  ["Da ist der Zug schon abgefahren","Da ist der Zug schon angekommen"],
- ["Leg meinen Schuh nicht auf die Goldwaage","Leg nicht jedes Wort auf die Goldwaage"],
+ ["Leg meinen Schuh auf die Goldwaage","Stell meinen Schuh auf die Goldwaage"],
  ["Die gehen mir ans Zahnfleisch","Auf dem Zahnfleisch kriechen"],
- ["Was ist, das wird noch werden","Was nicht ist, kann noch werden"],
+ ["Was heute fehlt, kann morgen werden","Was noch nicht ist, wird schon werden"],
  ["Sein Herz sitzt auf der rechten Stelle","Sein Herz schlägt auf der rechten Seite"],
  ["Er ist gegen die Wand gelaufen","Er ist gegen die Wand gefahren"],
  ["Ein alter Hase sein","Ein Hase vom alten Schlag"],
@@ -2593,7 +2612,7 @@ function drawFoodGame(){
      if(item.sauce)greenSauceHits++;
      else {
       deliciousCount++;player.eatUntil=performance.now()+520;playCharacterEatSound(player);
-      if(item.dish&&item.dish.name===foodItems[foodOrderIndex%foodItems.length].name){foodOrderCount++;foodOrderIndex++;if(foodOrderCount%3===0){deliciousCount++;achievements.add("Feinschmecker:innen");}}
+      if(item.dish&&item.dish.name===foodItems[foodOrderIndex%foodItems.length].name){foodOrderCount++;foodOrderIndex++;if(foodOrderCount%3===0){achievements.add("Feinschmecker:innen");}}
      }
      break;
     }
@@ -2616,7 +2635,7 @@ function drawFoodGame(){
 
  drawHeart(31,581,30,null);
 
- if(deliciousCount>=40&&greenSauceHits<=2){
+ if(deliciousCount>=52&&greenSauceHits<=2){
   finishFoodGame(true);
  }else if(greenSauceHits>2){
   finishFoodGame(false);
@@ -2634,7 +2653,7 @@ function finishFoodGame(won){
   document.getElementById("resultEmoji").textContent="🥂❤️";
   document.getElementById("resultTitle").textContent="Das perfekte Weinblatt-Menü!";
   document.getElementById("resultText").textContent=
-   "Ihr habt 40 leckere Sachen gesammelt und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
+   "Ihr habt 52 leckere Sachen gesammelt – ein Gericht für jede gemeinsame Woche – und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
   button.textContent="Weiter auf die Straße ♥";
   button.onclick=()=>{
@@ -2803,10 +2822,14 @@ function update(now=performance.now()){
   jill.x=Math.max(80,Math.min(920,jill.x+jx*3.4));jill.y=Math.max(365,Math.min(555,jill.y+jy*3.4));
   drawSayingsLevel();
  }else if(scene==="sayingsComplete"){
-  drawSayingsBackdrop({scene:"Sprachprüfung bestanden",art:"🏆 🗯️ ❤️",wrong:"17 Redewendungen gerettet – Hasan bleibt trotzdem Hasan."});
-  ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 31px Georgia";ctx.fillText("DOKTOR DER SPRICHWORTWISSENSCHAFT",500,475);
-  ctx.font="19px Georgia";ctx.fillText("Hasan – 17 kreative Neuinterpretationen. Keine davon ganz freiwillig.",500,520);
-  ctx.font="16px Arial";ctx.fillText("Klickt oder drückt E, um zum Museum zurückzukehren.",500,570);
+  // Schlichter Abschluss: nur die persönliche Glückwunschbotschaft, ohne Symbole oder Zusatzgrafiken.
+  ctx.fillStyle="#f4e8d3";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#4b3542";ctx.textAlign="center";
+  ctx.font="bold 27px Georgia";
+  ctx.fillText("Super! Du hast die Sprachprüfung bestanden!",W/2,H/2-28);
+  ctx.font="20px Georgia";
+  ctx.fillText("Aber keine Sorge: Jill liebt deine kreativen Neuinterpretationen von Redewendungen sowieso.",W/2,H/2+12);
+  ctx.fillText("Bitte hör niemals auf, sie falsch zu sagen!",W/2,H/2+48);
  }
 
  
