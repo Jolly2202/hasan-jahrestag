@@ -215,6 +215,7 @@ let bikeElapsed=0;
 let restaurantReached=false;
 let bikeFailed=false;
 let obstacles=[];
+let bikeObstacleCounts={syringe:0,puddle:0,construction:0,dog:0,poop:0,bottle:0,bus:0,parkedcar:0,scooter:0};
 let collectibles=[];
 let score=0;
 let heartsSpawned=0;
@@ -735,6 +736,7 @@ function resetBikeGame(){
  score=0;
  heartsSpawned=0;
  obstacles=[];
+ bikeObstacleCounts={syringe:0,puddle:0,construction:0,dog:0,poop:0,bottle:0,bus:0,parkedcar:0,scooter:0};
  collectibles=[];
  lastObstacleAt=0;
  roadOffset=0;
@@ -1015,6 +1017,26 @@ function drawObstacle(o){
    ctx.beginPath();ctx.ellipse(dx,dy,2.4,1.2,.4,0,Math.PI*2);ctx.fill();
   }
 
+ }else if(o.type==="poop"){
+  // Berliner Hundehaufen: organische Form mit Struktur und kleinem Grasbüschel
+  ctx.fillStyle="#30251f";
+  ctx.beginPath();ctx.ellipse(1,9,19,7,-.08,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#65412d";
+  ctx.beginPath();
+  ctx.moveTo(-17,8);
+  ctx.bezierCurveTo(-18,-1,-9,-5,-5,-3);
+  ctx.bezierCurveTo(-5,-13,5,-16,9,-8);
+  ctx.bezierCurveTo(17,-9,21,-1,17,7);
+  ctx.quadraticCurveTo(1,14,-17,8);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#8a5a38";
+  ctx.beginPath();ctx.ellipse(-5,-3,7,4,-.45,0,Math.PI*2);
+  ctx.ellipse(8,-5,5,3,.25,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#b17b50";ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(-9,3);ctx.quadraticCurveTo(-3,-1,2,2);
+  ctx.moveTo(4,-7);ctx.quadraticCurveTo(9,-9,12,-5);ctx.stroke();
+  ctx.fillStyle="#5d7650";
+  ctx.beginPath();ctx.moveTo(-20,11);ctx.lineTo(-25,2);ctx.lineTo(-22,12);
+  ctx.moveTo(20,11);ctx.lineTo(25,3);ctx.lineTo(22,12);ctx.fill();
  }else if(o.type==="scooter"){
   ctx.rotate(-.18);
   ctx.fillStyle="#20262b";
@@ -1031,21 +1053,22 @@ function drawObstacle(o){
   ctx.fill();
 
  }else if(o.type==="construction"){
-  ctx.fillStyle="#34343a";
-  ctx.fillRect(-25,11,50,6);
+  // Detaillierte Berliner Baustellenabsperrung mit Baken, Reflektoren und Warnleuchte
+  ctx.fillStyle="#34343a";ctx.fillRect(-31,15,62,6);
+  ctx.fillStyle="#252a2d";ctx.fillRect(-27,10,5,8);ctx.fillRect(22,10,5,8);
   ctx.fillStyle="#ed743c";
-  ctx.beginPath();
-  ctx.roundRect(-23,-12,46,23,3);
-  ctx.fill();
-  ctx.strokeStyle="#fff0d5";
-  ctx.lineWidth=7;
-  for(let k=-35;k<45;k+=18){
-   ctx.beginPath();
-   ctx.moveTo(k,12);
-   ctx.lineTo(k-15,-12);
-   ctx.stroke();
+  ctx.beginPath();ctx.roundRect(-29,-13,58,25,3);ctx.fill();
+  ctx.strokeStyle="#fff0d5";ctx.lineWidth=6;
+  for(let k=-35;k<38;k+=17){
+   ctx.beginPath();ctx.moveTo(k,12);ctx.lineTo(k-15,-13);ctx.stroke();
   }
-
+  ctx.strokeStyle="#b94f2e";ctx.lineWidth=1.2;ctx.strokeRect(-29,-13,58,25);
+  ctx.fillStyle="#4a4d50";ctx.fillRect(-33,16,13,4);ctx.fillRect(20,16,13,4);
+  ctx.fillStyle="#f6d05a";ctx.beginPath();ctx.arc(0,-19,4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#fff1b5";ctx.beginPath();ctx.arc(-1,-20,1.4,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#8b8172";
+  ctx.beginPath();ctx.moveTo(-27,23);ctx.lineTo(-21,19);ctx.lineTo(-16,23);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(17,23);ctx.lineTo(23,19);ctx.lineTo(28,23);ctx.closePath();ctx.fill();
  }else if(o.type==="uber"){
   ctx.rotate(.12);
   ctx.fillStyle="#17191d";ctx.beginPath();ctx.arc(-13,9,7,0,Math.PI*2);ctx.arc(14,9,7,0,Math.PI*2);ctx.fill();
@@ -1108,22 +1131,28 @@ function spawnThings(){
  if(t-lastObstacleAt>455){
   lastObstacleAt=t;
   const laneX=145+Math.random()*710;
-  const roll=Math.random();
-  const type=roll<.10?"syringe":
-   roll<.19?"bottle":
-   roll<.30?"puddle":
-   roll<.39?"scooter":
-   roll<.49?"construction":
-   roll<.59?"dachshund":
-   roll<.67?"poodle":
-   roll<.74?"frenchie":
-   roll<.80?"shepherd":
-   roll<.86?"bus":
-   roll<.90?"spati":
-   roll<.94?"uber":
-   roll<.955?"trashbag":
-   roll<.97?"tramtrack":
-   roll<.982?"bollard":"parkedcar";
+  const quotaTypes=[
+   ["syringe",4],["puddle",10],["construction",10],
+   ["dog",14],["poop",14],["bottle",14],["bus",14],["parkedcar",14],["scooter",14]
+  ];
+  const remaining=quotaTypes.map(([name,total])=>({
+   name,total,left:total-(bikeObstacleCounts[name]||0)
+  })).filter(item=>item.left>0);
+  let type;
+  if(remaining.length){
+   const totalLeft=remaining.reduce((sum,item)=>sum+item.left,0);
+   let pick=Math.random()*totalLeft;
+   const chosen=remaining.find(item=>(pick-=item.left)<0)||remaining[remaining.length-1];
+   type=chosen.name;
+   bikeObstacleCounts[type]=(bikeObstacleCounts[type]||0)+1;
+   if(type==="dog"){
+    const breeds=["dachshund","poodle","frenchie","shepherd"];
+    type=breeds[Math.floor(Math.random()*breeds.length)];
+   }
+  }else{
+   const extras=["spati","uber","trashbag","tramtrack","bollard"];
+   type=extras[Math.floor(Math.random()*extras.length)];
+  }
 
   obstacles.push({
    x:laneX,y:-55,type,
@@ -2802,6 +2831,7 @@ canvas.addEventListener("click",e=>{
   bikeElapsed=0;
   lastObstacleAt=0;
   obstacles=[];
+  bikeObstacleCounts={syringe:0,puddle:0,construction:0,dog:0,poop:0,bottle:0,bus:0,parkedcar:0,scooter:0};
   collectibles=[];
   heartsSpawned=0;
   return;
