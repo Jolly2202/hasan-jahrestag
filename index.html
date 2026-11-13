@@ -141,8 +141,9 @@ const wrongSayingImages = wrongSayingImageFiles.map((src)=>{
 function playCharacterEatSound(player){
  const audio=document.getElementById(player===foodPlayers.jill?"jillEatSound":"hasanEatSound");
  if(!audio)return;
- audio.volume=.8;
+ audio.pause();
  audio.currentTime=0;
+ audio.volume=1;
  const playback=audio.play();
  if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
 }
@@ -354,6 +355,7 @@ let sayingsIndex=0;
 let sayingsOptions=[];
 let sayingsSolved=false;
 let sayingsSolvedAt=0;
+let sayingsAnswerCorrect=false;
 let sayingsSparkRevealed=false;
 let sayingsFeedback="";
 let sayingsBossMode=false;
@@ -673,18 +675,25 @@ function drawStreetStory(now){
   drawCharacter(hasanImages,hx,hy,streetStoryPhase==="dialogue"?"front":"right",streetStoryPhase==="walk"||streetStoryPhase==="bike");
  }
  drawCharacter(jillImages,jx,jy,"right",streetStoryPhase==="walk");
- if(streetStoryPhase==="bike"||streetStoryPhase==="fall"||streetStoryPhase==="dialogue"){
-  // Gips sitzt direkt auf Hasans rechtem Unterarm; er folgt dem angewinkelten Arm bis zur Hosentasche.
+ if(streetStoryPhase==="dialogue"){
+  // Der Gips erscheint erst nach dem Sturz und liegt auf Hasans rechtem Unterarm
+  // (Bildkoordinaten relativ zur 120×180-Figur, rechte Bildseite).
   ctx.save();
   ctx.lineCap="round";ctx.lineJoin="round";
-  ctx.strokeStyle="#d7c9b7";ctx.lineWidth=20;
-  ctx.beginPath();ctx.moveTo(hx+28,hy-137);ctx.quadraticCurveTo(hx+42,hy-116,hx+36,hy-91);ctx.stroke();
-  ctx.strokeStyle="#fff4df";ctx.lineWidth=15;
-  ctx.beginPath();ctx.moveTo(hx+28,hy-137);ctx.quadraticCurveTo(hx+42,hy-116,hx+36,hy-91);ctx.stroke();
-  ctx.strokeStyle="#c5b39c";ctx.lineWidth=1.5;
+  ctx.strokeStyle="#b9a58f";ctx.lineWidth=19;
+  ctx.beginPath();
+  ctx.moveTo(hx+24,hy-137);
+  ctx.quadraticCurveTo(hx+33,hy-119,hx+27,hy-99);
+  ctx.stroke();
+  ctx.strokeStyle="#f5ead8";ctx.lineWidth=14;
+  ctx.beginPath();
+  ctx.moveTo(hx+24,hy-137);
+  ctx.quadraticCurveTo(hx+33,hy-119,hx+27,hy-99);
+  ctx.stroke();
+  ctx.strokeStyle="#c8b69e";ctx.lineWidth=1.2;
   for(let k=0;k<4;k++){
-   const yy=hy-132+k*10;
-   ctx.beginPath();ctx.moveTo(hx+23,yy);ctx.lineTo(hx+39,yy+4);ctx.stroke();
+   const yy=hy-133+k*9;
+   ctx.beginPath();ctx.moveTo(hx+17,yy);ctx.lineTo(hx+31,yy+3);ctx.stroke();
   }
   ctx.restore();
  }
@@ -1954,12 +1963,6 @@ function drawRestaurantInterior(){
 
  plantPot(950,365);
 
- box(370,290,260,35,"#f5e8d2");
- ctx.fillStyle="#62473b";
- ctx.font="bold 18px Georgia";
- ctx.textAlign="center";
-
-
  // Die Mitarbeiterin steht hinter der Theke; die Thekenkante verdeckt ihren Unterkörper.
 
  // Beide Figuren vor der Theke
@@ -2279,14 +2282,14 @@ function startSayingsLevel(){
  sayingsBossPool=[];sayingsEnergy=5;sayingsStreak=0;sayingsBestStreak=0;
  hasan.x=940;hasan.y=555;hasan.direction="front";jill.x=60;jill.y=555;jill.direction="front";
  prepareSayingsRound();
- document.getElementById("pageTitle").textContent="Hasan hat die Sprache kaputt gemacht";
- document.getElementById("pageSubtitle").textContent="Das große Redewendungs-Chaos 🗯️";
- document.getElementById("help").innerHTML="Hasan: Pfeiltasten · Jill: WASD · Sammelt den leuchtenden Wortfunken und drückt H für einen Hinweis. Falsche Antworten kosten Sprachenergie; richtige Antworten bauen sie wieder auf. Antwort mit E / Leertaste oder Klick auswählen.";
+ document.getElementById("pageTitle").textContent="";
+ document.getElementById("pageSubtitle").textContent="";
+ document.getElementById("help").innerHTML="";
 }
 function prepareSayingsRound(){
  const item=sayingssCurrent();
  sayingsOptions=shuffledSayingsOptions(item.right);
- sayingsSolved=false;sayingsSolvedAt=0;sayingsFeedback="";sayingsHintAvailable=false;sayingsHintUsed=false;sayingsEliminated=-1;
+ sayingsSolved=false;sayingsSolvedAt=0;sayingsAnswerCorrect=false;sayingsFeedback="";sayingsHintAvailable=false;sayingsHintUsed=false;sayingsEliminated=-1;
  sayingsSparkRevealed=false;
  sayingsSpark={x:Math.random()<.5?82:918,y:235+Math.random()*30,phase:Math.random()*Math.PI*2,collected:false};
 }
@@ -2295,19 +2298,16 @@ function chooseSayingsOption(index){
  const selected=sayingsOptions[index];
  const correct=sayingssCurrent().right;
  if(selected===correct){
-  sayingsSolved=true;sayingsSolvedAt=performance.now();sayingsStreak++;sayingsBestStreak=Math.max(sayingsBestStreak,sayingsStreak);
+  sayingsSolved=true;sayingsSolvedAt=performance.now();sayingsAnswerCorrect=true;sayingsStreak++;sayingsBestStreak=Math.max(sayingsBestStreak,sayingsStreak);
   sayingsFeedback=sayingsStreak>=3?"Dreier-Serie! Sprachcombo x"+sayingsStreak+" – großartig! ♥":"Richtig! Die Redewendung ist repariert. ♥";
   sayingsEnergy=Math.min(5,sayingsEnergy+1);
   achievements.add("Sprachretter:innen");
  }else{
-  sayingsWrongCount++;sayingsEnergy--;sayingsStreak=0;
-  sayingsFeedback="Falsches Portal! Sprachenergie -1. Noch einmal überlegen.";
-  sayingsLastFeedbackAt=performance.now();
-  if(sayingsEnergy<=0){
-   sayingsEnergy=5;sayingsHintAvailable=false;sayingsHintUsed=false;sayingsEliminated=-1;
-   sayingsOptions=shuffledSayingsOptions(correct);
-   sayingsFeedback="Sprachwirbel! Die Szene sortiert sich neu – ihr bekommt neue Energie, aber eure Serie ist weg.";
-  }
+  sayingsWrongCount++;sayingsStreak=0;
+  sayingsSolved=true;
+  sayingsSolvedAt=performance.now();
+  sayingsAnswerCorrect=false;
+  sayingsFeedback="Nicht ganz – die nächste Redewendung wartet schon.";
  }
 }
 function collectSayingsSpark(){
@@ -2336,12 +2336,7 @@ function continueSayings(){
  }
  sayingsIndex++;
  if(sayingsIndex>=sayingsData.length){
-  sayingsBossMode=true;
-  const pool=[...sayingsData];
-  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
-  sayingsBossPool=pool.slice(0,3);sayingsBossLeft=3;
-  sayingsSolved=false;sayingsFeedback="Der Endgegner kommt! Hasan wirft euch drei besonders wilde Redewendungen entgegen.";
-  prepareSayingsRound();
+  finishSayingsLevel();
   return;
  }
  prepareSayingsRound();
@@ -2349,9 +2344,9 @@ function continueSayings(){
 function finishSayingsLevel(){
  sayingsCompleted=true;scene="sayingsComplete";
  achievements.add("Doktor der Sprichwortwissenschaft");
- document.getElementById("pageTitle").textContent="Sprache gerettet!";
- document.getElementById("pageSubtitle").textContent="Hasans Redewendungen sind wieder ganz ♥";
- document.getElementById("help").innerHTML="Ihr habt alle 17 Redewendungen und den Endgegner gemeistert. Das Diplom wartet auf euch!";
+ document.getElementById("pageTitle").textContent="";
+ document.getElementById("pageSubtitle").textContent="";
+ document.getElementById("help").innerHTML="";
 }
 function sayingsRounded(x,y,w,h,r,fill,stroke=null,lineWidth=1){
  ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
@@ -2497,12 +2492,9 @@ function drawSayingsAtmosphere(now,idx){
 }
 function drawSayingsSpark(){
  if(!sayingsSpark||sayingsSolved)return;
- if(sayingsSpark.collected){
-  if(sayingsSparkRevealed){
-   ctx.textAlign="center";ctx.fillStyle="#d5fff2";ctx.font="bold 9px Georgia";ctx.fillText("WORTFUNKEN-HINWEIS",500,600);
-   ctx.font="8px Georgia";ctx.fillText("Schließt nach dem Anklicken zufällig eine falsche Antwort aus.",500,612);
-  }
-  return;
+ if(sayingsSpark.collected&&sayingsSparkRevealed){
+  ctx.textAlign="center";ctx.fillStyle="#d5fff2";ctx.font="bold 9px Georgia";ctx.fillText("WORTFUNKEN-HINWEIS",500,600);
+  ctx.font="8px Georgia";ctx.fillText("Noch einmal anklicken, um eine falsche Antwort auszuschließen.",500,612);
  }
  const t=performance.now()/260+sayingsSpark.phase;
  const x=sayingsSpark.x+Math.sin(t)*5,y=sayingsSpark.y+Math.sin(t*1.7)*5;
@@ -2525,18 +2517,7 @@ function drawSayingsBackdrop(item){
  box(0,345,W,275,"#2d252d88");box(0,348,W,5,"#c59b68");
  drawSayingsAtmosphere(now,idx);
  if(idx>=0&&idx<17){drawWrongSayingsArt(idx,now);}else{ctx.textAlign="center";ctx.font="76px Georgia";ctx.fillText(item.art||"✧",500,270);}
- // Kopfzeile im Stil eines Kapitel-Interfaces
- sayingsRounded(22,17,956,78,20,"#352831eF","#d5b47e",3);
- ctx.textAlign="left";ctx.fillStyle="#d8b77e";ctx.font="bold 11px Arial";ctx.fillText("DAS GROSSE SPRICHWORT-CHAOS",48,43);
- ctx.fillStyle="#fff0d5";ctx.font="bold 23px Georgia";ctx.fillText(item.scene,48,73);
- ctx.textAlign="right";ctx.fillStyle="#f5d8a0";ctx.font="bold 14px Arial";ctx.fillText(sayingsBossMode?"BOSS-KAMPF · "+(4-sayingsBossLeft)+" / 3":"KAPITEL "+String(sayingsIndex+1).padStart(2,"0")+" / 17",950,47);
- // Fortschrittsleiste mit 17 kleinen Runen
- for(let i=0;i<17;i++){sayingsRounded(48+i*53,105,39,7,4,i<sayingsIndex?"#e6bd78":(i===sayingsIndex?"#f8e6b8":"#ffffff24"));}
- // Sprachenergie, Serie und Hilfsstatus
- sayingsRounded(745,118,210,34,16,"#3b2e32dd","#c6a675",2);
- ctx.textAlign="left";ctx.font="bold 11px Arial";ctx.fillStyle="#f6dca8";ctx.fillText("SPRACHENERGIE",758,131);
- for(let i=0;i<5;i++){ctx.fillStyle=i<sayingsEnergy?"#ef718b":"#ffffff25";ctx.beginPath();ctx.arc(865+i*17,130,5.5,0,Math.PI*2);ctx.fill();}
- ctx.textAlign="right";ctx.fillStyle="#c8e9df";ctx.font="bold 11px Arial";ctx.fillText("SERIE x"+sayingsStreak,950,146);
+ // Die Kapitelüberschrift, Fortschrittsleiste und Sprachenergie-Anzeige bleiben ausgeblendet.
  // Die Originalaussage als zentrales Sammlerstück
  sayingsRounded(105,355,790,65,18,"#fff2dc","#c49a62",3);
  ctx.textAlign="center";ctx.fillStyle="#8a4c50";ctx.font="bold 10px Georgia";ctx.fillText("HASANS ORIGINALVERSION",500,372);
@@ -2548,7 +2529,7 @@ function drawSayingsLevel(){
  const positions=[235,500,765];
  for(let i=0;i<3;i++){
   const x=positions[i],isCorrect=sayingsOptions[i]===item.right,eliminated=i===sayingsEliminated;
-  const selected=isCorrect&&sayingsSolved;
+  const selected=isCorrect&&sayingsSolved&&sayingsAnswerCorrect;
   const active=Math.hypot(hasan.x-x,hasan.y-505)<105||Math.hypot(jill.x-x,jill.y-505)<105;
   const portalColor=selected?"#68d69a":(eliminated?"#59606a":(active?"#f2cf85":"#a88b72"));
   const portalFill=selected?"#dff4e5":(eliminated?"#4a4650":"#f2e3cf");
@@ -2568,11 +2549,11 @@ function drawSayingsLevel(){
  }
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
- ctx.textAlign="center";ctx.font="bold 9px Georgia";ctx.fillStyle="#b8d7f1";ctx.fillText("HASAN · PFEILE",hasan.x,604);ctx.fillStyle="#f0b4c7";ctx.fillText("JILL · WASD",jill.x,604);
- sayingsRounded(265,425,470,22,10,sayingsFeedback?(sayingsSolved?"#e1f2df":"#f4e4cc"):"#fff0dc",sayingsFeedback?(sayingsSolved?"#76b88b":"#c8a879"):"#d4b98e",1);
- ctx.fillStyle=sayingsFeedback?(sayingsSolved?"#286345":"#785044"):"#8b6d53";ctx.font="bold 10px Georgia";ctx.fillText(sayingsFeedback||"Wählt die passende Redewendung aus.",500,440);
+ ctx.textAlign="center";ctx.font="bold 10px Georgia";ctx.fillStyle="#b8d7f1";ctx.fillText("HASAN",hasan.x,604);ctx.fillStyle="#f0b4c7";ctx.fillText("JILL",jill.x,604);
+ sayingsRounded(265,425,470,22,10,sayingsFeedback?(sayingsAnswerCorrect?"#e1f2df":"#f4e4cc"):"#fff0dc",sayingsFeedback?(sayingsAnswerCorrect?"#76b88b":"#c8a879"):"#d4b98e",1);
+ ctx.fillStyle=sayingsFeedback?(sayingsAnswerCorrect?"#286345":"#785044"):"#8b6d53";ctx.font="bold 10px Georgia";ctx.fillText(sayingsFeedback||"Wählt die passende Redewendung aus.",500,440);
  if(sayingsSolved){
-  sayingsRounded(355,570,290,25,12,"#e1f2df","#78b68b",2);ctx.fillStyle="#286345";ctx.font="bold 11px Georgia";ctx.fillText("RICHTIG! Die nächste Szene öffnet sich gleich …",500,586);
+  sayingsRounded(355,570,290,25,12,sayingsAnswerCorrect?"#e1f2df":"#f4e4cc",sayingsAnswerCorrect?"#78b68b":"#c8a879",2);ctx.fillStyle=sayingsAnswerCorrect?"#286345":"#785044";ctx.font="bold 11px Georgia";ctx.fillText(sayingsAnswerCorrect?"RICHTIG! Die nächste Szene öffnet sich gleich …":"Weiter zur nächsten Redewendung …",500,586);
   ctx.font="26px Georgia";ctx.fillText("✧",500,340);
   if(performance.now()-sayingsSolvedAt>=2000){continueSayings();return;}
  }
@@ -2931,8 +2912,18 @@ canvas.addEventListener("click",e=>{
  if(opened)return;
 
  if(scene==="sayings"){
-  if(sayingsSolved&&x>=300&&x<=700&&y>=565&&y<=615){continueSayings();return;}
-  if(!sayingsSpark.collected&&Math.hypot(x-sayingsSpark.x,y-sayingsSpark.y)<24){sayingsSpark.collected=true;sayingsSparkRevealed=true;sayingsHintAvailable=true;sayingsFeedback="Der Wortfunke schließt eine falsche Antwort aus. Drückt H, wenn ihr ihn einsetzen möchtet.";sayingsLastFeedbackAt=performance.now();return;}
+  const sparkT=performance.now()/260+sayingsSpark.phase;
+  const sparkX=sayingsSpark.x+Math.sin(sparkT)*5;
+  const sparkY=sayingsSpark.y+Math.sin(sparkT*1.7)*5;
+  if(Math.hypot(x-sparkX,y-sparkY)<30){
+   if(!sayingsSpark.collected){
+    sayingsSpark.collected=true;sayingsSparkRevealed=true;sayingsHintAvailable=true;
+    sayingsFeedback="Der Wortfunke kann eine falsche Antwort ausschließen. Klicke ihn noch einmal, um den Hinweis einzusetzen.";
+   }else if(sayingsHintAvailable&&!sayingsHintUsed){
+    useSayingsHint();
+   }
+   sayingsLastFeedbackAt=performance.now();return;
+  }
   if(!sayingsSolved&&y>=450&&y<=550){
    const positions=[235,500,765];
    for(let i=0;i<3;i++){if(Math.abs(x-positions[i])<=120){chooseSayingsOption(i);return;}}
