@@ -429,12 +429,6 @@ function drawExhibit(exhibit,i){
  [[-140,-145],[140,-145],[-140,185],[140,185]].forEach(([dx,dy])=>{
   ctx.fillStyle="#fff0bd";ctx.beginPath();ctx.arc(exhibit.x+dx,exhibit.y+dy,4,0,Math.PI*2);ctx.fill();
  });
- if(near){
-  box(exhibit.x-90,exhibit.y+240,180,34,"#f5dfb9");
-  ctx.strokeStyle="#b58b56";ctx.lineWidth=1.5;ctx.strokeRect(exhibit.x-90,exhibit.y+240,180,34);
-  ctx.fillStyle="#432b3c";ctx.font="bold 15px Arial";
-  ctx.fillText("E · ANSEHEN",exhibit.x,exhibit.y+262);
- }
  ctx.restore();
 }
 function drawRoom(){
@@ -496,9 +490,10 @@ function drawRoom(){
   for(let y=45;y<335;y+=35)line(x-12,y,x+12,y,"#a96b70",2);
   box(x-20,31,40,8,"#d3ad73");box(x-20,335,40,8,"#d3ad73");
  }
- plant(75,355);plant(925,355);
  candle(125,305);candle(875,305);
  exhibits.forEach(drawExhibit);
+ // Die Pflanzen stehen als Vordergrundelemente vor den Bilderrahmen.
+ plant(75,355);plant(925,355);
 
  // Dezente Staubpartikel im Licht
  for(let i=0;i<32;i++){
