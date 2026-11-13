@@ -42,6 +42,8 @@ button:hover{background:#6d3048}
 <audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
 <audio id="weinblattMusic" src="aurec-restaurant-music-616478.mp3" preload="auto" loop></audio>
 <audio id="streetAmbience" src="wr-sound-library-city-center-ambiance-sound-no-copyright-infinite-558460.mp3" preload="auto" loop></audio>
+<audio id="jillEatSound" src="jill_essen.mp3" preload="auto"></audio>
+<audio id="hasanEatSound" src="hasan_essen.mp3" preload="auto"></audio>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -108,25 +110,13 @@ const canvas=document.getElementById("world");
 const ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
 
-let eatAudioContext=null;
-function playEatSound(){
- try{
-  const AudioCtx=window.AudioContext||window.webkitAudioContext;
-  if(!AudioCtx)return;
-  if(!eatAudioContext)eatAudioContext=new AudioCtx();
-  if(eatAudioContext.state==="suspended")eatAudioContext.resume();
-  const now=eatAudioContext.currentTime;
-  const osc=eatAudioContext.createOscillator();
-  const gain=eatAudioContext.createGain();
-  osc.type="triangle";
-  osc.frequency.setValueAtTime(520,now);
-  osc.frequency.exponentialRampToValueAtTime(190,now+.12);
-  gain.gain.setValueAtTime(.0001,now);
-  gain.gain.exponentialRampToValueAtTime(.16,now+.015);
-  gain.gain.exponentialRampToValueAtTime(.0001,now+.16);
-  osc.connect(gain);gain.connect(eatAudioContext.destination);
-  osc.start(now);osc.stop(now+.17);
- }catch(error){}
+function playCharacterEatSound(player){
+ const audio=document.getElementById(player===foodPlayers.jill?"jillEatSound":"hasanEatSound");
+ if(!audio)return;
+ audio.volume=.8;
+ audio.currentTime=0;
+ const playback=audio.play();
+ if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
 }
 function startBikeMusic(){
  const music=document.getElementById("bikeMusic");
@@ -2505,7 +2495,7 @@ function drawFoodGame(){
      item.caught=true;
      if(item.sauce)greenSauceHits++;
      else {
-      deliciousCount++;player.eatUntil=performance.now()+520;playEatSound();
+      deliciousCount++;player.eatUntil=performance.now()+520;playCharacterEatSound(player);
       if(item.dish&&item.dish.name===foodItems[foodOrderIndex%foodItems.length].name){foodOrderCount++;foodOrderIndex++;if(foodOrderCount%3===0){deliciousCount++;achievements.add("Feinschmecker:innen");}}
      }
      break;
@@ -2846,6 +2836,12 @@ canvas.addEventListener("click",e=>{
  // Herz im Weinblatt: die Dame hinter der Theke ansprechen
  if(scene==="interior"&&x>=8&&x<=62&&y>=552&&y<=605){
   openShopkeeperDialogue();
+  return;
+ }
+
+ // Herzförmiger Skip-Button im Essenspiel: Spiel überspringen
+ if(scene==="food"&&x>=8&&x<=62&&y>=552&&y<=605){
+  finishFoodGame(true);
   return;
  }
 
