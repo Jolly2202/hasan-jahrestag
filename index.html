@@ -40,6 +40,8 @@ button:hover{background:#6d3048}
 <div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
 <audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
+<audio id="weinblattMusic" src="aurec-restaurant-music-616478.mp3" preload="auto" loop></audio>
+<audio id="streetAmbience" src="wr-sound-library-city-center-ambiance-sound-no-copyright-infinite-558460.mp3" preload="auto" loop></audio>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -152,6 +154,33 @@ function startMuseumMusic(){
 function stopMuseumMusic(){
  const music=document.getElementById("museumMusic");
  if(music&&!music.paused){music.pause();music.currentTime=0;}
+}
+function syncSceneMusic(){
+ const restaurant=document.getElementById("weinblattMusic");
+ const street=document.getElementById("streetAmbience");
+ const playLoop=(audio,volume)=>{
+  if(!audio)return;
+  audio.volume=volume;
+  if(audio.paused){
+   const playback=audio.play();
+   if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+  }
+ };
+ const pauseLoop=(audio)=>{
+  if(audio&&!audio.paused){audio.pause();audio.currentTime=0;}
+ };
+
+ if(scene==="interior"||scene==="foodIntro"||scene==="food"||scene==="foodResult"){
+  playLoop(restaurant,.38);
+ }else{
+  pauseLoop(restaurant);
+ }
+
+ if(scene==="arrival"||scene==="streetStory"){
+  playLoop(street,.30);
+ }else{
+  pauseLoop(street);
+ }
 }
 
 
@@ -2610,6 +2639,7 @@ function drawLanding(now){
 function update(now=performance.now()){
  time++;
  if(scene!=="museum")stopMuseumMusic();
+ syncSceneMusic();
 
  if(scene==="museum"){
   if(!opened&&!finaleStarted){
