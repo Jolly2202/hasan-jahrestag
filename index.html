@@ -110,6 +110,34 @@ const canvas=document.getElementById("world");
 const ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
 
+// Märchenbuch-Illustrationen für die 17 falschen Redewendungen.
+// Die PNG-Dateien liegen im selben Verzeichnis wie index.html.
+const wrongSayingImageFiles = [
+ "01-geruechte-reissen-sich-darum.png",
+ "02-aus-den-socken-gefallen.png",
+ "03-feuerbaendiger-in-die-knie-besiegt.png",
+ "04-etwas-aus-den-leiern-ziehen.png",
+ "05-drops-in-den-brunnen-gefallen.png",
+ "06-gegen-eine-wand-kaempfen.png",
+ "07-gegen-eine-wand-fahren.png",
+ "08-zug-schon-abgelaufen.png",
+ "09-schuh-auf-die-goldwaage.png",
+ "10-ans-zahnfleisch-gehen.png",
+ "11-was-ist-kann-werden.png",
+ "12-herz-auf-der-rechten-seite.png",
+ "13-an-die-wand-gegangen.png",
+ "14-vom-alten-hasen.png",
+ "15-dem-ganzen-hasen-nicht-trauen.png",
+ "16-viel-im-keller-haben.png",
+ "17-pool-offen-halten.png"
+];
+const wrongSayingImages = wrongSayingImageFiles.map((src)=>{
+ const img=new Image();
+ img.src=src;
+ return img;
+});
+
+
 function playCharacterEatSound(player){
  const audio=document.getElementById(player===foodPlayers.jill?"jillEatSound":"hasanEatSound");
  if(!audio)return;
@@ -250,16 +278,16 @@ const foodPlayers={
 };
 
 const foodItems=[
- {emoji:"🫒",name:"Dolma"},
- {emoji:"🍚",name:"Couscous"},
- {emoji:"🧆",name:"Falafel"},
- {emoji:"🥣",name:"Hummus"},
- {emoji:"🥗",name:"Taboulé"},
- {emoji:"🍆",name:"Baba Ghanoush"},
- {emoji:"🥙",name:"Kibbeh"},
- {emoji:"🫓",name:"Fladenbrot"},
- {emoji:"🍅",name:"Gefüllte Tomaten"},
- {emoji:"🥬",name:"Weinblätter"}
+ {emoji:"",name:"Dolma"},
+ {emoji:"",name:"Couscous"},
+ {emoji:"",name:"Falafel"},
+ {emoji:"",name:"Hummus"},
+ {emoji:"",name:"Taboulé"},
+ {emoji:"",name:"Baba Ghanoush"},
+ {emoji:"",name:"Kibbeh"},
+ {emoji:"",name:"Fladenbrot"},
+ {emoji:"",name:"Gefüllte Tomaten"},
+ {emoji:"",name:"Weinblätter"}
 ];
 let fallingFood=[];
 let deliciousCount=0;
@@ -1578,7 +1606,8 @@ function drawShopkeeper(){
  // Neu gezeichnete Weinblatt-Mitarbeiterin: erwachsene Frau mit
  // offenem, welligem dunklem Haar, feinen Gesichtszügen und eleganter Bluse.
  ctx.save();
- ctx.translate(385,278);
+ ctx.translate(385,310);
+ ctx.scale(0.66,0.66);
 
  // Hintere Haarpartie und Silhouette
  ctx.fillStyle="#302321";
@@ -1714,7 +1743,7 @@ function drawShopkeeper(){
 }
 function drawWeinblattMenuBoard(){
  // Speisetafel nach der vom Nutzer gesendeten Weinblatt-Karte
- const x=535,y=62,w=435,h=220;
+ const x=535,y=48,w=435,h=210;
  ctx.save();
  // Schatten und goldbrauner Rahmen
  ctx.fillStyle="#2d1d18";ctx.fillRect(x-8,y-8,w+16,h+16);
@@ -1723,12 +1752,12 @@ function drawWeinblattMenuBoard(){
  ctx.strokeStyle="#e0c18a";ctx.lineWidth=2;ctx.strokeRect(x+4,y+4,w-8,h-8);
  // Aufhängung
  ctx.strokeStyle="#6d4b30";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+95,y-8);ctx.lineTo(x+95,y-18);ctx.moveTo(x+w-95,y-8);ctx.lineTo(x+w-95,y-18);ctx.stroke();
- ctx.textAlign="center";ctx.fillStyle="#e9c98c";ctx.font="bold 17px Georgia";ctx.fillText("WEINBLATT",x+w/2,y+23);
+ ctx.textAlign="center";ctx.fillStyle="#e9c98c";ctx.font="bold 19px cursive";ctx.fillText("WEINBLATT",x+w/2,y+23);
  ctx.strokeStyle="#b98b57";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x+12,y+31);ctx.lineTo(x+w-12,y+31);ctx.stroke();
  const cols=[x+14,x+160,x+305];
  ctx.textAlign="left";
- function heading(t,cx,yy,color){ctx.fillStyle=color;ctx.font="bold 10px Georgia";ctx.fillText(t,cx,yy);}
- function lines(arr,cx,yy){ctx.fillStyle="#f1e7d2";ctx.font="8px Arial";arr.forEach((t,i)=>ctx.fillText(t,cx,yy+i*10));}
+ function heading(t,cx,yy,color){ctx.fillStyle=color;ctx.font="bold 11px cursive";ctx.fillText(t,cx,yy);}
+ function lines(arr,cx,yy){ctx.fillStyle="#f1e7d2";ctx.font="10px cursive";arr.forEach((t,i)=>ctx.fillText(t,cx,yy+i*10));}
  heading("ANTIPASTI",cols[0],y+48,"#e9a2a0");
  lines(["Mediterran      11,80 €","Orient             10,80 €","Weinblatt        12,50 €","Sultan              11,90 €","Eigener Teller: 2,80 €/100 g"],cols[0],y+63);
  heading("WARME GERICHTE",cols[1],y+48,"#b7d29b");
@@ -1740,6 +1769,96 @@ function drawWeinblattMenuBoard(){
  // Kreide-Schnörkel in den Ecken
  ctx.strokeStyle="#d5b77f";ctx.lineWidth=1.2;
  for(const [cx,cy] of [[x+14,y+14],[x+w-14,y+14],[x+14,y+h-14],[x+w-14,y+h-14]]){ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.stroke();}
+ ctx.restore();
+}
+
+
+function drawDishIllustration(name,x,y,s=1){
+ ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+ // Flacher cremefarbener Teller mit Schatten
+ ctx.fillStyle="#b9a58b";ctx.beginPath();ctx.ellipse(0,5,34,21,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#f4ead7";ctx.beginPath();ctx.ellipse(0,1,32,19,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#d4c1a5";ctx.lineWidth=1.5;ctx.stroke();
+ const oval=(x,y,rx,ry,c,rot=0)=>{
+  ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,rot,0,Math.PI*2);ctx.fill();
+ };
+ const herb=(x,y)=>{
+  oval(x,y,2,4,"#65834e",-.6);oval(x+3,y-2,2,4,"#78975b",.5);
+ };
+ if(name==="Dolma"||name==="Weinblätter"){
+  for(let i=0;i<5;i++){
+   ctx.save();ctx.translate(-17+(i%3)*16,-7+Math.floor(i/3)*12);ctx.rotate(-.25+(i%2)*.5);
+   oval(0,0,8,4.8,"#55764b");oval(-1,-1,5.5,2.5,"#78965c");
+   ctx.strokeStyle="#c4d29a";ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(5,0);ctx.stroke();
+   ctx.restore();
+  }
+  herb(18,-9);herb(19,7);
+ }else if(name==="Karnıyarık"){
+  oval(0,0,21,10,"#56372e",-.1);oval(0,-2,19,8,"#694334",-.1);
+  oval(-2,-4,10,5,"#9a4b39",-.1);oval(4,-4,5,3,"#b95d43");
+  oval(-4,-6,2,2,"#e4c18a");herb(13,5);
+ }else if(name==="Kichererbsen-Eintopf"||name==="Hummus"){
+  ctx.fillStyle="#d8c9ad";ctx.beginPath();ctx.ellipse(0,1,26,15,0,0,Math.PI*2);ctx.fill();
+  oval(0,0,22,12,name==="Hummus"?"#c9a56e":"#b98a4d");
+  if(name==="Hummus"){
+   ctx.strokeStyle="#e4c78f";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,8,.2,5.8);ctx.stroke();
+   oval(0,0,3,2,"#8c4f32");herb(-12,-5);herb(12,5);
+  }else{
+   for(let i=0;i<10;i++){const a=i*2.4;oval(Math.cos(a)*13,Math.sin(a)*6,2.5,2.2,"#e6c77e");}
+   oval(-6,-3,4,2,"#b94f3e");herb(10,-5);
+  }
+ }else if(name==="Türlü"){
+  oval(0,0,24,13,"#a65d3f");
+  for(const [dx,dy,c] of [[-12,-3,"#6f8c52"],[-3,-6,"#d8ae56"],[7,-4,"#8d4a3b"],[13,4,"#6c8950"],[-6,5,"#d4a04d"],[2,2,"#b96b43"]])oval(dx,dy,6,4,c,.4);
+  herb(-15,7);
+ }else if(name==="Köfte"){
+  for(const [dx,dy] of [[-12,-4],[1,-7],[13,1],[-4,7]]){
+   oval(dx,dy,7,5,"#805039",-.3);oval(dx-1,dy-1,3,1.2,"#b27b51",-.3);
+  }
+  herb(19,-9);oval(-20,8,5,3,"#719054");
+ }else if(name==="Antipasti Mediterran"){
+  oval(-12,-3,8,5,"#b45a43");oval(3,-5,7,5,"#719052");oval(14,5,6,4,"#d9ad56");
+  oval(-5,8,5,3,"#e4d2a8");oval(7,2,3,3,"#8e513d");
+  for(let i=0;i<3;i++)herb(-18+i*9,-12+i*2);
+ }else if(name.startsWith("Gözsies")){
+  oval(0,0,23,12,"#c99a55");oval(0,0,20,9,"#e2c58d");
+  ctx.strokeStyle="#986e42";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-13,-2);ctx.quadraticCurveTo(0,5,13,-2);ctx.stroke();
+  oval(0,-2,5,2,"#789052");
+ }else if(name==="Gefüllte Tomaten"){
+  for(const [dx,dy] of [[-10,-3],[9,2]]){
+   oval(dx,dy,9,9,"#bd4938");oval(dx,dy-1,6,6,"#e0a65b");
+   oval(dx,dy-1,4.5,4,"#927344");
+   for(let j=0;j<3;j++)oval(dx-3+j*3,dy-2+(j%2)*3,1.2,1.1,"#e6d39b");
+   herb(dx+3,dy-8);
+  }
+ }else if(name==="Baba Ghanoush"){
+  oval(0,0,23,13,"#b9a17f");oval(0,0,20,10,"#a98b70");
+  ctx.strokeStyle="#e4c88f";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,8,.2,5.7);ctx.stroke();
+  oval(2,-1,3,2,"#b85d3e");herb(-12,-5);herb(12,4);
+ }else if(name==="Couscous"){
+  oval(0,0,20,11,"#d6b46e");
+  for(let i=0;i<20;i++){const a=i*2.4;const r=5+(i%4)*3;oval(Math.cos(a)*r,Math.sin(a)*(3+(i%3)*2),1.2,1,"#f1d99a");}
+  oval(-8,-3,3,2,"#789052");oval(8,3,3,2,"#b95a3f");
+ }else if(name==="Falafel"){
+  for(const [dx,dy] of [[-12,-3],[0,-7],[12,-2],[-5,7],[9,6]]){
+   oval(dx,dy,6,5,"#8d6840");oval(dx-1,dy-1,2,1.5,"#b4a06b");
+  }
+  herb(-19,-10);
+ }else if(name==="Taboulé"){
+  oval(0,0,23,12,"#6c8c54");
+  for(let i=0;i<15;i++){const dx=(i%5-2)*8,dy=(Math.floor(i/5)-1)*5;oval(dx,dy,3,2,"#9db36d");}
+  oval(-9,-5,2,2,"#d5b65d");oval(11,5,2,2,"#d5b65d");
+ }else if(name==="Kibbeh"){
+  for(const dx of [-10,8]){
+   ctx.fillStyle="#865139";ctx.beginPath();ctx.ellipse(dx,0,11,6,-.45,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle="#bd8b5d";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(dx-5,1);ctx.lineTo(dx+5,-1);ctx.stroke();
+  }
+ }else if(name==="Fladenbrot"){
+  oval(0,0,23,13,"#d9b77c");
+  oval(-7,-2,3,2,"#a47b4e");oval(8,4,4,2,"#a47b4e");oval(3,-6,2,1,"#a47b4e");
+ }else{
+  oval(0,0,20,11,"#c69b5b");herb(0,0);
+ }
  ctx.restore();
 }
 
@@ -1781,13 +1900,13 @@ function drawRestaurantInterior(){
   box(x,245,240,9,"#4c342d");
  }
 
- // Speisetafel an der Wand hinter der Theke
- drawWeinblattMenuBoard();
-
  // Kacheln
  box(0,270,W,100,"#e8d7bd");
  for(let x=0;x<W;x+=50)line(x,270,x,370,"#c5ad91",2);
  line(0,320,W,320,"#c5ad91",2);
+
+ // Mitarbeiterin hinter der Theke, maßstabgetreu und teilweise von der Theke verdeckt.
+ drawShopkeeper();
 
  // Frischetheke
  box(80,340,840,160,"#6d4938");
@@ -1795,32 +1914,11 @@ function drawRestaurantInterior(){
  box(95,350,810,12,"#fff3dd");
  box(95,470,810,25,"#4d342d");
 
- // Auslage
- const foodColors=["#e5bc58","#a84e42","#6e8955","#d69a57","#c7a76b"];
- for(let i=0;i<10;i++){
-  const x=130+i*78;
-  ctx.fillStyle=foodColors[i%foodColors.length];
-  ctx.beginPath();
-  ctx.ellipse(x,410,25,16,0,0,Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle="#f1dfbd";
-  ctx.beginPath();
-  ctx.arc(x-7,405,4,0,Math.PI*2);
-  ctx.fill();
- }
-
- for(let i=0;i<5;i++){
-  const x=170+i*160;
-  ctx.fillStyle="#8c6047";
-  ctx.beginPath();
-  ctx.ellipse(x,445,33,11,0,0,Math.PI*2);
-  ctx.fill();
-  ctx.fillStyle="#6e8955";
-  for(let j=0;j<5;j++){
-   ctx.beginPath();
-   ctx.arc(x-18+j*9,438,5,0,Math.PI*2);
-   ctx.fill();
-  }
+ // Auslage mit erkennbaren Speisen von der Weinblatt-Speisekarte
+ const counterDishes=["Dolma","Karnıyarık","Kichererbsen-Eintopf","Türlü","Köfte",
+  "Antipasti Mediterran","Gözsies Veggie","Hummus","Gefüllte Tomaten","Weinblätter"];
+ for(let i=0;i<counterDishes.length;i++){
+  drawDishIllustration(counterDishes[i],130+i*78,414,0.72);
  }
 
  // Flaschen
@@ -1830,6 +1928,9 @@ function drawRestaurantInterior(){
   box(x+3,180,7,12,"#d4bd8a");
  }
 
+ // Die Tafel liegt als vorderste Wandschicht und bleibt vollständig sichtbar.
+ drawWeinblattMenuBoard();
+
  plantPot(950,365);
 
  box(370,290,260,35,"#f5e8d2");
@@ -1838,7 +1939,7 @@ function drawRestaurantInterior(){
  ctx.textAlign="center";
  ctx.fillText("FRISCHE & FEINKOST",500,314);
 
- drawShopkeeper();
+ // Die Mitarbeiterin steht hinter der Theke; die Thekenkante verdeckt ihren Unterkörper.
 
  // Beide Figuren vor der Theke
  drawCharacter(hasanImages,restaurantPlayers.hasan.x,
@@ -2033,36 +2134,21 @@ function drawFoodBackground(){
 }
 
 function drawFallingFood(item){
- ctx.save();
- ctx.font="34px Arial";
- ctx.textAlign="center";
- ctx.textBaseline="middle";
-
  if(item.sauce){
-  ctx.fillStyle="#6b9a52";
-  ctx.beginPath();
-  ctx.ellipse(item.x,item.y,24,20,0,0,Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle="#d7e7b8";
-  ctx.lineWidth=3;
-  ctx.stroke();
-  ctx.fillStyle="#fff";
-  ctx.font="25px Arial";
-  ctx.fillText("🥣",item.x,item.y+1);
+  ctx.save();ctx.translate(item.x,item.y);
+  ctx.fillStyle="#e8dfc9";ctx.beginPath();ctx.ellipse(0,2,28,19,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#789b58";ctx.beginPath();ctx.ellipse(0,0,23,14,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#d8e4b6";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,12,.3,5.6);ctx.stroke();
+  ctx.fillStyle="#f3e8d0";ctx.beginPath();ctx.arc(-8,-4,2,0,Math.PI*2);ctx.arc(9,4,2,0,Math.PI*2);ctx.fill();
+  ctx.restore();
  }else{
-  ctx.fillStyle="#fff7e8";
-  ctx.beginPath();
-  ctx.arc(item.x,item.y,25,0,Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle="#c8a77f";
-  ctx.lineWidth=2;
-  ctx.stroke();
-  ctx.fillText(item.dish?item.dish.emoji:item.emoji,item.x,item.y+1);
-  if(item.dish&&!item.sauce){ctx.fillStyle="#684b3c";ctx.font="9px Arial";ctx.fillText(item.dish.name,item.x,item.y+39);}
+  drawDishIllustration(item.dish?item.dish.name:"Dolma",item.x,item.y,1.12);
+  if(item.dish&&!item.sauce){
+   ctx.fillStyle="#684b3c";ctx.font="9px Arial";ctx.textAlign="center";
+   ctx.fillText(item.dish.name,item.x,item.y+39);
+  }
  }
- ctx.restore();
 }
-
 function drawFoodPlayer(player,images){
  const image=images.front;
  if(image&&image.complete&&image.naturalWidth>0){
@@ -2325,59 +2411,20 @@ function sayingsSceneArt(index,now){
  ctx.restore();
 }
 function drawWrongSayingsArt(index,now){
- // Die Bilder zeigen bewusst Hasans falsche, wörtliche Formulierungen – niemals die Lösung.
- ctx.save();ctx.textAlign="center";
- const emoji=(symbol,x,y,size=70)=>{ctx.font=size+"px Arial";ctx.fillText(symbol,x,y);};
- switch(index){
-  case 0: // Gerüchte reißen sich darum
-   emoji("🗣️",260,245,65);emoji("🗣️",740,245,65);emoji("💬",500,210,85);
-   line(320,230,430,220,"#f2c47e",8);line(680,230,570,220,"#f2c47e",8);
-   emoji("🫳",390,290,42);emoji("🫴",610,290,42);break;
-  case 1: // Aus den Socken/Schuhen fallen
-   emoji("🧍",500,280,100);emoji("🧦",380,325,58);emoji("🧦",620,325,58);emoji("👟",300,270,48);emoji("👞",700,270,48);
-   for(let i=0;i<5;i++)line(360+i*70,130,350+i*70,165,"#f5d38d",3);break;
-  case 2: // Feuerbändiger in die Knie besiegt
-   box(0,300,W,55,"#513c42");emoji("🔥",330,220,78);emoji("🔥",670,220,78);emoji("🧎",500,300,100);emoji("🥷",350,300,65);emoji("🥷",650,300,65);break;
-  case 3: // Leiern aus sich herausziehen
-   emoji("🧍",500,290,115);emoji("🪕",330,245,85);emoji("🪕",680,245,85);
-   line(410,235,350,245,"#f2c47e",5);line(590,235,650,245,"#f2c47e",5);emoji("😣",500,170,48);break;
-  case 4: // Drops in den Brunnen gefallen
-   ctx.fillStyle="#8b6c57";ctx.beginPath();ctx.ellipse(500,285,150,52,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#253d50";ctx.beginPath();ctx.ellipse(500,280,112,34,0,0,Math.PI*2);ctx.fill();
-   emoji("🍬",500,205,62);line(500,150,500,245,"#f6d89b",3);emoji("💧",620,320,35);break;
-  case 5: // Gegen eine Wand kämpfen
-   for(let y=170;y<355;y+=42)for(let x=620;x<970;x+=70)sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);
-   emoji("🥊",470,260,90);emoji("🧍",330,300,95);emoji("💥",560,210,48);break;
-  case 6: // Gegen eine Wand fahren
-   for(let y=170;y<355;y+=42)for(let x=680;x<990;x+=70)sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);
-   emoji("🚗",490,285,105);emoji("💥",630,245,62);break;
-  case 7: // Zug schon abgelaufen
-   emoji("🚂",500,270,110);sayingsRounded(350,135,300,90,12,"#f0dfbf","#b68b63",3);emoji("📅",430,205,48);ctx.fillStyle="#a33e48";ctx.font="bold 24px Arial";ctx.fillText("ABGELAUFEN",540,190);break;
-  case 8: // Schuh auf Goldwaage
-   line(500,145,500,305,"#e4c78f",8);line(370,195,630,195,"#e4c78f",7);line(395,195,365,275,"#d5bd94",3);line(605,195,635,275,"#d5bd94",3);
-   ctx.strokeStyle="#d5bd94";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(365,280,55,14,0,0,Math.PI*2);ctx.ellipse(635,280,55,14,0,0,Math.PI*2);ctx.stroke();emoji("👞",365,265,65);emoji("⚖️",500,165,55);break;
-  case 9: // ans Zahnfleisch gehen
-   emoji("🦷",390,250,100);emoji("🦷",610,250,100);emoji("🦷",500,190,75);emoji("🦵",500,315,70);emoji("😬",500,120,55);break;
-  case 10: // Was ist, kann werden
-   emoji("📦",500,275,105);emoji("✨",500,175,55);emoji("➡️",650,260,55);emoji("❓",350,180,55);break;
-  case 11: // Herz auf der rechten Seite
-   emoji("🧍",500,300,150);emoji("🫀",570,245,65);line(530,245,560,245,"#efb0a9",4);break;
-  case 12: // an die Wand gegangen
-   for(let y=170;y<355;y+=42)for(let x=650;x<990;x+=70)sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);
-   emoji("🚶",500,290,105);emoji("💥",620,250,55);break;
-  case 13: // vom alten Hasen
-   emoji("🐇",500,275,120);emoji("👴",350,245,70);emoji("🕰️",650,200,55);emoji("🧓",700,300,60);break;
-  case 14: // ganzen Hasen nicht trauen
-   emoji("🐇",500,260,125);emoji("🕵️",330,260,70);emoji("👀",650,190,65);emoji("❓",500,145,50);break;
-  case 15: // viel im Keller haben
-   box(0,190,W,165,"#40343b");sayingsRounded(330,150,340,205,8,"#6d5549","#c79d6c",5);sayingsRounded(365,180,270,175,5,"#211e2b","#9c7757",4);
-   emoji("📦",430,285,65);emoji("🪑",560,290,65);emoji("🧹",500,220,55);emoji("🔦",610,210,45);break;
-  case 16: // Pool offen halten
-   box(0,245,W,110,"#254e60");for(let y=260;y<350;y+=25){ctx.strokeStyle="#72b8c1";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,y+Math.sin(now/300+y)*5);ctx.quadraticCurveTo(250,y-12,500,y);ctx.quadraticCurveTo(750,y+12,1000,y);ctx.stroke();}
-   emoji("🏊",500,315,82);emoji("🚪",500,205,80);emoji("🔓",640,175,48);break;
+ // Hochwertige, einheitliche Märchenbuch-Illustration statt der bisherigen Emoji-Symbole.
+ const img=wrongSayingImages[index];
+ if(img && img.complete && img.naturalWidth>0){
+  const maxW=560,maxH=365;
+  const scale=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);
+  const w=img.naturalWidth*scale;
+  const h=img.naturalHeight*scale;
+  ctx.save();
+  ctx.shadowColor="#e8c98b66";
+  ctx.shadowBlur=18;
+  ctx.drawImage(img,(W-w)/2,112,w,h);
+  ctx.restore();
  }
- ctx.restore();
 }
-
 function drawSayingsAtmosphere(now,idx){
  // Mehr Tiefe: ferne Silhouetten, Lichtkegel, Partikel und eine weiche Vignette.
  ctx.save();
