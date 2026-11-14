@@ -301,10 +301,10 @@ let streetStoryStartedAt=0;
 let streetStoryPhase="walk";
 let streetDialogueIndex=-1;
 const streetDialogue=[
- {speaker:"Jill",text:"Oh nein oh nein was ist denn nun mit unserem Italien-Urlaub?"},
- {speaker:"Hasan",text:"Naja... der Drops ist jetzt schon in den Brunnen gefallen..."},
- {speaker:"Jill",text:"Tut mir ja leid mein Schatz aber diese Redewendung ist leider nicht ganz richtig."},
- {speaker:"Hasan",text:"Ist ja gut ich kriege das schon hin! Pass mal auf!"}
+ {speaker:"Jill",text:"Oh nein, oh nein! Was ist denn nun mit unserem Italien-Urlaub?"},
+ {speaker:"Hasan",text:"Na ja, der Drops ist jetzt schon in den Brunnen gefallen …"},
+ {speaker:"Jill",text:"Tut mir ja leid, mein Schatz, aber diese Redewendung ist leider nicht ganz richtig."},
+ {speaker:"Hasan",text:"Ist ja gut, ich kriege das schon hin! Pass mal auf!"}
 ];
 
 // Gemeinsames Inventar, freischaltbare Erfolge und neue Abenteuerorte
@@ -2550,10 +2550,11 @@ function drawSayingsLevel(){
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
  ctx.textAlign="center";ctx.font="bold 10px Georgia";ctx.fillStyle="#b8d7f1";ctx.fillText("HASAN",hasan.x,604);ctx.fillStyle="#f0b4c7";ctx.fillText("JILL",jill.x,604);
+ drawHeart(31,581,30,null);
  sayingsRounded(265,425,470,22,10,sayingsFeedback?(sayingsAnswerCorrect?"#e1f2df":"#f4e4cc"):"#fff0dc",sayingsFeedback?(sayingsAnswerCorrect?"#76b88b":"#c8a879"):"#d4b98e",1);
  ctx.fillStyle=sayingsFeedback?(sayingsAnswerCorrect?"#286345":"#785044"):"#8b6d53";ctx.font="bold 10px Georgia";ctx.fillText(sayingsFeedback||"Wählt die passende Redewendung aus.",500,440);
  if(sayingsSolved){
-  sayingsRounded(355,570,290,25,12,sayingsAnswerCorrect?"#e1f2df":"#f4e4cc",sayingsAnswerCorrect?"#78b68b":"#c8a879",2);ctx.fillStyle=sayingsAnswerCorrect?"#286345":"#785044";ctx.font="bold 11px Georgia";ctx.fillText(sayingsAnswerCorrect?"RICHTIG! Die nächste Szene öffnet sich gleich …":"Weiter zur nächsten Redewendung …",500,586);
+  // Die Rückmeldung bleibt bei der Antwort; keine zusätzliche Statuszeile am unteren Bildschirmrand.
   ctx.font="26px Georgia";ctx.fillText("✧",500,340);
   if(performance.now()-sayingsSolvedAt>=2000){continueSayings();return;}
  }
@@ -2912,6 +2913,7 @@ canvas.addEventListener("click",e=>{
  if(opened)return;
 
  if(scene==="sayings"){
+  if(x>=8&&x<=62&&y>=552&&y<=605){finishSayingsLevel();return;}
   const sparkT=performance.now()/260+sayingsSpark.phase;
   const sparkX=sayingsSpark.x+Math.sin(sparkT)*5;
   const sparkY=sayingsSpark.y+Math.sin(sparkT*1.7)*5;
