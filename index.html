@@ -2828,6 +2828,8 @@ function startHeart3D(){
  const host=document.getElementById("heart3d");
  host.style.display="block";
  if(window.initHeart3D){window.initHeart3D();return;}
+ // Das 3D-Modul kann beim ersten Aufruf noch laden. Den Start vormerken.
+ window.heart3dPending=true;
 }
 function stopHeartAudio(){
  const a=document.getElementById("heartBeat");
@@ -3419,6 +3421,13 @@ document.addEventListener("click",e=>{
 update();
 </script>
 
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
@@ -3430,6 +3439,8 @@ function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=hos
 function init(){if(state.renderer)return;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.5);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);state.renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.16));const key=new THREE.DirectionalLight(0xffe2c1,.35);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff3b12,0,8);state.light.position.set(0,0,1);state.scene.add(state.light);new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.y=.02;state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);o.material.emissive=new THREE.Color(0x160000);o.material.emissiveIntensity=.04;}});state.scene.add(state.heart);const ft=makeFlameTexture(),et=makeEmberTexture();for(let i=0;i<22;i++){const m=new THREE.SpriteMaterial({map:ft,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);s.scale.set(.35+Math.random()*.35,.85+Math.random()*.55,1);const a=Math.random()*Math.PI*2,r=.75+Math.random()*.6;s.position.set(Math.cos(a)*r,(Math.random()-.5)*1.7,Math.sin(a)*.55);state.scene.add(s);state.flames.push({sp:s,a,r,phase:Math.random()*6.28});}for(let i=0;i<85;i++){const m=new THREE.SpriteMaterial({map:et,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);s.scale.setScalar(.035+Math.random()*.045);state.scene.add(s);state.embers.push({sp:s,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.75+Math.random()*.7});}animate();},undefined,e=>console.error("Herzmodell konnte nicht geladen werden",e));}
 function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.rotation.y=.16*Math.sin(t*.45)+t*(.12+state.fire*.42);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.012+state.fire*.018);state.heart.scale.setScalar((state.baseScale||1)*beat);state.heart.traverse(o=>{if(o.isMesh&&o.material?.emissive){o.material.emissive.setRGB(.08+state.fire*.95,.006+state.fire*.12,.002);o.material.emissiveIntensity=.04+state.fire*1.8;}});state.light.intensity=state.fire*(2.5+Math.sin(t*8)*.7);state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.24+.35*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.x=Math.cos(f.a+t*.28)*f.r;f.sp.position.y=Math.sin(t*2+f.phase)*.22+Math.sin(t*1.8+f.phase)*.35;f.sp.scale.y=(.7+state.fire*.7)*(1+.16*Math.sin(t*7+f.phase));});state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r,((p/(Math.PI*2))-.5)*3.2,Math.sin(a)*.6);e.sp.material.opacity=state.fire*(.25+.55*Math.max(0,Math.sin(p)));});}state.renderer.render(state.scene,state.camera);}
 window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.addEventListener("resize",resize);
+// Falls das Spiel das Herz vor dem Laden des Moduls angefordert hat: jetzt starten.
+if(window.heart3dPending){window.heart3dPending=false;init();}
 </script>
 </body>
 </html>
