@@ -221,6 +221,30 @@ function loadImage(filename){
  return img;
 }
 
+// Erstellt für die drei Museumsfotos echte Graustufen-Bilddaten.
+// Dadurch sind sie unabhängig von der Canvas-Filterunterstützung immer schwarz-weiß.
+function loadGrayscaleMuseumPhoto(filename){
+ const source=new Image();
+ const grayCanvas=document.createElement("canvas");
+ const grayCtx=grayCanvas.getContext("2d",{willReadFrequently:true});
+ source.onload=()=>{
+  grayCanvas.width=source.naturalWidth;
+  grayCanvas.height=source.naturalHeight;
+  grayCtx.drawImage(source,0,0);
+  const pixels=grayCtx.getImageData(0,0,grayCanvas.width,grayCanvas.height);
+  const data=pixels.data;
+  for(let p=0;p<data.length;p+=4){
+   const luminance=Math.round(data[p]*0.2126+data[p+1]*0.7152+data[p+2]*0.0722);
+   data[p]=luminance;
+   data[p+1]=luminance;
+   data[p+2]=luminance;
+  }
+  grayCtx.putImageData(pixels,0,0);
+ };
+ source.src=filename;
+ return grayCanvas;
+}
+
 const hasanImages={
  front:loadImage("hasan-front.png"),
  left:loadImage("hasan-left.png"),
@@ -234,9 +258,9 @@ const jillImages={
  right:loadImage("jill-right.png")
 };
 const museumPhotos=[
- loadImage("museum-photo-02.jpg"),
- loadImage("museum-photo-01.jpg"),
- loadImage("museum-photo-03.jpg")
+ loadGrayscaleMuseumPhoto("museum-photo-02.jpg"),
+ loadGrayscaleMuseumPhoto("museum-photo-01.jpg"),
+ loadGrayscaleMuseumPhoto("museum-photo-03.jpg")
 ];
 
 const hasan={x:500,y:460,speed:3.2,direction:"front"};
@@ -496,19 +520,17 @@ function drawExhibit(exhibit,i){
  ctx.strokeStyle="#9d7044";ctx.lineWidth=3;
  ctx.strokeRect(exhibit.x-118,exhibit.y-124,236,288);
 
- // Originalfoto doppelt so groß, proportional zugeschnitten und schwarz-weiß
+ // Bereits beim Laden in echte Graustufen umgewandeltes Originalfoto
  const photo=museumPhotos[i];
  const px=exhibit.x-102,py=exhibit.y-98,pw=204,ph=236;
  box(px,py,pw,ph,"#2a2027");
- if(photo&&photo.complete&&photo.naturalWidth){
-  const scale=Math.max(pw/photo.naturalWidth,ph/photo.naturalHeight);
+ if(photo&&photo.width>0&&photo.height>0){
+  const scale=Math.max(pw/photo.width,ph/photo.height);
   const sw=pw/scale,sh=ph/scale;
-  const sx=(photo.naturalWidth-sw)/2,sy=(photo.naturalHeight-sh)/2;
+  const sx=(photo.width-sw)/2,sy=(photo.height-sh)/2;
   ctx.save();
   ctx.beginPath();ctx.rect(px,py,pw,ph);ctx.clip();
-  ctx.filter="grayscale(100%)";
   ctx.drawImage(photo,sx,sy,sw,sh,px,py,pw,ph);
-  ctx.filter="none";
   ctx.restore();
  }else{
   ctx.fillStyle="#e4d1b2";ctx.textAlign="center";ctx.font="18px Arial";
