@@ -92,7 +92,7 @@ button:hover{background:#6d3048}
   <p>Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.</p>
   <p>Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
   <p><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
-  <p><b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen. Achtet außerdem auf die kleine Tagesbestellung – die richtige Reihenfolge bringt Bonuspunkte!</p>
+  <p><b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen.</p>
   <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
   <button onclick="startFoodGame()">Start</button>
  </div>
@@ -2002,12 +2002,41 @@ function drawRestaurantInterior(){
   ctx.fillStyle="#a0a66c";ctx.beginPath();ctx.ellipse(ox-2,oy-1,3,1.5,rot,0,Math.PI*2);ctx.fill();
  }
 
- // Die Tafel liegt als vorderste Wandschicht und bleibt vollständig sichtbar.
+ // Die Speisetafel bleibt vollständig sichtbar an der Wand.
  drawWeinblattMenuBoard();
 
  plantPot(950,365);
 
- // Die Mitarbeiterin steht hinter der Theke; die Thekenkante verdeckt ihren Unterkörper.
+ // Die Mitarbeiterin steht wieder gut sichtbar hinter der Theke.
+ // Ihr Kopf, ihre Schultern und die Hände bleiben oberhalb der Thekenkante.
+ drawShopkeeper();
+
+ // Große, warme Holztheke mit steinerner Arbeitsplatte.
+ box(58,390,884,112,"#4b3028");
+ box(58,388,884,17,"#d0b58d");
+ box(58,405,884,8,"#8b6248");
+ box(68,414,864,78,"#79513d");
+ // Kassetten und goldene Details an der Front.
+ for(const x of [88,300,512,724,876]){
+  box(x,423,48,57,"#684536");
+  ctx.strokeStyle="#b58b5e";ctx.lineWidth=2;ctx.strokeRect(x,423,48,57);
+  ctx.strokeStyle="#9b7350";ctx.lineWidth=1;ctx.strokeRect(x+6,429,36,45);
+ }
+ box(58,492,884,10,"#4b3028");
+ // Reichhaltige Frischetheke: viele kleine Schalen und Platten mit Speisen
+ // von der Weinblatt-Speisekarte, dicht nebeneinander angerichtet.
+ const counterDishes=[
+  "Dolma","Antipasti Mediterran","Hummus","Köfte","Taboulé",
+  "Falafel","Baba Ghanoush","Karnıyarık","Couscous","Weinblätter",
+  "Gefüllte Tomaten","Kibbeh","Türlü","Fladenbrot","Dolma"
+ ];
+ for(let i=0;i<counterDishes.length;i++){
+  const x=92+i*58;
+  // kleine Servierplatte mit feinem Rand
+  ctx.fillStyle="#e9ddc8";ctx.beginPath();ctx.ellipse(x,382,25,10,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#b99e7c";ctx.lineWidth=1;ctx.stroke();
+  drawDishIllustration(counterDishes[i],x,380,.62);
+ }
 
  // Beide Figuren vor der Theke
  drawCharacter(hasanImages,restaurantPlayers.hasan.x,
@@ -2397,8 +2426,8 @@ function finishSayingsLevel(){
  document.getElementById("pageSubtitle").textContent="";
  document.getElementById("help").innerHTML="";
  heartExteriorEntered={hasan:false,jill:false};
- hasan.x=420;hasan.y=545;hasan.direction="front";
- jill.x=580;jill.y=545;jill.direction="front";
+ hasan.x=285;hasan.y=555;hasan.direction="right";
+ jill.x=715;jill.y=555;jill.direction="left";
  heartSceneStartedAt=performance.now();
 }
 function sayingsRounded(x,y,w,h,r,fill,stroke=null,lineWidth=1){
@@ -2828,7 +2857,7 @@ function drawHeartExterior(){
  const nearH=Math.hypot(hasan.x-500,hasan.y-455)<115,nearJ=Math.hypot(jill.x-500,jill.y-455)<115;
  if(nearH)heartExteriorEntered.hasan=true;if(nearJ)heartExteriorEntered.jill=true;
  if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){
-  ctx.fillStyle="#fff0d5";ctx.font="bold 15px Georgia";ctx.fillText("Ihr seid beide am Eingang. Drückt E oder die Leertaste.",500,580);
+  ctx.fillStyle="#fff0d5";ctx.font="bold 15px Georgia";ctx.fillText("Ihr seid beide am Eingang.",500,580);
  }
 }
 function enterHeartBuilding(){
@@ -3349,6 +3378,14 @@ canvas.addEventListener("mousemove",e=>{
  const overStart=scene==="landing"&&x>=395&&x<=605&&y>=465&&y<=519;
  canvas.style.cursor=(overStart||(overHeart&&
   (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete"||scene==="heartIntro"||scene==="heartGame"||scene==="heartLetter")))?"pointer":"default";
+});
+
+// Auch Klicks außerhalb der Spielfläche dürfen die bestandene Sprachprüfung verlassen.
+document.addEventListener("click",e=>{
+ if(e.target===canvas)return;
+ if(scene==="sayingsComplete"&&performance.now()-sayingsCompletedAt>=6500){advanceHeartChapter();return;}
+ if(scene==="heartInterior"){scene="heartDialogue";return;}
+ if(scene==="heartDialogue"){advanceHeartChapter();return;}
 });
 
 update();
