@@ -2863,9 +2863,9 @@ function stopHeartAudio(){
  a.pause();a.currentTime=0;a.playbackRate=1;a.volume=1;
 }
 function heartSetBeat(){
+ // Der Herzschlag bleibt während des gesamten Spiels unverändert:
+ // normale Geschwindigkeit und normale Lautstärke, unabhängig von den Treffern.
  const a=document.getElementById("heartBeat");
- // Der Herzschlag bleibt während des gesamten Spiels in Originaltempo und -lautstärke.
- // Funken-Treffer verändern weder playbackRate noch volume oder Audio-Gain.
  a.playbackRate=1;
  a.volume=1;
  if(a.paused){a.play().catch(()=>{});}
@@ -3072,7 +3072,7 @@ function drawHeartEntering(now){
  const progress=heartEnteringStartedAt?Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000)):0;
  // Beide Figuren laufen aus dem unteren Bildrand in die Mitte der Halle.
  const y=605-progress*205;
- const scale=.58+progress*.42;
+ const scale=.58; // Vogelperspektive: Figuren bleiben während des gesamten Laufwegs gleich groß.
  ctx.save();ctx.translate(0,y);ctx.scale(scale,scale);
  drawCharacter(hasanImages,420/scale,0,"back",true);
  drawCharacter(jillImages,580/scale,0,"back",true);
@@ -3117,7 +3117,7 @@ function drawHeartIntro(){
  ctx.fillStyle="#fff0dc";ctx.font="17px Cormorant Garamond";
  ["Sammle die aufleuchtenden Funken ein, indem du sie anklickst.",
   "Aus jedem Funken löst sich eine Flamme, die zu Jills Herz fliegt.",
-  "Mit jedem Treffer schlägt ihr Herz schneller und lauter und beginnt mehr zu brennen.",
+  "Das Herzklopfen begleitet dich während des gesamten Spiels.",
   "Deine Aufgabe: Sammle alle 24 Funken ein, um Jills Herz zum Brennen zu bringen."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
  ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
  ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText(heartCountdownStarted?"":"START",500,482);
@@ -3178,7 +3178,7 @@ function drawHeartLetter(now){
  const x=heartLetterOpened?500:500+Math.sin(elapsed*10)*30*(1-travel);
  const y=heartLetterOpened?310:265-55*Math.sin(travel*Math.PI*.72)+45*travel;
  const angle=heartLetterOpened?0:(-.42*(1-travel)+Math.sin(elapsed*12)*.16*(1-travel));
- const scale=heartLetterOpened?1:(.28+.72*travel);
+ const scale=heartLetterOpened?2.0:(.28+1.72*travel);
  const unfold=heartLetterOpened?1:Math.min(1,Math.max(0,(elapsed-1.65)/1.0));
  paperCtx.save();paperCtx.translate(x,y);paperCtx.rotate(angle);paperCtx.scale(scale,scale);
  // Papierkörper mit unregelmäßigen, verbrannten Rändern.
@@ -3662,7 +3662,7 @@ function addFlame(screenX,screenY,hit){
   blending:THREE.AdditiveBlending
  });
  const sp=new THREE.Sprite(mat);
- sp.scale.set(type===3?.30:.34,type===3?.48:.48,1);
+ sp.scale.set(type===3?.36:.40,type===3?.56:.56,1);
  sp.position.copy(startLocal);
  state.heart.add(sp);
  // Zielpunkte liegen auf der Vorderseite im unteren Herzdrittel.
@@ -3670,9 +3670,15 @@ function addFlame(screenX,screenY,hit){
  const width=state.heartBounds.width;
  const height=state.heartBounds.height;
  const depth=state.heartBounds.depth;
- const targetX=(Math.random()-.5)*width*.62;
- const targetY=-height*.5+height*(.18+Math.random()*.16);
- const targetZ=depth*.5+.055;
+ // Flammen über den gesamten Umfang des unteren Herzbereichs verteilen:
+ // nicht nur auf der sichtbaren Vorderseite, sondern rings um Breite und Tiefe.
+ // Durch die fortlaufende Y-Drehung des Herz-Pivots ziehen sie sichtbar mit.
+ const ringAngle=((hit-1)*2.399963229728653)+(Math.random()-.5)*.42;
+ const ringRadiusX=width*(.27+Math.random()*.075);
+ const ringRadiusZ=depth*(.43+Math.random()*.10);
+ const targetX=Math.cos(ringAngle)*ringRadiusX;
+ const targetY=-height*(.27+Math.random()*.055)+Math.sin(ringAngle*2)*height*.035;
+ const targetZ=Math.sin(ringAngle)*ringRadiusZ+.025;
  state.gifFlames.push({
   sp,fromX:startLocal.x,fromY:startLocal.y,fromZ:startLocal.z,
   toX:targetX,toY:targetY,toZ:targetZ,
@@ -3681,7 +3687,7 @@ function addFlame(screenX,screenY,hit){
 }
 function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
- const tint=Math.min(.16,(window.heart3DHitCount||0)*.0065);
+ const tint=Math.min(.23,(window.heart3DHitCount||0)*.0095);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
  state.light.intensity=state.fire*(.6+Math.sin(t*8)*.1);
  state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.18+.28*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.67+Math.sin(t*2+f.phase)*.025;f.sp.scale.y=.30+.06*Math.sin(t*7+f.phase);});
@@ -3690,7 +3696,7 @@ function animate(){requestAnimationFrame(animate);const t=performance.now()/1000
   if(f.landed){
    f.sp.position.set(f.toX,f.toY,f.toZ);
    f.sp.material.opacity=.96;
-   f.sp.scale.set(.30,.43,1);
+   f.sp.scale.set(.36,.52,1);
   }else{
    const q=Math.min(1,(performance.now()-f.start)/f.life);
    const ease=1-Math.pow(1-q,2);
@@ -3699,9 +3705,9 @@ function animate(){requestAnimationFrame(animate);const t=performance.now()/1000
     f.fromY+(f.toY-f.fromY)*ease,
     f.fromZ+(f.toZ-f.fromZ)*ease+.12*Math.sin(q*Math.PI)
    );
-   f.sp.scale.set(.24+.10*Math.sin(q*Math.PI),.32+.16*Math.sin(q*Math.PI),1);
+   f.sp.scale.set(.30+.12*Math.sin(q*Math.PI),.40+.18*Math.sin(q*Math.PI),1);
    f.sp.material.opacity=1;
-   if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,f.toZ);f.sp.scale.set(.30,.43,1);f.sp.material.opacity=.96;}
+   if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,f.toZ);f.sp.scale.set(.36,.52,1);f.sp.material.opacity=.96;}
   }
   // Die GIF-Bilddaten werden pro Frame erneut an WebGL übergeben.
   f.tex.needsUpdate=true;
