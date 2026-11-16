@@ -7,6 +7,11 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#211b2c;color:#fff0d5;font-family:Georgia,serif;text-align:center}
+#sayingsVideo{display:none;position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;z-index:0;pointer-events:none}
+body.sayings-celebrating{background:#050408}
+body.sayings-celebrating #sayingsVideo{display:block}
+body.sayings-celebrating #game,body.sayings-celebrating #help{position:relative;z-index:1}
+body.sayings-celebrating canvas{border-color:transparent;background:transparent}
 header{display:none}
 h1{margin:5px;color:#f3cf91;font-size:clamp(23px,4vw,36px)}
 header p{color:#d6c1b3;margin:5px}
@@ -37,6 +42,7 @@ button:hover{background:#6d3048}
  <p id="pageSubtitle">Ein Abenteuer für Hasan ♥</p>
 </header>
 
+<video id="sayingsVideo" src="sayings-celebration-video.mp4" muted loop playsinline preload="auto"></video>
 <div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
 <audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
@@ -2417,6 +2423,9 @@ function continueSayings(){
 let sayingsCompletedAt=0;
 function finishSayingsLevel(){
  sayingsCompleted=true;scene="sayingsComplete";sayingsCompletedAt=performance.now();
+ document.body.classList.add("sayings-celebrating");
+ const celebrationVideo=document.getElementById("sayingsVideo");
+ if(celebrationVideo){celebrationVideo.currentTime=0;const vp=celebrationVideo.play();if(vp&&typeof vp.catch==="function")vp.catch(()=>{});}
  const quizMusic=document.getElementById("sayingsMusic");
  if(quizMusic){quizMusic.pause();quizMusic.currentTime=0;}
  const cheer=document.getElementById("sayingsCheer");
@@ -2832,34 +2841,49 @@ function heartSetBeat(){
  a.volume=heartPhase===0?0.38:heartPhase===1?0.58:0.78;
 }
 function drawHeartExterior(){
- ctx.save();
- if(stadtbadExterior&&stadtbadExterior.complete&&stadtbadExterior.naturalWidth){
-  const s=Math.max(W/stadtbadExterior.naturalWidth,H/stadtbadExterior.naturalHeight);
-  const sw=W/s,sh=H/s;
-  ctx.drawImage(stadtbadExterior,(stadtbadExterior.naturalWidth-sw)/2,(stadtbadExterior.naturalHeight-sh)/2,sw,sh,0,0,W,H);
- }else{
-  box(0,0,W,H,"#b8a58b");box(0,0,W,620,"#c3b39b");
-  box(80,150,840,330,"#c6bda9");
-  ctx.fillStyle="#b7aa94";ctx.fillRect(90,180,820,250);
-  ctx.fillStyle="#6c7a80";ctx.fillRect(390,290,220,190);
+ // Detailgetreue zeichnerische Nachbildung des Referenzfotos – kein externes Foto nötig.
+ box(0,0,W,H,"#b9aa91");
+ // gealterte Sandsteinfassade
+ const facade=ctx.createLinearGradient(0,0,0,470);facade.addColorStop(0,"#665c4e");facade.addColorStop(.42,"#8d806c");facade.addColorStop(1,"#c1b49b");ctx.fillStyle=facade;ctx.fillRect(0,0,W,470);
+ // obere dunkle Attika und Steinquader
+ for(let y=0;y<470;y+=42){for(let x=(y/42%2)*34;x<W;x+=105){ctx.strokeStyle="#514a40";ctx.globalAlpha=.22;ctx.strokeRect(x,y,105,42);}}ctx.globalAlpha=1;
+ // drei hohe Fenster mit tiefen steinernen Laibungen
+ for(let i=0;i<3;i++){
+  const x=170+i*235;box(x-12,92,124,145,"#4e473e");box(x-5,99,110,130,"#a99b7f");box(x+3,107,94,114,"#29363a");
+  const glass=ctx.createLinearGradient(x,108,x+90,220);glass.addColorStop(0,"#9ab0b0");glass.addColorStop(1,"#536d74");ctx.fillStyle=glass;ctx.fillRect(x+7,111,86,106);
+  line(x+50,111,x+50,217,"#c6b99c",7);line(x+7,164,x+93,164,"#c6b99c",7);
+  ctx.strokeStyle="#403a32";ctx.lineWidth=5;ctx.strokeRect(x-7,104,114,121);
  }
- // cinematic twilight and readable architectural emphasis
- ctx.fillStyle="#17131b55";ctx.fillRect(0,0,W,H);
- ctx.fillStyle="#ead8b6";ctx.textAlign="center";ctx.font="bold 25px Georgia";
- ctx.shadowColor="#171019";ctx.shadowBlur=8;ctx.fillText("STADTBAD LICHTENBERG",500,92);ctx.shadowBlur=0;
- // entrance highlight, aligned with the central doorway of the reference facade
- ctx.strokeStyle="#e8c98a";ctx.lineWidth=3;ctx.strokeRect(391,295,218,185);
- ctx.fillStyle="#f1d6a5";ctx.font="14px Arial";ctx.fillText("E / LEERTASTE – EINTRETEN",500,520);
- ctx.restore();
+ // steinerne Figuren zwischen den Fenstern und an den Außenkanten
+ for(const x of [45,290,525,760,955]){
+  ctx.fillStyle="#b7a98d";ctx.beginPath();ctx.moveTo(x-17,55);ctx.lineTo(x+17,55);ctx.lineTo(x+23,76);ctx.lineTo(x+14,90);ctx.lineTo(x+12,132);ctx.lineTo(x-12,132);ctx.lineTo(x-14,90);ctx.lineTo(x-23,76);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#62594d";ctx.beginPath();ctx.arc(x,47,10,0,Math.PI*2);ctx.fill();
+  box(x-22,132,44,9,"#51493f");
+ }
+ // Schild mit dem originalen Namen
+ box(250,245,500,45,"#4d493e");ctx.strokeStyle="#c0b18e";ctx.lineWidth=3;ctx.strokeRect(250,245,500,45);
+ ctx.textAlign="center";ctx.fillStyle="#b5b99c";ctx.font="bold 25px Georgia";ctx.fillText("Stadtbad Lichtenberg",500,276);
+ // drei Eingangs-/Fensterfelder im Erdgeschoss
+ for(let i=0;i<3;i++){
+  const x=110+i*260;box(x-8,310,268,190,"#5a5145");box(x,320,252,180,i===1?"#28383b":"#b9b6a8");
+  if(i===1){box(x+54,320,144,180,"#34474a");box(x+68,330,116,170,"#233338");line(x+126,330,x+126,500,"#9a927d",4);}
+  else {for(let y=335;y<490;y+=26){line(x+8,y,x+244,y,"#d4c9b4",2);}}
+  ctx.strokeStyle="#413c34";ctx.lineWidth=8;ctx.strokeRect(x-3,313,258,187);
+ }
+ // verwitterte Graffiti-Spuren im unteren Mauerbereich, dezent wie im Foto
+ ctx.save();ctx.globalAlpha=.65;ctx.lineWidth=4;ctx.strokeStyle="#3d4c8c";ctx.beginPath();ctx.moveTo(145,450);ctx.lineTo(164,420);ctx.lineTo(182,454);ctx.lineTo(198,426);ctx.stroke();ctx.strokeStyle="#a65b36";ctx.beginPath();ctx.moveTo(420,470);ctx.lineTo(455,442);ctx.lineTo(478,469);ctx.stroke();ctx.restore();
+ // dunkler Abendlook
+ ctx.fillStyle="#17131b35";ctx.fillRect(0,0,W,H);
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,!!(keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown));
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,!!(keys.a||keys.d||keys.w||keys.s));
  ctx.textAlign="center";ctx.font="bold 11px Arial";ctx.fillStyle="#d8e7ff";ctx.fillText("HASAN",hasan.x,hasan.y+12);ctx.fillStyle="#ffd1df";ctx.fillText("JILL",jill.x,jill.y+12);
+ // Türbereich mittig; beide Figuren müssen ihn erreichen.
  const nearH=Math.hypot(hasan.x-500,hasan.y-455)<115,nearJ=Math.hypot(jill.x-500,jill.y-455)<115;
  if(nearH)heartExteriorEntered.hasan=true;if(nearJ)heartExteriorEntered.jill=true;
- if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){
-  ctx.fillStyle="#fff0d5";ctx.font="bold 15px Georgia";ctx.fillText("Ihr seid beide am Eingang.",500,580);
- }
+ ctx.fillStyle="#fff0d5";ctx.font="bold 14px Arial";
+ ctx.fillText(heartExteriorEntered.hasan&&heartExteriorEntered.jill?"Ihr seid beide am Eingang.":"Geht gemeinsam zum Eingang – Hasan: Pfeiltasten · Jill: WASD",500,590);
 }
+
 function enterHeartBuilding(){
  scene="heartInterior";
  hasan.x=420;hasan.y=530;hasan.direction="back";
@@ -3002,7 +3026,12 @@ function drawHeartLetter(now){
  if(elapsed>3.5)heartLetterOpened=true;
 }
 function advanceHeartChapter(){
- if(scene==="sayingsComplete"){scene="heartExterior";heartSceneStartedAt=performance.now();return;}
+ if(scene==="sayingsComplete"){
+  const celebrationVideo=document.getElementById("sayingsVideo");
+  if(celebrationVideo){celebrationVideo.pause();celebrationVideo.currentTime=0;}
+  document.body.classList.remove("sayings-celebrating");
+  scene="heartExterior";heartSceneStartedAt=performance.now();return;
+ }
  if(scene==="heartInterior"){scene="heartDialogue";return;}
  if(scene==="heartDialogue"){
   heartDialogueIndex++;
@@ -3049,9 +3078,8 @@ function updateHeartChapter(now){
 
 function drawSayingsCelebration(now){
  const t=now/1000;
- const bg=ctx.createLinearGradient(0,0,0,H);
- bg.addColorStop(0,"#fff1d8");bg.addColorStop(.58,"#f8dfc0");bg.addColorStop(1,"#eac9a7");
- ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ // Der Canvas bleibt transparent: Das Video liegt vollflächig hinter Text und Figuren.
+ ctx.clearRect(0,0,W,H);
  const halo=ctx.createRadialGradient(500,235,25,500,270,470);
  halo.addColorStop(0,"#fff9e9cc");halo.addColorStop(1,"#fff9e900");
  ctx.fillStyle=halo;ctx.fillRect(0,0,W,H);
@@ -3068,8 +3096,8 @@ function drawSayingsCelebration(now){
   ctx.save();ctx.translate(x,y);ctx.rotate(t*(i%2?1.8:-1.5)+i);
   ctx.fillStyle=confetti[i%confetti.length];ctx.globalAlpha=.88;ctx.fillRect(-w/2,-h/2,w,h);ctx.restore();
  }
- sayingsRounded(92,68,816,360,28,"#fff8eb","#c69a68",3);
- sayingsRounded(104,80,792,336,22,"#fffaf0","#ead6b8",1);
+ sayingsRounded(92,68,816,360,28,"#fff8eb66","#c69a68",3);
+ sayingsRounded(104,80,792,336,22,"#fffaf055","#ead6b8",1);
  ctx.textAlign="center";
  const pop=Math.min(1,(now-sayingsCompletedAt)/650);
  ctx.save();ctx.translate(500,151);ctx.scale(.88+.12*(1-Math.pow(1-pop,3)),.88+.12*(1-Math.pow(1-pop,3)));
