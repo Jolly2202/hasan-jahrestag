@@ -305,6 +305,8 @@ let heartDialogueIndex=0;
 let heartGameStarted=false;
 let heartCountdownStarted=0;
 let heartCountdownValue=0;
+let heartPhase=0;
+let heartPhaseHits=0;
 let heartTotalHits=0;
 let heartSparks=[];
 let heartLastSpawn=0;
@@ -313,14 +315,16 @@ let heartLastBeatAt=0;
 let heartAudioStartAt=0;
 let heartLetterAt=0;
 let heartLetterOpened=false;
-let heartLetterFlightDoneAt=0;
 let heartPaperY=-120;
 let heartPaperX=500;
 let heartPaperAngle=-0.4;
 let heartPointer={x:500,y:310,down:false};
 let heartSceneStartedAt=0;
 let heartEnteringStartedAt=0;
+let heartDoorOpeningStartedAt=0;
 let heartWalkAudioStarted=false;
+let heartBeatAudioContext=null;
+let heartBeatGain=null;
 let heartDialogueLines=[
  {speaker:"Hasan",text:"Warte mal … kommt dir dieser Raum nicht bekannt vor?"},
  {speaker:"Jill",text:"Ich muss dir etwas zeigen."},
@@ -2862,10 +2866,23 @@ function stopHeartAudio(){
 function heartSetBeat(){
  const a=document.getElementById("heartBeat");
  const progress=Math.min(1,heartTotalHits/24);
- if(a.paused){a.play().catch(()=>{});}
- // Der Herzschlag steigert sich mit jedem eingesammelten Funken hörbar.
+ // Der Herzschlag wird mit jedem Funken etwas schneller und deutlich lauter.
  a.playbackRate=.82+progress*.78;
- a.volume=.34+progress*.66;
+ a.volume=.22+progress*.78;
+ try{
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(AudioCtx){
+   if(!heartBeatAudioContext){
+    heartBeatAudioContext=new AudioCtx();
+    const source=heartBeatAudioContext.createMediaElementSource(a);
+    heartBeatGain=heartBeatAudioContext.createGain();
+    source.connect(heartBeatGain);heartBeatGain.connect(heartBeatAudioContext.destination);
+   }
+   if(heartBeatAudioContext.state==='suspended')heartBeatAudioContext.resume();
+   heartBeatGain.gain.setTargetAtTime(.9+progress*2.2,heartBeatAudioContext.currentTime,.08);
+  }
+ }catch(e){/* HTML-Audiolautstärke bleibt als Fallback aktiv. */}
+ if(a.paused){a.play().catch(()=>{});}
 }
 function drawHeartExterior(){
  // Stadtbad Lichtenberg: maßstäbliche, perspektivisch leicht schräge Nachbildung
@@ -2952,9 +2969,23 @@ function drawHeartExterior(){
  ctx.fillText(heartExteriorEntered.hasan&&heartExteriorEntered.jill?"Ihr seid beide an der mittleren Eingangstür.":"Geht die Treppe hinauf und durch die mittlere Tür – Hasan: Pfeiltasten · Jill: WASD",500,606);
 }
 
+function drawHeartDoorOpening(now){
+ drawHeartExterior();
+ const progress=Math.min(1,Math.max(0,(now-heartDoorOpeningStartedAt)/850));
+ // Die beiden Flügel der mittleren Eingangstür schwingen sichtbar nach außen auf.
+ const leftX=432-progress*66;
+ const rightX=502+progress*66;
+ ctx.save();
+ ctx.fillStyle="#667574";ctx.strokeStyle="#c7bca6";ctx.lineWidth=4;
+ ctx.fillRect(leftX,525,66,91);ctx.strokeRect(leftX,525,66,91);
+ ctx.fillRect(rightX,525,66,91);ctx.strokeRect(rightX,525,66,91);
+ ctx.strokeStyle="#d0c4ad";ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(leftX+8,570);ctx.lineTo(leftX+58,570);ctx.moveTo(rightX+8,570);ctx.lineTo(rightX+58,570);ctx.stroke();
+ ctx.restore();
+ if(progress>=1)enterHeartBuilding();
+}
+
 function enterHeartBuilding(){
- // Sobald beide Figuren die mittlere Tür erreicht haben, wechseln wir in die Halle.
- // Der Innenraum wird zuerst gezeichnet; erst dort starten Laufanimation und Schritte.
  scene="heartEntering";
  heartEnteringStartedAt=0;
  heartWalkAudioStarted=false;
@@ -2965,7 +2996,7 @@ function enterHeartBuilding(){
  const outside=document.getElementById("stadtbadAmbience");
  if(outside){outside.pause();outside.currentTime=0;}
  const walk=document.getElementById("stadtbadWalk");
- if(walk){walk.pause();walk.currentTime=0;walk.ontimeupdate=null;}
+ if(walk){walk.pause();walk.ontimeupdate=null;walk.onended=null;walk.volume=.8;walk.playbackRate=1;}
 }
 function drawHeartInterior(){
  // Recreated two-storey Stadtbad hall, deliberately without the original ceiling projection.
@@ -3012,45 +3043,60 @@ function drawHeartInterior(){
   drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
  }
 }
+function drawHeartInteriorBirdsEye(){
+ // Viersekündige Einzugssequenz aus der Vogelperspektive: Der Raum ist bereits sichtbar.
+ const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,"#38332f");bg.addColorStop(1,"#171719");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ // Hoher rechteckiger Hallenboden mit umlaufenden Galerien und Wandachsen.
+ ctx.fillStyle="#62584e";ctx.fillRect(105,35,790,550);
+ ctx.fillStyle="#8d7a67";ctx.fillRect(122,52,756,516);
+ ctx.fillStyle="#51483f";ctx.fillRect(145,75,710,470);
+ ctx.strokeStyle="#b6a187";ctx.lineWidth=7;ctx.strokeRect(105,35,790,550);
+ ctx.strokeStyle="#98836d";ctx.lineWidth=3;ctx.strokeRect(145,75,710,470);
+ // Steinplatten im Boden geben die Vogelperspektive klar zu erkennen.
+ for(let x=180;x<850;x+=67)line(x,78,x,542,"#806f60",1);
+ for(let y=115;y<545;y+=58)line(148,y,852,y,"#806f60",1);
+ // Fensterachsen an beiden Längsseiten.
+ for(let y=92;y<520;y+=72){
+  box(111,y,27,48,"#9db1b0");box(862,y,27,48,"#9db1b0");
+  ctx.strokeStyle="#d2c5b2";ctx.lineWidth=2;ctx.strokeRect(111,y,27,48);ctx.strokeRect(862,y,27,48);
+ }
+ // Die große leere Decke ist nicht projiziert; nur ein schwacher Lichtschimmer liegt mittig.
+ const glow=ctx.createRadialGradient(500,275,8,500,275,240);glow.addColorStop(0,"#d6c49a20");glow.addColorStop(1,"#d6c49a00");ctx.fillStyle=glow;ctx.fillRect(145,75,710,470);
+ // Sitzsack als dunkle Form im unteren Hallenbereich.
+ ctx.fillStyle="#11151d";ctx.beginPath();ctx.ellipse(500,480,90,33,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#252d38";ctx.beginPath();ctx.ellipse(496,470,84,28,0,0,Math.PI*2);ctx.fill();
+}
 function drawHeartEntering(now){
- // Der Innenraum ist bereits sichtbar, bevor die Schritte einsetzen.
- drawHeartInterior();
+ drawHeartInteriorBirdsEye();
+ // Erst wenn die Vogelperspektive der Halle bereits gezeichnet ist, startet der Soundausschnitt.
  if(!heartWalkAudioStarted){
-  heartEnteringStartedAt=now;
-  heartWalkAudioStarted=true;
   const walk=document.getElementById("stadtbadWalk");
   if(walk){
    const startWalk=()=>{
+    if(scene!=="heartEntering"||heartWalkAudioStarted)return;
+    heartWalkAudioStarted=true;heartEnteringStartedAt=performance.now();
     walk.currentTime=8;
-    const playback=walk.play();
-    if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+    walk.ontimeupdate=()=>{if(walk.currentTime>=11.95){walk.pause();walk.currentTime=12;walk.ontimeupdate=null;}};
+    const playPromise=walk.play();if(playPromise&&playPromise.catch)playPromise.catch(()=>{});
    };
-   if(Number.isFinite(walk.duration)&&walk.duration>=12){startWalk();}
-   else{
-    walk.addEventListener("loadedmetadata",()=>{
-     if(scene==="heartEntering")startWalk();
-    },{once:true});
-    walk.load();
-   }
-  }
+   if(Number.isFinite(walk.duration)&&walk.duration>=12)startWalk();
+   else if(!walk.dataset.heartMetadataWait){walk.dataset.heartMetadataWait="1";walk.addEventListener("loadedmetadata",startWalk,{once:true});walk.load();}
+  }else{heartWalkAudioStarted=true;heartEnteringStartedAt=performance.now();}
  }
- const progress=Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000));
- // Die Figuren laufen vier Sekunden aus dem unteren Bildrand in die Mitte der Halle.
+ const progress=heartEnteringStartedAt?Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000)):0;
+ // Beide Figuren laufen aus dem unteren Bildrand in die Mitte der Halle.
  const y=605-progress*205;
  const scale=.58+progress*.42;
- ctx.save();
- ctx.translate(0,y);
- ctx.scale(scale,scale);
+ ctx.save();ctx.translate(0,y);ctx.scale(scale,scale);
  drawCharacter(hasanImages,420/scale,0,"back",true);
  drawCharacter(jillImages,580/scale,0,"back",true);
  ctx.restore();
  if(progress>=1){
   const walk=document.getElementById("stadtbadWalk");
-  if(walk){walk.pause();walk.currentTime=12;walk.ontimeupdate=null;}
+  if(walk){walk.pause();walk.currentTime=12;walk.ontimeupdate=null;delete walk.dataset.heartMetadataWait;}
   hasan.x=420;hasan.y=400;hasan.direction="back";
   jill.x=580;jill.y=400;jill.direction="back";
-  scene="heartDialogue";
-  heartDialogueIndex=0;
+  scene="heartDialogue";heartDialogueIndex=0;
  }
 }
 function drawHeartDialogue(){
@@ -3063,18 +3109,17 @@ function drawHeartDialogue(){
 }
 function beginHeartGame(){
  scene="heartIntro";heartGameStarted=false;heartCountdownStarted=0;
- heartTotalHits=0;heartSparks=[];heartLastSpawn=0;
+ heartPhase=0;heartPhaseHits=0;heartTotalHits=0;heartSparks=[];
+ if(window.heart3DSetHitCount)window.heart3DSetHitCount(0);
  document.getElementById("heart3d").style.display="none";
- const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=0;a.playbackRate=.82;
+ const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=0.08;a.playbackRate=.78;
  heartAudioStartAt=0;
- if(window.heart3DSetFire)window.heart3DSetFire(0);
 }
 function launchHeartCountdown(){
  if(heartCountdownStarted)return;
- // Erst nach START wird das 3D-Herz eingeblendet und der Herzschlag hörbar.
  document.getElementById("heart3d").style.display="block";
  startHeart3D();
- const a=document.getElementById("heartBeat");a.currentTime=0;a.volume=.34;a.playbackRate=.82;a.play().catch(()=>{});
+ const a=document.getElementById("heartBeat");a.currentTime=0;a.volume=0.08;a.playbackRate=.78;a.play().catch(()=>{});
  heartAudioStartAt=performance.now();
  heartCountdownStarted=performance.now();
 }
@@ -3084,17 +3129,15 @@ function drawHeartIntro(){
  ctx.textAlign="center";ctx.fillStyle="#f4d49c";ctx.font="bold 32px Cormorant Garamond";ctx.fillText("ENTFACHE MEIN HERZ",500,160);
  ctx.fillStyle="#fff0dc";ctx.font="17px Cormorant Garamond";
  ["Sammle die aufleuchtenden Funken ein, indem du sie anklickst.",
-  "Jeder Funke entfacht die Flammen ein Stück weiter und bringt Jills Herz mehr zum Brennen.",
-  "Sammle alle 24 Funken, um Jills Herz in Flammen zu setzen.",
-  "Klicke auf START – dann erscheint das Herz und das Spiel beginnt."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
+  "Aus jedem Funken löst sich eine Flamme, die zu Jills Herz fliegt.",
+  "Mit jedem Treffer schlägt ihr Herz schneller und lauter und beginnt mehr zu brennen.",
+  "Deine Aufgabe: Sammle alle 24 Funken ein, um Jills Herz zum Brennen zu bringen."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
  ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
  ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText(heartCountdownStarted?"":"START",500,482);
 }
 function spawnHeartSpark(now){
  if(heartTotalHits>=24)return;
- const progress=heartTotalHits/24;
- const interval=900-progress*300;
- if(now-heartLastSpawn<interval)return;
+ if(now-heartLastSpawn<Math.max(360,760-heartTotalHits*12))return;
  heartLastSpawn=now;
  heartSparks.push({x:150+Math.random()*700,y:175+Math.random()*260,r:11+Math.random()*5,life:1,created:now,phase:Math.random()*6.28});
 }
@@ -3114,11 +3157,12 @@ function drawHeartSparks(now){
 function collectHeartSpark(x,y){
  if(scene!=="heartGame")return;
  for(let i=heartSparks.length-1;i>=0;i--){
-  const s=heartSparks[i];
-  if(Math.hypot(s.x-x,s.y-y)<38){
+  const spark=heartSparks[i];
+  if(Math.hypot(spark.x-x,spark.y-y)<38){
    heartSparks.splice(i,1);heartTotalHits++;
-   if(window.heart3DAddFlame)window.heart3DAddFlame(x,y,heartTotalHits);
-   if(window.heart3DSetFire)window.heart3DSetFire(Math.min(1,heartTotalHits/24));
+   if(window.heart3DSetHitCount)window.heart3DSetHitCount(heartTotalHits);
+   if(window.heart3DAddFlame)window.heart3DAddFlame(spark.x,spark.y,heartTotalHits);
+   if(window.heart3DSetFire)window.heart3DSetFire(Math.min(.42,heartTotalHits*.0175));
    heartSetBeat();
    if(heartTotalHits>=24)finishHeartGame();
    return true;
@@ -3127,59 +3171,32 @@ function collectHeartSpark(x,y){
  return false;
 }
 function finishHeartGame(){
- if(scene!=="heartGame")return;
  scene="heartBurning";
  const gameMusic=document.getElementById("heartGameMusic");
  if(gameMusic){gameMusic.pause();gameMusic.currentTime=0;}
- const a=document.getElementById("heartBeat");a.playbackRate=1.6;a.volume=1;
+ const a=document.getElementById("heartBeat");a.playbackRate=1.65;a.volume=1;
  if(window.heart3DSetFire)window.heart3DSetFire(1);
- setTimeout(()=>{
-  stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartLetterOpened=false;heartLetterFlightDoneAt=0;
- },3500);
+ setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=-100;heartPaperX=900;},3500);
 }
 function drawHeartLetter(now){
  drawHeartInterior();
  ctx.fillStyle="#07060999";ctx.fillRect(0,0,W,H);
  const elapsed=(now-heartLetterAt)/1000;
- // Sobald der Brief aus dem Herz herausfliegt, liegt er sichtbar vor dem 3D-Modell.
- if(elapsed>.28)document.getElementById("heart3d").style.display="none";
- // Der verkohlte, zerknüllte Brief wird aus dem Feuer geschleudert,
- // schwirrt durch den Raum und entfaltet sich vorne zu einer stillen Lesefläche.
- const flight=Math.min(1,elapsed/2.25);
- const flightEase=1-Math.pow(1-flight,3);
- const x=500+Math.sin(flight*Math.PI*3)*125*(1-flight);
- const y=305-105*Math.sin(flight*Math.PI)+35*flight;
- const angle=(1-flight)*(.34*Math.sin(elapsed*12)+.22);
- const unfoldProgress=Math.max(0,Math.min(1,(elapsed-2.25)/1.45));
- const unfoldEase=1-Math.pow(1-unfoldProgress,3);
- const sx=flight<1?.075+.16*flightEase:(.235+.555*unfoldEase);
- const sy=flight<1?.075+.16*flightEase:(.235+.60*unfoldEase);
- const fullyOpen=unfoldProgress>=1;
- ctx.save();ctx.translate(x,y);ctx.rotate(fullyOpen?0:angle);ctx.scale(sx,sy);
- // Unregelmäßige, dunkel verkohlte Außenkante
- ctx.fillStyle="#160d09";ctx.beginPath();
- ctx.moveTo(-485,-325);ctx.lineTo(-448,-341);ctx.lineTo(-405,-329);ctx.lineTo(-300,-337);ctx.lineTo(-210,-326);ctx.lineTo(-95,-340);ctx.lineTo(30,-328);ctx.lineTo(155,-339);ctx.lineTo(275,-326);ctx.lineTo(410,-337);ctx.lineTo(470,-318);ctx.lineTo(486,-260);ctx.lineTo(478,-150);ctx.lineTo(490,-35);ctx.lineTo(478,90);ctx.lineTo(489,210);ctx.lineTo(468,318);ctx.lineTo(405,333);ctx.lineTo(290,324);ctx.lineTo(170,340);ctx.lineTo(45,326);ctx.lineTo(-80,339);ctx.lineTo(-210,326);ctx.lineTo(-340,337);ctx.lineTo(-465,316);ctx.lineTo(-486,255);ctx.lineTo(-475,130);ctx.lineTo(-489,5);ctx.lineTo(-477,-115);ctx.lineTo(-490,-235);ctx.closePath();ctx.fill();
- // Ruß und verbrannte, braun-schwarze Ränder
- const edge=ctx.createLinearGradient(-490,-330,490,330);edge.addColorStop(0,"#24130c");edge.addColorStop(.18,"#8a4b27");edge.addColorStop(.5,"#3b2117");edge.addColorStop(.82,"#9b6037");edge.addColorStop(1,"#1a100c");
- ctx.fillStyle=edge;ctx.fillRect(-470,-315,940,630);
- // Papier mit unregelmäßigen, angekokelten Rändern
- ctx.fillStyle="#c7a77a";ctx.beginPath();ctx.moveTo(-452,-296);ctx.lineTo(-420,-305);ctx.lineTo(-310,-294);ctx.lineTo(-190,-304);ctx.lineTo(-65,-292);ctx.lineTo(55,-302);ctx.lineTo(185,-291);ctx.lineTo(315,-302);ctx.lineTo(445,-286);ctx.lineTo(454,-205);ctx.lineTo(445,-90);ctx.lineTo(456,45);ctx.lineTo(443,180);ctx.lineTo(451,286);ctx.lineTo(330,298);ctx.lineTo(205,289);ctx.lineTo(75,301);ctx.lineTo(-50,289);ctx.lineTo(-180,300);ctx.lineTo(-310,288);ctx.lineTo(-445,297);ctx.lineTo(-454,205);ctx.lineTo(-444,75);ctx.lineTo(-455,-55);ctx.lineTo(-443,-180);ctx.closePath();ctx.fill();
- const paper=ctx.createLinearGradient(-420,-290,420,290);paper.addColorStop(0,"#e0c69a");paper.addColorStop(.48,"#b99468");paper.addColorStop(1,"#d7bb8e");ctx.fillStyle=paper;ctx.fillRect(-430,-280,860,560);
- // Sichtbare Brandspuren an den Ecken und entlang des Randes
- ctx.save();ctx.globalAlpha=.9;ctx.fillStyle="#382016";
- [[-410,-260,75,44,0.08],[365,-260,70,55,-0.12],[-415,220,90,65,0.04],[350,225,85,62,-0.06],[-455,-40,28,115,0.02],[430,30,34,105,-0.03]].forEach(([a,b,c,d,r])=>{ctx.beginPath();ctx.ellipse(a,b,c,d,r,0,Math.PI*2);ctx.fill();});
+ heartPaperY=Math.min(280,heartPaperY+Math.max(1.8,(280-heartPaperY)*.018));
+ heartPaperX+=(500-heartPaperX)*.055+Math.sin(now/115)*1.8;
+ heartPaperAngle*=.985;
+ const unfold=heartLetterOpened?1:Math.min(1,elapsed/2.2);
+ ctx.save();ctx.translate(heartPaperX,heartPaperY);ctx.rotate(heartPaperAngle);ctx.scale(unfold,1);
+ ctx.fillStyle="#30221c";ctx.beginPath();ctx.moveTo(-118,-125);ctx.lineTo(-100,-145);ctx.lineTo(103,-140);ctx.lineTo(119,-110);ctx.lineTo(115,128);ctx.lineTo(88,145);ctx.lineTo(-112,137);ctx.lineTo(-120,105);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#e8d6b2";ctx.fillRect(-110,-137,220,274);
+ ctx.fillStyle="#b99a72";ctx.fillRect(-101,-128,202,256);
+ ctx.fillStyle="#f5e8ce";ctx.fillRect(-96,-123,192,246);
+ ctx.strokeStyle="#b78b58";ctx.lineWidth=1.5;ctx.strokeRect(-87,-114,174,228);
+ ctx.fillStyle="#78494a";ctx.textAlign="center";ctx.font="bold 16px Cormorant Garamond";ctx.fillText("Mein liebster Hasinator,",0,-75);
+ if(heartLetterOpened){ctx.fillStyle="#493b36";ctx.font="13px Cormorant Garamond";ctx.fillText(" ",0,-35);ctx.strokeStyle="#d6c3a4";ctx.lineWidth=1;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(-65,-20+i*25);ctx.lineTo(65,-20+i*25);ctx.stroke();}}
+ ctx.fillStyle="#c4a77f";ctx.font="12px Cormorant Garamond";ctx.fillText("",0,-38);
  ctx.restore();
- ctx.strokeStyle="#5b321e";ctx.lineWidth=13;ctx.strokeRect(-430,-280,860,560);
- ctx.strokeStyle="#e7c99b";ctx.lineWidth=3;ctx.strokeRect(-410,-260,820,520);
- // Knicke, Falten und Rußfahnen bleiben nur während des Fluges/Entfaltens sichtbar.
- if(!fullyOpen){
-  ctx.save();ctx.globalAlpha=.35;ctx.strokeStyle="#5d402b";ctx.lineWidth=7;
-  [[-360,-210,300,205],[330,-215,-285,210],[-350,215,290,-190],[0,-270,18,260]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.quadraticCurveTo((x1+x2)/2+24,(y1+y2)/2-28,x2,y2);ctx.stroke();});
-  ctx.restore();
- }
- ctx.fillStyle="#633d35";ctx.textAlign="center";ctx.font="bold 54px Cormorant Garamond";ctx.fillText("Mein liebster Hasinator,",0,-165);
- ctx.restore();
- if(fullyOpen){heartLetterOpened=true;heartLetterFlightDoneAt=now;}
+ if(elapsed>3.5)heartLetterOpened=true;
 }
 function advanceHeartChapter(){
  if(scene==="sayingsComplete"){
@@ -3205,8 +3222,12 @@ function updateHeartChapter(now){
   if(jx&&jy){jx*=.707;jy*=.707;}if(jx<0)jill.direction="left";if(jx>0)jill.direction="right";if(jy<0)jill.direction="back";if(jy>0)jill.direction="front";
   jill.x=Math.max(80,Math.min(920,jill.x+jx*3));jill.y=Math.max(360,Math.min(575,jill.y+jy*3));
   drawHeartExterior();
-  if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){enterHeartBuilding();return;}
+  if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){scene="heartDoorOpening";heartDoorOpeningStartedAt=now;return;}
+ }else if(scene==="heartDoorOpening"){
+  drawHeartDoorOpening(now);
  }else if(scene==="heartEntering"){
+  const walk=document.getElementById("stadtbadWalk");
+  if(walk&&walk.currentTime>=12){walk.pause();walk.currentTime=12;}
   drawHeartEntering(now);
  }else if(scene==="heartInterior"){drawHeartInterior();}
  else if(scene==="heartDialogue"){drawHeartDialogue();}
@@ -3359,7 +3380,7 @@ function update(now=performance.now()){
   drawSayingsLevel();
   }else if(scene==="sayingsComplete"){
   drawSayingsCelebration(now);
- }else if(["heartExterior","heartEntering","heartInterior","heartDialogue","heartIntro","heartGame","heartBurning","heartLetter"].includes(scene)){
+ }else if(["heartExterior","heartDoorOpening","heartEntering","heartInterior","heartDialogue","heartIntro","heartGame","heartBurning","heartLetter"].includes(scene)){
   updateHeartChapter(now);
  }
 
@@ -3591,43 +3612,34 @@ update();
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 const host=document.getElementById("heart3d");
-const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],gifFlames:[],travelFlames:[],gifTextures:[],ownTexture:null,light:null,fire:0,ready:false};
+const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false,ownTex:null,baseMaterials:[]};
 function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);state.camera.aspect=w/h;state.camera.updateProjectionMatrix();}
-function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.2);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);state.renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.7,1);state.scene.add(state.light);
- new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.set(0,0,0);state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);}});state.scene.add(state.heart);
- const ownTex=makeFlameTexture(),emberTex=makeEmberTexture();state.ownTexture=ownTex;
- // Eigene, bereits etablierte Flammen: klein und ausschließlich am unteren Drittel des Herzens.
- for(let i=0;i<12;i++){const m=new THREE.SpriteMaterial({map:ownTex,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(.22+Math.random()*.12,.48+Math.random()*.18,1);const x=-.62+(i%6)*.25;sp.position.set(x,-.88+Math.random()*.22,.22);state.scene.add(sp);state.flames.push({sp,phase:Math.random()*6.28});}
+function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.2);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
+ new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.set(0,0,0);state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);state.baseMaterials.push({material:o.material,baseColor:o.material.color.clone(),baseOpacity:o.material.opacity??1,baseTransparent:o.material.transparent});}});state.scene.add(state.heart);
+ state.ownTex=makeFlameTexture();const emberTex=makeEmberTexture();
+ // Dezente, animierte Flammen bleiben im unteren Drittel des mittig platzierten Herzens.
+ for(let i=0;i<12;i++){const m=new THREE.SpriteMaterial({map:state.ownTex,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(.16+Math.random()*.08,.30+Math.random()*.10,1);const x=-.42+(i%6)*.17;sp.position.set(x,-.67+Math.random()*.12,.32);state.scene.add(sp);state.flames.push({sp,phase:Math.random()*6.28});}
  for(let i=0;i<45;i++){const m=new THREE.SpriteMaterial({map:emberTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.setScalar(.025+Math.random()*.025);state.scene.add(sp);state.embers.push({sp,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.55+Math.random()*.45});}
- // Die drei hochgeladenen GIFs werden als animierte Texturen verwendet.
- ["feuer1.gif","feuer3.gif","feuer4.gif"].forEach((src)=>{const tex=new THREE.TextureLoader().load(src);tex.colorSpace=THREE.SRGBColorSpace;state.gifTextures.push(tex);});
+ // HTMLImageElement behält die GIF-Animation; die Textur wird in jedem Render-Frame aktualisiert.
+ ["feuer1.gif","feuer3.gif","feuer4.gif"].forEach(src=>{const img=new Image();img.src=src;const tex=new THREE.Texture(img);tex.colorSpace=THREE.SRGBColorSpace;tex.minFilter=THREE.LinearFilter;tex.magFilter=THREE.LinearFilter;img.onload=()=>{tex.needsUpdate=true;};state.gifTextures.push(tex);});
  animate();},undefined,e=>{state.failed=true;console.error("Herzmodell konnte nicht geladen werden",e);});}
-function addGifFlame(screenX,screenY,hit){
- if(!state.heart)return;
- const startX=(screenX-500)/190,startY=(310-screenY)/190;
- // Alle Flammen landen direkt auf dem unteren Drittel des Herzens – nicht darunter.
- const targetX=-.62+Math.random()*1.24;
- const targetY=-.88+Math.random()*.20;
- const start=performance.now(),life=1050+Math.random()*180;
- const tex=state.gifTextures[(hit-1)%state.gifTextures.length];
- if(tex){const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.98,depthWrite:false});const sp=new THREE.Sprite(mat);sp.scale.set(.34,.34,1);sp.position.set(startX,startY,.82);state.scene.add(sp);state.gifFlames.push({sp,fromX:startX,fromY:startY,toX:targetX,toY:targetY,start,life,tex});}
- // Gleichzeitig fliegt eine eigens gezeichnete, animierte Flamme vom Funken zum selben Ziel.
- const ownMat=new THREE.SpriteMaterial({map:state.ownTexture,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending});
- const own=new THREE.Sprite(ownMat);own.scale.set(.30,.46,1);own.position.set(startX,startY,.9);state.scene.add(own);
- state.travelFlames.push({sp:own,fromX:startX,fromY:startY,toX:targetX+.06,toY:targetY-.02,start,life,phase:Math.random()*6.28});
-}
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.012+state.fire*.018);state.heart.scale.setScalar((state.baseScale||1)*beat);
- // Originale Materialfarben bleiben unverändert – nur Licht und Flammen reagieren auf den Fortschritt.
- state.light.intensity=state.fire*(.45+Math.sin(t*8)*.08);
- state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.22+.30*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.91+Math.sin(t*2+f.phase)*.045;f.sp.scale.y=.44+.08*Math.sin(t*7+f.phase);});
- state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r, -.62+((p/(Math.PI*2))*.9),.45);e.sp.material.opacity=state.fire*(.15+.45*Math.max(0,Math.sin(p)));});
- state.gifFlames=state.gifFlames.filter(f=>{const q=Math.min(1,(performance.now()-f.start)/f.life);const ease=1-Math.pow(1-q,3);f.sp.position.x=f.fromX+(f.toX-f.fromX)*ease;f.sp.position.y=f.fromY+(f.toY-f.fromY)*ease;f.sp.scale.setScalar(.25+.12*Math.sin(q*Math.PI));f.sp.material.opacity=q<.78?.98:Math.max(0,(1-q)*4.5);f.tex.needsUpdate=true;if(q>=1){state.scene.remove(f.sp);f.sp.material.dispose();return false;}return true;});
- state.travelFlames=state.travelFlames.filter(f=>{const q=Math.min(1,(performance.now()-f.start)/f.life);const ease=1-Math.pow(1-q,3);f.sp.position.x=f.fromX+(f.toX-f.fromX)*ease;f.sp.position.y=f.fromY+(f.toY-f.fromY)*ease;f.sp.scale.set(.26+.05*Math.sin(t*13+f.phase),.42+.10*Math.sin(t*11+f.phase),1);f.sp.material.opacity=q<.8?.94:Math.max(0,(1-q)*5);if(q>=1){state.scene.remove(f.sp);f.sp.material.dispose();return false;}return true;});
+function addFlame(screenX,screenY,hit){if(!state.heart)return;const startX=(screenX-500)/190,startY=(310-screenY)/190;const type=(hit-1)%4;const tex=type===3?state.ownTex:state.gifTextures[type];if(!tex)return;const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.98,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(mat);sp.scale.set(type===3?.23:.30,type===3?.43:.38,1);sp.position.set(startX,startY,.85);state.scene.add(sp);
+ // Zielpunkte liegen sichtbar auf dem unteren Drittel des anatomischen Herzens.
+ const targetX=-.48+Math.random()*.96;const targetY=-.48+Math.random()*.20;
+ state.gifFlames.push({sp,fromX:startX,fromY:startY,toX:targetX,toY:targetY,start:performance.now(),life:1150+Math.random()*250,tex,landed:false,hit});}
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
+ // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
+ const tint=Math.min(.19,(window.heart3DHitCount||0)*.008);
+ state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
+ state.light.intensity=state.fire*(.6+Math.sin(t*8)*.1);
+ state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.18+.28*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.68+Math.sin(t*2+f.phase)*.035;f.sp.scale.y=.30+.06*Math.sin(t*7+f.phase);});
+ state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r*.62,-.48+((p/(Math.PI*2))*.65),.45);e.sp.material.opacity=state.fire*(.12+.38*Math.max(0,Math.sin(p)));});
+ state.gifFlames=state.gifFlames.filter(f=>{if(f.landed){f.sp.position.set(f.toX,f.toY,.82);f.sp.material.opacity=.68;f.sp.scale.set(.15,.23,1);f.tex.needsUpdate=true;return true;}const q=Math.min(1,(performance.now()-f.start)/f.life);const ease=1-Math.pow(1-q,2);f.sp.position.x=f.fromX+(f.toX-f.fromX)*ease;f.sp.position.y=f.fromY+(f.toY-f.fromY)*ease;f.sp.scale.set(.22+.10*Math.sin(q*Math.PI),.28+.14*Math.sin(q*Math.PI),1);f.sp.material.opacity=.98;if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,.82);f.sp.scale.set(.15,.23,1);f.sp.material.opacity=.72;}f.tex.needsUpdate=true;return true;});
  state.gifTextures.forEach(tex=>{tex.needsUpdate=true;});}
  state.renderer.render(state.scene,state.camera);}
-window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.heart3DAddFlame=addGifFlame;window.addEventListener("resize",resize);
+window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.heart3DAddFlame=addFlame;window.heart3DSetHitCount=n=>{window.heart3DHitCount=n;};window.addEventListener("resize",resize);
 if(window.heart3dPending){window.heart3dPending=false;init();}
 </script>
 </body>
