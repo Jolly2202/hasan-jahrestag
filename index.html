@@ -2953,8 +2953,10 @@ function drawHeartExterior(){
 }
 
 function enterHeartBuilding(){
+ // Sobald beide Figuren die mittlere Tür erreicht haben, wechseln wir in die Halle.
+ // Der Innenraum wird zuerst gezeichnet; erst dort starten Laufanimation und Schritte.
  scene="heartEntering";
- heartEnteringStartedAt=performance.now();
+ heartEnteringStartedAt=0;
  heartWalkAudioStarted=false;
  hasan.x=420;hasan.y=605;hasan.direction="back";
  jill.x=580;jill.y=605;jill.direction="back";
@@ -2963,29 +2965,7 @@ function enterHeartBuilding(){
  const outside=document.getElementById("stadtbadAmbience");
  if(outside){outside.pause();outside.currentTime=0;}
  const walk=document.getElementById("stadtbadWalk");
- if(walk){
-  // Ausschließlich den Ausschnitt 00:08–00:12 während der automatischen Einzugssequenz abspielen.
-  walk.pause();
-  walk.ontimeupdate=null;
-  walk.onended=null;
-  walk.volume=.8;
-  walk.playbackRate=1;
-  const stopWalkSegment=()=>{
-   walk.pause();
-   walk.currentTime=12;
-   walk.ontimeupdate=null;
-  };
-  const startWalkSegment=()=>{
-   walk.currentTime=8;
-   walk.ontimeupdate=()=>{if(walk.currentTime>=11.95)stopWalkSegment();};
-   const playback=walk.play();
-   if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
-   window.setTimeout(stopWalkSegment,4000);
-  };
-  if(Number.isFinite(walk.duration)&&walk.duration>=12){startWalkSegment();}
-  else{walk.addEventListener("loadedmetadata",startWalkSegment,{once:true});walk.load();}
-  heartWalkAudioStarted=true;
- }
+ if(walk){walk.pause();walk.currentTime=0;walk.ontimeupdate=null;}
 }
 function drawHeartInterior(){
  // Recreated two-storey Stadtbad hall, deliberately without the original ceiling projection.
@@ -3033,10 +3013,29 @@ function drawHeartInterior(){
  }
 }
 function drawHeartEntering(now){
+ // Der Innenraum ist bereits sichtbar, bevor die Schritte einsetzen.
  drawHeartInterior();
+ if(!heartWalkAudioStarted){
+  heartEnteringStartedAt=now;
+  heartWalkAudioStarted=true;
+  const walk=document.getElementById("stadtbadWalk");
+  if(walk){
+   const startWalk=()=>{
+    walk.currentTime=8;
+    const playback=walk.play();
+    if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+   };
+   if(Number.isFinite(walk.duration)&&walk.duration>=12){startWalk();}
+   else{
+    walk.addEventListener("loadedmetadata",()=>{
+     if(scene==="heartEntering")startWalk();
+    },{once:true});
+    walk.load();
+   }
+  }
+ }
  const progress=Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000));
- // Der Raum wirkt etwa 15 Meter hoch: Die Figuren laufen aus dem nahen,
- // unteren Eingangsbereich in die Tiefe der hohen Halle.
+ // Die Figuren laufen vier Sekunden aus dem unteren Bildrand in die Mitte der Halle.
  const y=605-progress*205;
  const scale=.58+progress*.42;
  ctx.save();
@@ -3181,8 +3180,6 @@ function updateHeartChapter(now){
   drawHeartExterior();
   if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){enterHeartBuilding();return;}
  }else if(scene==="heartEntering"){
-  const walk=document.getElementById("stadtbadWalk");
-  if(walk&&walk.currentTime>=12){walk.pause();walk.currentTime=12;}
   drawHeartEntering(now);
  }else if(scene==="heartInterior"){drawHeartInterior();}
  else if(scene==="heartDialogue"){drawHeartDialogue();}
@@ -3336,7 +3333,7 @@ function update(now=performance.now()){
   drawSayingsLevel();
   }else if(scene==="sayingsComplete"){
   drawSayingsCelebration(now);
- }else if(["heartExterior","heartInterior","heartDialogue","heartIntro","heartGame","heartBurning","heartLetter"].includes(scene)){
+ }else if(["heartExterior","heartEntering","heartInterior","heartDialogue","heartIntro","heartGame","heartBurning","heartLetter"].includes(scene)){
   updateHeartChapter(now);
  }
 
