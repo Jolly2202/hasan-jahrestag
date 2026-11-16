@@ -2964,13 +2964,25 @@ function enterHeartBuilding(){
  if(outside){outside.pause();outside.currentTime=0;}
  const walk=document.getElementById("stadtbadWalk");
  if(walk){
-  walk.pause();walk.volume=.8;walk.playbackRate=1;
+  // Ausschließlich den Ausschnitt 00:08–00:12 während der automatischen Einzugssequenz abspielen.
+  walk.pause();
+  walk.ontimeupdate=null;
+  walk.onended=null;
+  walk.volume=.8;
+  walk.playbackRate=1;
+  const stopWalkSegment=()=>{
+   walk.pause();
+   walk.currentTime=12;
+   walk.ontimeupdate=null;
+  };
   const startWalkSegment=()=>{
    walk.currentTime=8;
+   walk.ontimeupdate=()=>{if(walk.currentTime>=11.95)stopWalkSegment();};
    const playback=walk.play();
    if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+   window.setTimeout(stopWalkSegment,4000);
   };
-  if(Number.isFinite(walk.duration)&&walk.duration>12){startWalkSegment();}
+  if(Number.isFinite(walk.duration)&&walk.duration>=12){startWalkSegment();}
   else{walk.addEventListener("loadedmetadata",startWalkSegment,{once:true});walk.load();}
   heartWalkAudioStarted=true;
  }
@@ -3035,7 +3047,7 @@ function drawHeartEntering(now){
  ctx.restore();
  if(progress>=1){
   const walk=document.getElementById("stadtbadWalk");
-  if(walk){walk.pause();walk.currentTime=0;}
+  if(walk){walk.pause();walk.currentTime=12;walk.ontimeupdate=null;}
   hasan.x=420;hasan.y=400;hasan.direction="back";
   jill.x=580;jill.y=400;jill.direction="back";
   scene="heartDialogue";
