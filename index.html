@@ -1363,7 +1363,7 @@ function drawTrafficBoss(now){
  if(remaining>12)return;
  if(!bikeBossStarted){bikeBossStarted=true;bikeBossObjects=[{x:500,y:-85,type:"bus",r:38,hitPlayers:{},speed:3.5},{x:265,y:-250,type:"construction",r:28,hitPlayers:{},speed:4.1},{x:735,y:-410,type:"uber",r:25,hitPlayers:{},speed:4.8}];}
  box(215,53,570,34,"#702f46dd");ctx.fillStyle="#fff0d5";ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText("ENDSPURT: DER BERLINER VERKEHR!",500,76);
- for(const o of bikeBossObjects){o.y+=o.speed;drawObstacle(o);for(const p of Object.values(bikePlayers)){if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+18){o.hitPlayers[p.name]=true;if(now<shieldUntil){shieldUntil=0;}else{p.x+=p.x<500?-28:28;bikeStart-=350;spawnBikeParticles(p.x,p.y,5);}}}}
+ for(const o of bikeBossObjects){o.y+=o.speed;drawObstacle(o);for(const p of Object.values(bikePlayers)){if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+18){o.hitPlayers[p.name]=true;if(now<shieldUntil){shieldUntil=0;}else{score=Math.max(0,score-3);p.x+=p.x<500?-28:28;bikeStart-=350;spawnBikeParticles(p.x,p.y,5);}}}}
  bikeBossObjects=bikeBossObjects.filter(o=>o.y<H+70);
  if(bikeBossObjects.length<2&&Math.random()<.035){const type=Math.random()<.5?"bus":"construction";bikeBossObjects.push({x:170+Math.random()*660,y:-70,type,r:type==="bus"?38:28,hitPlayers:{},speed:4.2});}
 }
@@ -1421,7 +1421,7 @@ function drawBikeScene(now){
     if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
      o.hitPlayers[p.name]=true;
      if(now<shieldUntil){shieldUntil=0;achievements.add("Schutzengel");}
-     else {p.x=Math.max(125,p.x-30);bikeStart-=450;spawnBikeParticles(p.x,p.y,5);p.hitUntil=now+300;}
+     else {score=Math.max(0,score-3);p.x=Math.max(125,p.x-30);bikeStart-=450;spawnBikeParticles(p.x,p.y,5);p.hitUntil=now+300;}
     }
    }
   }
@@ -1910,18 +1910,32 @@ function drawRestaurantInterior(){
   glow(x,120,100,"#ffdb8b25");
  }
 
- // Regale
- for(let i=0;i<3;i++){
-  const x=70+i*300;
-  box(x,130,240,125,"#674638");
-  box(x+8,138,224,108,"#8a6249");
-  for(let j=0;j<7;j++){
-   const bx=x+18+j*29;
-   box(bx,160,13,57,j%2?"#6e8a64":"#9a5148");
-   box(bx+3,151,7,11,"#d6b77d");
-  }
-  box(x,245,240,9,"#4c342d");
+ // Wanddekoration: ein richtiges Weinflaschenregal und ein gerahmtes Olivenbild.
+ // Das Regal sitzt links hinter der Theke; die Oliven-Illustration rechts davon.
+ box(42,112,270,145,"#54392f");
+ box(50,120,254,129,"#8b6248");
+ box(50,181,254,7,"#4b3028");
+ for(let i=0;i<7;i++){
+  const bx=58+i*34;
+  const bottleColor=["#405b43","#7d3e3b","#344d43","#8a5a32"][i%4];
+  // Flaschenkörper mit Schulter, Hals und Korken statt einfacher Striche.
+  ctx.fillStyle=bottleColor;ctx.beginPath();
+  ctx.moveTo(bx+5,151);ctx.lineTo(bx+5,137);ctx.quadraticCurveTo(bx+5,130,bx+11,128);
+  ctx.lineTo(bx+11,119);ctx.lineTo(bx+21,119);ctx.lineTo(bx+21,128);
+  ctx.quadraticCurveTo(bx+27,130,bx+27,137);ctx.lineTo(bx+27,151);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#d9c08a";ctx.fillRect(bx+12,116,8,5);
+  ctx.fillStyle="#d7b77d";ctx.fillRect(bx+7,140,18,5);
  }
+ // Olivenbild mit warmem Holzrahmen und kleiner Stillleben-Illustration.
+ box(330,105,185,150,"#674638");box(338,113,169,134,"#d6c09a");
+ box(346,121,153,118,"#e9dfc5");
+ ctx.fillStyle="#718052";ctx.beginPath();ctx.ellipse(422,181,55,38,-.12,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#5d7046";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(375,211);ctx.quadraticCurveTo(422,150,472,145);ctx.stroke();
+ for(const [ox,oy,rot] of [[382,183,-.4],[399,163,.3],[420,187,-.2],[441,160,.5],[461,184,-.5],[407,205,.4],[443,210,-.2]]){
+  ctx.fillStyle="#59633b";ctx.beginPath();ctx.ellipse(ox,oy,9,5,rot,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#a0a66c";ctx.beginPath();ctx.ellipse(ox-2,oy-1,3,1.5,rot,0,Math.PI*2);ctx.fill();
+ }
+ ctx.fillStyle="#8a6846";ctx.font="italic 12px Georgia";ctx.textAlign="center";ctx.fillText("OLIVEN",422,232);
 
  // Kacheln
  box(0,270,W,100,"#e8d7bd");
@@ -2083,7 +2097,7 @@ function spawnFood(){
  lastFoodSpawn=now;
 
  const column=Math.floor(Math.random()*FOOD_COLUMNS);
- const sauce=Math.random()<.36;
+ const sauce=Math.random()<.468;
 
  fallingFood.push({
   column,
@@ -2701,6 +2715,8 @@ function drawLanding(now){
  ctx.fillText("Weicht den Hindernissen aus: Hunden, Pfützen, Baustellen,",500,166);
  ctx.fillText("Flaschen, E-Scootern, Spätis und dem M41-BVG-Bus.",500,190);
  ctx.fillText("Sammelt gemeinsam mindestens 52 Herzen in 60 Sekunden.",500,224);
+ ctx.fillStyle="#ffcf9d";ctx.font="bold 14px Arial";
+ ctx.fillText("Achtung: Jeder Hindernis-Treffer kostet euch 3 Herzen!",500,246);
 
  ctx.textAlign="left";ctx.font="bold 16px Arial";ctx.fillStyle="#ffe0a5";
  ctx.fillText("POWER-UPS & HERZEN",175,270);
@@ -2723,175 +2739,6 @@ function drawLanding(now){
 
  drawBike(690,475,"#243e65","#38251f","HASAN");
  drawBike(310,475,"#6d3048","#4b241c","JILL");
-}
-
-// --------------------------------------------------
-// Das große Kapitel: tausend ganz normale Tage
-// --------------------------------------------------
-let everydayPhase="conversation";
-let everydayPage=0;
-let everydayTask=0;
-let everydayChoices=[];
-let everydayHover=-1;
-let everydayLetterPage=0;
-let everydayRain=Array.from({length:95},(_,i)=>({x:(i*137)%1000,y:(i*83)%620,s:2+(i%4)}));
-const everydayTalk=[
- {who:"HASAN",text:"Und was machen wir eigentlich morgen?"},
- {who:"JILL",text:"Hm. Keine Ahnung. Frühstücken? Vielleicht einkaufen. Und dann schauen wir mal."},
- {who:"HASAN",text:"Das war's? Kein Ausflug, kein großes Abenteuer, kein streng geheimer Masterplan?"},
- {who:"JILL",text:"Wir könnten natürlich etwas wahnsinnig Aufregendes unternehmen. Oder wir bleiben einfach zusammen. Das wäre für mich ehrlich gesagt schon ziemlich aufregend."},
- {who:"HASAN",text:"Ich glaube, das ist das Schöne inzwischen. Wir müssen uns gar nicht dauernd etwas Besonderes ausdenken."},
- {who:"JILL",text:"Am Anfang wollte ich manchmal am liebsten alles gleichzeitig erzählen – und hatte gleichzeitig Angst, zu viel zu sein. Heute freue ich mich darauf, dass wir uns immer weiter kennenlernen. Auch die kleinen, unspektakulären Seiten."},
- {who:"HASAN",text:"Und morgen?"},
- {who:"JILL",text:"Morgen machen wir einen ganz normalen Tag. Zusammen. Und ich wette, selbst der wird ziemlich gut."}
-];
-const everydayTasks=[
- {title:"01 · Ein Frühstück, das Zeit hat",sub:"Der Morgen darf langsam anfangen.",prompt:"Was kommt auf den Tisch?",opts:["Kaffee, Toast und viel zu lange sitzen bleiben","Ein großes Frühstück mit allem, was der Kühlschrank hergibt","Reste von gestern – aber hübsch angerichtet"],reply:["Der Toast wird kalt. Der Kaffee auch. Niemand steht auf. Perfekt.","Es gibt mehr Teller als freie Tischfläche. Ihr nennt es Sonntagsluxus.","Hasan erklärt die Reste-Kombination zur neuen Berliner Frühstückskultur."]},
- {title:"02 · Ein verregneter Sonntag",sub:"Draußen regnet es. Drinnen ist es gemütlich.",prompt:"Wie wird dieser Sonntag gerettet?",opts:["Decke, Tee und ein viel zu langes Sofa-Nickerchen","Musik an, Fenster auf Kipp und dem Regen zuhören","Ein kleiner Spaziergang – trotz Regen, natürlich ohne Schirm"],reply:["Die Decke reicht knapp für zwei. Ihr rückt näher. Das war vermutlich der Plan.","Ein Lied wird zum Soundtrack des Regens. Das nächste auch. Und das nächste.","Ihr kommt nass zurück und seid euch einig: War eine hervorragende Idee."]},
- {title:"03 · Die große Frage: Was kochen wir?",sub:"Eine Frage, die erstaunlich viele Kapitel füllen kann.",prompt:"Wofür entscheidet ihr euch?",opts:["Etwas Neues ausprobieren – Rezept nur ungefähr lesen","Pasta. Natürlich Pasta. Mit sehr viel Parmesan","Gemeinsam improvisieren und behaupten, es sei Absicht"],reply:["Ein bisschen zu viel Zitrone, ein bisschen zu wenig Salz. Dafür eine gute Geschichte.","Die Pasta ist perfekt. Die Diskussion über die richtige Form dauert länger als das Kochen.","Niemand weiß genau, was drin ist. Beide wollen Nachschlag. Ein voller Erfolg."]},
- {title:"04 · Der Filmabend",sub:"Die Auswahl dauert länger als der Film.",prompt:"Welcher Filmabend gewinnt?",opts:["Ein Film, den Jill schon kennt und Hasan noch nicht","Hasan darf aussuchen – Jill kommentiert liebevoll mit","Ein Film, bei dem ihr nach zwölf Minuten einschlaft"],reply:["Jill kennt jede Wendung. Hasan kennt jetzt jede Reaktion von Jill darauf.","Hasan wählt. Jill stellt Fragen. Der Film wird zum Gemeinschaftsprojekt.","Am nächsten Morgen behauptet jede:r, das Ende verstanden zu haben."]},
- {title:"05 · Gemeinsam einkaufen",sub:"Eine kurze Liste. Eine völlig unrealistische Mission.",prompt:"Was passiert im Supermarkt?",opts:["Ihr kauft drei Dinge und kommt mit zwölf nach Hause","Ihr diskutiert ernsthaft über die beste Tomate","Ihr verliert euch kurz und trefft euch bei den Snacks wieder"],reply:["Die Einkaufsliste war kurz. Die Tüten sind schwer. Ihr seid zufrieden.","Die Tomate wird sorgfältig geprüft. Sie bekommt einen Namen. Fast.","Das Wiedersehen am Snackregal ist dramatischer als nötig. Natürlich."]},
- {title:"06 · Die wirklich wichtigen Kleinigkeiten",sub:"Der Tag ist fast vorbei. Und trotzdem gibt es noch etwas.",prompt:"Was bleibt von diesem Tag?",opts:["Ein Insider, über den nur ihr beide lachen könnt","Ein Kuss in der Küche, während eigentlich aufgeräumt wird","Ein völlig belangloser Satz, den ihr noch lange zitieren werdet"],reply:["Niemand sonst versteht den Witz. Das macht ihn nur besser.","Das Geschirr wartet. Es wird auch morgen noch da sein.","Ein neuer Satz für eure private Sammlung. Die wächst und wächst."]}
-];
-const everydayLetter=[
- "Mein lieber Hasan,",
- "wenn ich an unser erstes gemeinsames Jahr denke, fallen mir natürlich all die großen und kleinen Abenteuer ein. Die Orte, an denen wir waren. Die Dinge, die wir ausprobiert haben. Die Geschichten, die inzwischen zu unseren Geschichten geworden sind.",
- "Aber weißt du, worauf ich mich mindestens genauso freue? Auf die tausend ganz normalen Tage mit dir. Auf Morgen, an denen wir nicht wissen, was wir machen wollen. Auf Frühstücke, die sich in den Mittag ziehen. Auf verregnete Sonntage, auf gemeinsame Einkäufe, auf die ewige Frage, was wir essen, und auf Filme, bei denen eine:r von uns einschläft.",
- "Am Anfang war da manchmal diese vorsichtige Aufregung. Dieses Gefühl, bloß nicht zu viel zu sagen, nicht zu viel von sich preiszugeben, nichts zu tun, das den anderen vielleicht verschrecken könnte. Und gleichzeitig der Wunsch, alles zu erzählen. Heute wünsche ich mir, dass wir uns immer weiter öffnen. Dass wir uns immer besser kennen lernen – nicht, weil es irgendwann nichts Neues mehr zu entdecken gibt, sondern weil ich alles davon entdecken möchte.",
- "Manche Menschen erzählen wehmütig vom Ende der Anfangszeit, wenn das Kribbeln angeblich leiser wird und nicht mehr jeder Moment neu ist. Ich habe nicht das Gefühl, dass unsere Honeymoon-Phase vorbei ist. Und selbst wenn sich etwas verändert: Ich finde den Gedanken mindestens genauso aufregend, dass wir noch so viele erste Male vor uns haben. Und so viele ganz gewöhnliche Male.",
- "Ich freue mich auf große Reisen und kleine Wege. Auf besondere Anlässe und auf Dienstage. Auf neue Lieblingsorte und auf unsere vertrauten Ecken. Auf alles, was wir noch nicht voneinander wissen, und auf alles, was längst selbstverständlich geworden ist.",
- "Das erste Jahr mit dir war phänomenal. Aber ich glaube, das Schönste daran ist nicht, dass wir es erlebt haben. Sondern dass ich mich auf alles freue, was danach kommt.",
- "Auf dich. Auf uns. Auf tausend ganz normale Tage – und auf jedes Abenteuer, das sich dazwischen verirrt.",
- "Ich liebe dich.\nDeine Jill ♥"
-];
-function startEverydayChapter(){
- everydayPhase="conversation";everydayPage=0;everydayTask=0;everydayChoices=[];everydayLetterPage=0;
- scene="everyday";
- document.getElementById("pageTitle").textContent="Tausend ganz normale Tage";
- document.getElementById("pageSubtitle").textContent="Ein neues Kapitel · nur ihr zwei ♥";
- document.getElementById("help").innerHTML="Klickt oder drückt E / Leertaste, um weiterzugehen. Im Alltagssimulator wählt ihr gemeinsam, wie euer Tag aussehen soll.";
-}
-function everydayRoundRect(x,y,w,h,r,fill,stroke="#c7a36e",lw=2){ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw;ctx.stroke();}}
-function drawEverydayRoom(){
- const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#33283b");g.addColorStop(.65,"#766071");g.addColorStop(1,"#302735");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
- // Stuckdecke und goldene Wandpaneele
- ctx.strokeStyle="#c7a66f";ctx.lineWidth=4;ctx.strokeRect(15,15,970,590);ctx.lineWidth=1.5;ctx.strokeRect(25,25,950,570);
- ctx.fillStyle="#4b3b4c";ctx.fillRect(0,70,1000,350);
- for(let x=35;x<1000;x+=160){ctx.strokeStyle="#a88763";ctx.lineWidth=3;ctx.strokeRect(x,92,130,285);ctx.strokeRect(x+9,101,112,267);ctx.strokeStyle="#70586b";ctx.lineWidth=1;ctx.strokeRect(x+18,112,94,245);}
- // großes Fenster mit Regen
- ctx.fillStyle="#283b51";ctx.fillRect(365,92,270,240);ctx.fillStyle="#52677a";ctx.fillRect(375,102,250,220);
- for(let i=0;i<8;i++){ctx.strokeStyle="#8da2b0";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(380+i*34,105);ctx.lineTo(370+i*34,320);ctx.stroke();}
- ctx.strokeStyle="#d7b77d";ctx.lineWidth=8;ctx.strokeRect(365,92,270,240);ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(500,95);ctx.lineTo(500,330);ctx.moveTo(368,212);ctx.lineTo(632,212);ctx.stroke();
- for(const r of everydayRain){r.y=(r.y+2.5*r.s/2)%240;ctx.strokeStyle="#c4d5df88";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(375+r.x%250,100+r.y);ctx.lineTo(372+r.x%250,107+r.y);ctx.stroke();}
- // Regal, Bücher, Pflanzen, Bilder
- ctx.fillStyle="#3c2b31";ctx.fillRect(55,145,210,190);ctx.fillStyle="#b58c5b";ctx.fillRect(55,145,210,9);ctx.fillRect(55,238,210,8);ctx.fillRect(55,328,210,8);
- const bookColors=["#9a555b","#d2aa70","#587a73","#6c5b87","#c27b58","#e0c99c"];for(let i=0;i<15;i++){ctx.fillStyle=bookColors[i%6];ctx.fillRect(65+i*12,170+(i%3)*2,9,65-(i%3)*5);}
- ctx.fillStyle="#6d8b69";ctx.beginPath();ctx.arc(870,170,35,0,Math.PI*2);ctx.arc(845,190,25,0,Math.PI*2);ctx.arc(895,195,29,0,Math.PI*2);ctx.fill();ctx.fillStyle="#a16b4e";ctx.fillRect(855,205,30,35);
- // Teppich
- ctx.fillStyle="#8a5260";ctx.beginPath();ctx.ellipse(500,515,380,88,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#d6b27c";ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(500,515,350,70,0,0,Math.PI*2);ctx.stroke();
- // Sofa
- ctx.fillStyle="#342b3c";ctx.fillRect(255,360,490,150);ctx.fillStyle="#a66d73";ctx.beginPath();ctx.roundRect(240,345,520,155,28);ctx.fill();ctx.fillStyle="#bd8581";ctx.fillRect(270,365,460,115);ctx.fillStyle="#805467";ctx.fillRect(280,375,125,95);ctx.fillRect(595,375,125,95);ctx.fillStyle="#e2bd83";ctx.fillRect(430,365,140,8);
- // Kissen und Couchtisch
- ctx.fillStyle="#e1c28d";ctx.beginPath();ctx.roundRect(410,390,95,75,14);ctx.fill();ctx.fillStyle="#6f8790";ctx.beginPath();ctx.roundRect(510,390,80,75,14);ctx.fill();
- ctx.fillStyle="#5a3d36";ctx.fillRect(340,510,320,20);ctx.fillStyle="#b88a5a";ctx.fillRect(330,530,340,9);ctx.fillRect(360,539,14,27);ctx.fillRect(625,539,14,27);
- // Tischgegenstände
- ctx.fillStyle="#f4e4ca";ctx.beginPath();ctx.ellipse(435,495,28,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#b56d53";ctx.fillRect(420,472,28,23);ctx.fillStyle="#f3d9b2";ctx.beginPath();ctx.arc(555,486,13,0,Math.PI*2);ctx.fill();ctx.fillStyle="#7b4d43";ctx.fillRect(545,487,20,18);
-}
-function drawEverydayHeader(kicker,title,subtitle){
- ctx.textAlign="center";ctx.fillStyle="#f3d79f";ctx.font="bold 13px Arial";ctx.fillText(kicker.toUpperCase(),500,43);
- ctx.fillStyle="#fff0d5";ctx.font="bold 29px Georgia";ctx.fillText(title,500,78);
- ctx.fillStyle="#e6d3c2";ctx.font="italic 15px Georgia";ctx.fillText(subtitle,500,103);
-}
-function drawEverydayConversation(){
- drawEverydayRoom();drawEverydayHeader("Ein Abend nach all den Abenteuern","Und was machen wir morgen?","Manchmal beginnt das schönste Abenteuer mit einer ganz gewöhnlichen Frage.");
- // Figuren als gemütliche Silhouetten auf dem Sofa
- ctx.fillStyle="#e9c39f";ctx.beginPath();ctx.arc(415,300,27,0,Math.PI*2);ctx.fill();ctx.fillStyle="#38251f";ctx.beginPath();ctx.arc(415,289,28,Math.PI,Math.PI*2);ctx.fill();ctx.fillStyle="#243e65";ctx.beginPath();ctx.roundRect(375,325,82,88,20);ctx.fill();
- ctx.fillStyle="#e9c39f";ctx.beginPath();ctx.arc(585,300,27,0,Math.PI*2);ctx.fill();ctx.fillStyle="#4b241c";ctx.beginPath();ctx.arc(585,289,28,Math.PI,Math.PI*2);ctx.fill();ctx.fillStyle="#863f55";ctx.beginPath();ctx.roundRect(545,325,82,88,20);ctx.fill();
- const d=everydayTalk[everydayPage];
- everydayRoundRect(115,125,770,150,18,"#fff2df","#cba66f",3);
- ctx.textAlign="left";ctx.fillStyle="#8b4051";ctx.font="bold 15px Arial";ctx.fillText(d.who,145,157);
- ctx.fillStyle="#392b38";ctx.font="19px Georgia";wrapEveryday(d.text,145,190,710,25);
- ctx.textAlign="center";ctx.fillStyle="#f0d7a2";ctx.font="13px Arial";ctx.fillText(`KAPITEL ${everydayPage+1} VON ${everydayTalk.length}`,500,585);
- everydayButton("Weiter ♥",405,535,190,43);
-}
-function wrapEveryday(text,x,y,maxWidth,lineHeight){let lines=[],line="";for(const word of text.split(" ")){const t=line?line+" "+word:word;if(ctx.measureText(t).width>maxWidth){lines.push(line);line=word;}else line=t;}if(line)lines.push(line);lines.forEach((v,i)=>ctx.fillText(v,x,y+i*lineHeight));}
-function everydayButton(label,x,y,w,h){everydayRoundRect(x,y,w,h,12,"#8b4051","#e2c18c",2);ctx.fillStyle="#fff1d8";ctx.font="bold 15px Arial";ctx.textAlign="center";ctx.fillText(label,x+w/2,y+h/2+5);}
-function drawEverydayGame(){
- drawEverydayRoom();const t=everydayTasks[everydayTask];drawEverydayHeader("Unser ganz gewöhnlicher Tag",t.title,t.sub);
- // goldene Fortschrittsleiste
- everydayRoundRect(170,118,660,13,7,"#5a4655","#b99566",1);everydayRoundRect(170,118,660*(everydayTask/6),13,7,"#e4bd7c",null,0);
- everydayRoundRect(125,150,750,78,16,"#fff0d9","#c8a36c",2);ctx.fillStyle="#493441";ctx.font="bold 19px Georgia";ctx.textAlign="center";ctx.fillText(t.prompt,500,195);
- const symbols=["☕","☔","🍝","🎬","🛒","♥"];
- ctx.font="58px Georgia";ctx.fillStyle="#f2d8a5";ctx.fillText(symbols[everydayTask],500,300);
- // drei sorgfältig gestaltete Entscheidungskarten
- t.opts.forEach((opt,i)=>{
-  const x=92+i*278,y=365,w=260,h=126;
-  everydayRoundRect(x,y,w,h,16,"#f7ead6",everydayHover===i?"#fff0b5":"#c69d68",everydayHover===i?5:2);
-  ctx.fillStyle="#a04e59";ctx.font="bold 13px Arial";ctx.textAlign="left";ctx.fillText(["MÖGLICHKEIT I","MÖGLICHKEIT II","MÖGLICHKEIT III"][i],x+18,y+27);
-  ctx.fillStyle="#443241";ctx.font="16px Georgia";wrapEveryday(opt,x+18,y+57,w-36,21);
-  ctx.fillStyle="#a04e59";ctx.font="bold 20px Georgia";ctx.textAlign="right";ctx.fillText("↗",x+w-18,y+h-13);
- });
- ctx.fillStyle="#f2dfc1";ctx.font="13px Arial";ctx.textAlign="center";ctx.fillText("Es gibt keine falsche Wahl. Entscheidet euch einfach für euren gemeinsamen Tag.",500,535);
- ctx.fillStyle="#d7b77d";ctx.font="bold 12px Arial";ctx.fillText(`${everydayTask+1} / 6  ·  EIN TAG, SECHS KLEINE KAPITEL`,500,574);
-}
-function drawEverydayAfterChoice(){
- drawEverydayRoom();const t=everydayTasks[everydayTask],choice=everydayChoices[everydayTask];drawEverydayHeader("So sieht euer Tag aus",t.title,"Nicht perfekt geplant. Einfach ziemlich schön.");
- everydayRoundRect(120,160,760,245,22,"#fff0dc","#d2ad75",3);
- ctx.textAlign="center";ctx.fillStyle="#a04e59";ctx.font="bold 14px Arial";ctx.fillText("EURE ENTSCHEIDUNG",500,198);
- ctx.fillStyle="#443241";ctx.font="bold 22px Georgia";wrapEveryday(t.opts[choice],170,245,660,30);
- ctx.fillStyle="#775a54";ctx.font="19px Georgia";wrapEveryday(t.reply[choice],175,325,650,28);
- everydayButton(everydayTask===5?"Zum letzten Kapitel ♥":"Und weiter",395,455,210,48);
-}
-function drawEverydayLetter(){
- drawEverydayRoom();
- // Der Brief als großes Pergament vor dem warmen Wohnzimmer
- ctx.save();ctx.shadowColor="#09061099";ctx.shadowBlur=30;ctx.shadowOffsetY=12;
- ctx.fillStyle="#f5e7ce";ctx.beginPath();ctx.roundRect(145,35,710,555,8);ctx.fill();ctx.restore();
- ctx.strokeStyle="#c29b63";ctx.lineWidth=3;ctx.strokeRect(157,47,686,531);ctx.strokeStyle="#d5bb8e";ctx.lineWidth=1;ctx.strokeRect(166,56,668,513);
- ctx.fillStyle="#9a5360";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText("EIN BRIEF FÜR HASAN",500,85);
- ctx.fillStyle="#60434a";ctx.font="italic 25px Georgia";ctx.fillText("Für alle Tage, die noch kommen",500,119);
- ctx.strokeStyle="#c5a36d";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(260,137);ctx.lineTo(740,137);ctx.stroke();
- ctx.fillStyle="#47343d";ctx.textAlign="left";ctx.font="18px Georgia";
- const text=everydayLetter[everydayLetterPage];let words=text.split(" "),lines=[],line="";const max=590;
- for(const word of words){const test=line?line+" "+word:word;if(ctx.measureText(test).width>max){lines.push(line);line=word;}else line=test;}if(line)lines.push(line);
- const startY=everydayLetterPage===0?195:175;lines.forEach((v,i)=>ctx.fillText(v,205,startY+i*27));
- ctx.fillStyle="#9a5360";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText(`DER BRIEF · ${everydayLetterPage+1} / ${everydayLetter.length}`,500,535);
- everydayButton(everydayLetterPage===everydayLetter.length-1?"Für immer ♥":"Weiterlesen",390,548,220,35);
-}
-function drawEverydayScene(){
- if(everydayPhase==="conversation")drawEverydayConversation();
- else if(everydayPhase==="game")drawEverydayGame();
- else if(everydayPhase==="afterChoice")drawEverydayAfterChoice();
- else if(everydayPhase==="letter")drawEverydayLetter();
- else if(everydayPhase==="end"){
-  drawEverydayRoom();drawEverydayHeader("Das war erst ein Tag","Auf tausend weitere.","Und auf alles, was wir daraus machen.");
-  ctx.fillStyle="#f4d69c";ctx.font="bold 54px Georgia";ctx.textAlign="center";ctx.fillText("♥",500,300);
-  ctx.fillStyle="#fff0d5";ctx.font="22px Georgia";ctx.fillText("Ich liebe dich.",500,365);ctx.font="15px Arial";ctx.fillText("JILL & HASAN · SEIT DEM ERSTEN TAG UND MIT JEDEM, DER FOLGT",500,415);
- }
-}
-function handleEverydayClick(x,y){
- if(everydayPhase==="conversation"){
-  if(everydayPage<everydayTalk.length-1)everydayPage++;
-  else{everydayPhase="game";document.getElementById("help").innerHTML="Klickt auf eine der drei Karten, um euren gemeinsamen Alltag zu gestalten.";}
-  return;
- }
- if(everydayPhase==="game"){
-  if(y>=350&&y<=510){const i=Math.floor((x-92)/278);if(i>=0&&i<3){everydayChoices[everydayTask]=i;everydayPhase="afterChoice";}}
-  return;
- }
- if(everydayPhase==="afterChoice"){
-  if(everydayTask<5){everydayTask++;everydayPhase="game";}
-  else{everydayPhase="letter";everydayLetterPage=0;document.getElementById("help").innerHTML="Jill hat noch etwas für Hasan. Klickt euch gemeinsam durch den Brief.";}
-  return;
- }
- if(everydayPhase==="letter"){
-  if(everydayLetterPage<everydayLetter.length-1)everydayLetterPage++;
-  else{everydayPhase="end";document.getElementById("pageTitle").textContent="";document.getElementById("pageSubtitle").textContent="";document.getElementById("help").innerHTML="";}
-  return;
- }
- if(everydayPhase==="end"){
-  // Das Finale bleibt als letzter Bildschirm stehen.
- }
 }
 
 function update(now=performance.now()){
@@ -2973,9 +2820,7 @@ function update(now=performance.now()){
   if(jx<0)jill.direction="left";if(jx>0)jill.direction="right";if(jy<0)jill.direction="back";if(jy>0)jill.direction="front";
   jill.x=Math.max(80,Math.min(920,jill.x+jx*3.4));jill.y=Math.max(365,Math.min(555,jill.y+jy*3.4));
   drawSayingsLevel();
- }else if(scene==="everyday"){
-  drawEverydayScene();
- }else if(scene==="sayingsComplete"){
+  }else if(scene==="sayingsComplete"){
   // Schlichter Abschluss: nur die persönliche Glückwunschbotschaft, ohne Symbole oder Zusatzgrafiken.
   ctx.fillStyle="#f4e8d3";ctx.fillRect(0,0,W,H);
   ctx.fillStyle="#4b3542";ctx.textAlign="center";
@@ -3010,7 +2855,6 @@ function interact(){
  }
  if(scene==="streetStory"&&streetStoryPhase==="dialogue"){advanceStreetStory();return;}
  if(scene==="sayings"){interactSayings();}
- if(scene==="sayingsComplete"){startEverydayChapter();}
  if(scene==="interior"){
   const h=restaurantPlayers.hasan;
   const j=restaurantPlayers.jill;
@@ -3048,8 +2892,7 @@ document.addEventListener("keydown",e=>{
  keys[e.key.toLowerCase()]=true;
 
  if(e.key.toLowerCase()==="e"||e.key===" "){
-  if(scene==="everyday"&&everydayPhase!=="game"&&everydayPhase!=="end"){handleEverydayClick(500,570);}
-  else interact();
+  interact();
  }
  if(e.key.toLowerCase()==="h")useSayingsHint();
  if(e.key==="Escape"&&opened)closeMemory();
@@ -3100,7 +2943,6 @@ canvas.addEventListener("click",e=>{
   }
  }
  if(scene==="sayingsComplete"){interact();return;}
- if(scene==="everyday"){handleEverydayClick(x,y);return;}
  if(scene==="streetStory"&&streetStoryPhase==="dialogue"){advanceStreetStory();return;}
 
  // Herz im Museum: direkter Einstieg ins Fahrradspiel
@@ -3162,7 +3004,7 @@ canvas.addEventListener("mousemove",e=>{
 
  const overStart=scene==="landing"&&x>=395&&x<=605&&y>=465&&y<=519;
  canvas.style.cursor=(overStart||(overHeart&&
-  (scene==="everyday"||scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete")))?"pointer":"default";
+  (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete")))?"pointer":"default";
 });
 
 update();
