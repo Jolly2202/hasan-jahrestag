@@ -4,20 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hasan & Jill – Unser Abenteuer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#211b2c;color:#fff0d5;font-family:Georgia,serif;text-align:center}
+body{margin:0;background:#211b2c;color:#fff0d5;font-family:"DM Sans",sans-serif;text-align:center}
 #sayingsVideo{display:none;position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;z-index:0;pointer-events:none}
 body.sayings-celebrating{background:#050408}
 body.sayings-celebrating #sayingsVideo{display:block}
 body.sayings-celebrating #game,body.sayings-celebrating #help{position:relative;z-index:1}
 body.sayings-celebrating canvas{border-color:transparent;background:transparent}
 header{display:none}
-h1{margin:5px;color:#f3cf91;font-size:clamp(23px,4vw,36px)}
+h1{margin:5px;color:#f3cf91;font-family:"Cormorant Garamond",serif;font-size:clamp(23px,4vw,36px)}
 header p{color:#d6c1b3;margin:5px}
 #game{width:min(100%,1100px);margin:auto;position:relative}#heart3d{position:absolute;inset:0;display:none;z-index:3;pointer-events:none}#heart3d canvas{width:100%;height:100%;border:0;display:block}
 canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c;touch-action:none}
-#help{padding:12px;color:#e6d5bd;font:13px/1.7 Arial,sans-serif}
+#help{padding:12px;color:#e6d5bd;font:13px/1.7 "DM Sans",sans-serif}
 #popup,#finale,#dialogue,#foodIntro,#result{
  display:none;position:fixed;inset:0;z-index:10;align-items:center;
  justify-content:center;padding:20px;background:#100d19bb
@@ -25,11 +28,11 @@ canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-
 #finale,#dialogue,#foodIntro,#result{z-index:20}
 .card{background:#fff0d8;color:#39283a;border:4px solid #c79c63;border-radius:14px;
  padding:25px;max-width:490px;width:100%;box-shadow:0 15px 60px #0008}
-.card h2{color:#863c52;margin-top:5px}
+.card h2{color:#863c52;margin-top:5px;font-family:"Cormorant Garamond",serif}
 .card p{line-height:1.7}
 #memoryText{white-space:pre-line}
 button{background:#863c52;color:white;border:0;padding:12px 22px;border-radius:6px;
- cursor:pointer;font-size:16px}
+ cursor:pointer;font-family:"DM Sans",sans-serif;font-size:16px}
 button:hover{background:#6d3048}
 #choices{position:relative;display:flex;align-items:center;justify-content:center;gap:24px;min-height:75px}
 #noButton{background:#777}
@@ -53,6 +56,10 @@ button:hover{background:#6d3048}
 <audio id="heartBeat" src="soul_serenity_sounds-heartbeat-241465.mp3" preload="auto" loop></audio>
 <audio id="sayingsMusic" src="backgroundmusicmaster-quiz-master-382651.mp3" preload="auto" loop></audio>
 <audio id="sayingsCheer" src="driken5482-applause-cheer-236786.mp3" preload="auto"></audio>
+<audio id="loserSound" src="u_l5xum8z250-losing-horn-313723.mp3" preload="auto"></audio>
+<audio id="heartGameMusic" src="nastelbom-powerful-428189.mp3" preload="auto" loop></audio>
+<audio id="stadtbadAmbience" src="km007-street-ambience-9267.mp3" preload="auto" loop></audio>
+<audio id="stadtbadWalk" src="freesound_community-2-persons-walking-on-stonefloor-28579.mp3" preload="auto"></audio>
 <div id="heart3d" aria-hidden="true"></div>
 
 <div id="help">
@@ -148,6 +155,17 @@ const wrongSayingImages = wrongSayingImageFiles.map((src)=>{
 });
 
 
+function playLoserSound(){
+ const source=document.getElementById("loserSound");
+ if(!source)return;
+ const audio=source.cloneNode(true);
+ audio.volume=1;
+ audio.currentTime=0;
+ audio.addEventListener("ended",()=>audio.remove(),{once:true});
+ const playback=audio.play();
+ if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+}
+
 function playCharacterEatSound(player){
  const source=document.getElementById(player===foodPlayers.jill?"jillEatSound":"hasanEatSound");
  if(!source)return;
@@ -236,7 +254,9 @@ function loadGrayscaleMuseumPhoto(filename){
  source.onload=()=>{
   grayCanvas.width=source.naturalWidth;
   grayCanvas.height=source.naturalHeight;
-  grayCtx.drawImage(source,0,0);
+  grayCtx.imageSmoothingEnabled=true;
+  grayCtx.imageSmoothingQuality="high";
+  grayCtx.drawImage(source,0,0,grayCanvas.width,grayCanvas.height);
   const pixels=grayCtx.getImageData(0,0,grayCanvas.width,grayCanvas.height);
   const data=pixels.data;
   for(let p=0;p<data.length;p+=4){
@@ -300,6 +320,8 @@ let heartPaperX=500;
 let heartPaperAngle=-0.4;
 let heartPointer={x:500,y:310,down:false};
 let heartSceneStartedAt=0;
+let heartEnteringStartedAt=0;
+let heartWalkAudioStarted=false;
 let heartDialogueLines=[
  {speaker:"Hasan",text:"Warte mal … kommt dir dieser Raum nicht bekannt vor?"},
  {speaker:"Jill",text:"Ich muss dir etwas zeigen."},
@@ -535,11 +557,12 @@ function drawExhibit(exhibit,i){
   const sw=pw/scale,sh=ph/scale;
   const sx=(photo.width-sw)/2,sy=(photo.height-sh)/2;
   ctx.save();
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
   ctx.beginPath();ctx.rect(px,py,pw,ph);ctx.clip();
   ctx.drawImage(photo,sx,sy,sw,sh,px,py,pw,ph);
   ctx.restore();
  }else{
-  ctx.fillStyle="#e4d1b2";ctx.textAlign="center";ctx.font="18px Arial";
+  ctx.fillStyle="#e4d1b2";ctx.textAlign="center";ctx.font="18px DM Sans";
   ctx.fillText("FOTO LÄDT …",exhibit.x,exhibit.y+12);
  }
  ctx.strokeStyle="#f4dfb1";ctx.lineWidth=2;
@@ -628,7 +651,7 @@ function drawRoom(){
 
 function drawInventoryHUD(){
  box(785,12,200,38,"#211b2cbb");
- ctx.fillStyle="#fff0d5";ctx.font="bold 13px Arial";ctx.textAlign="right";
+ ctx.fillStyle="#fff0d5";ctx.font="bold 13px DM Sans";ctx.textAlign="right";
  ctx.fillText("Fundstücke: "+inventory.length+" / 6",970,36);
 }
 function addInventory(label,emoji){
@@ -638,7 +661,7 @@ function addInventory(label,emoji){
 function drawAchievementToast(){
  if(!achievements.size)return;
  const names=[...achievements].slice(-3).join(" · ");
- box(690,75,290,34,"#3b2a42dd");ctx.fillStyle="#ffe0a5";ctx.font="12px Arial";ctx.textAlign="right";
+ box(690,75,290,34,"#3b2a42dd");ctx.fillStyle="#ffe0a5";ctx.font="12px DM Sans";ctx.textAlign="right";
  ctx.fillText("🏆 "+names,968,97);
 }
 function showApartmentMessage(message){
@@ -665,14 +688,14 @@ function advanceStreetStory(){
 function drawStreetSpeechBubble(speaker,text){
  box(125,45,750,130,"#fff4dfef");
  ctx.strokeStyle="#7b4c50";ctx.lineWidth=3;ctx.strokeRect(125,45,750,130);
- ctx.fillStyle="#8b4051";ctx.font="bold 17px Arial";ctx.textAlign="left";
+ ctx.fillStyle="#8b4051";ctx.font="bold 17px DM Sans";ctx.textAlign="left";
  ctx.fillText(speaker,150,76);
- ctx.fillStyle="#38283a";ctx.font="bold 21px Georgia";
+ ctx.fillStyle="#38283a";ctx.font="bold 21px Cormorant Garamond";
  const words=text.split(" ");let lineText="",lines=[];
  for(const word of words){const test=lineText?lineText+" "+word:word;if(ctx.measureText(test).width>690){lines.push(lineText);lineText=word;}else lineText=test;}
  if(lineText)lines.push(lineText);
  lines.slice(0,3).forEach((lineText,i)=>ctx.fillText(lineText,150,112+i*27));
- ctx.fillStyle="#8b4051";ctx.font="13px Arial";ctx.textAlign="right";
+ ctx.fillStyle="#8b4051";ctx.font="13px DM Sans";ctx.textAlign="right";
  ctx.fillText("E / Leertaste / Klick – weiter",850,158);
 }
 function drawStreetStory(now){
@@ -714,7 +737,7 @@ function drawStreetStory(now){
   for(const [ox,oy,r] of [[0,0,36],[-22,18,26],[23,20,27],[0,-25,27]]){ctx.fillStyle="#52765e";ctx.beginPath();ctx.arc(x+ox,oy+245,r,0,Math.PI*2);ctx.fill();}
  }
  // Litfaßsäule und abgestellte Räder als Kiezdetails
- ctx.fillStyle="#e9d5b8";ctx.fillRect(55,260,34,125);ctx.fillStyle="#9c4e55";ctx.fillRect(58,275,28,80);ctx.fillStyle="#fff0d5";ctx.font="bold 10px Arial";ctx.textAlign="center";ctx.fillText("KINO",72,300);ctx.fillText("HEUTE",72,320);
+ ctx.fillStyle="#e9d5b8";ctx.fillRect(55,260,34,125);ctx.fillStyle="#9c4e55";ctx.fillRect(58,275,28,80);ctx.fillStyle="#fff0d5";ctx.font="bold 10px DM Sans";ctx.textAlign="center";ctx.fillText("KINO",72,300);ctx.fillText("HEUTE",72,320);
  for(const x of [820,865]){ctx.strokeStyle="#34383a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,385,16,0,Math.PI*2);ctx.arc(x+35,385,16,0,Math.PI*2);ctx.moveTo(x,385);ctx.lineTo(x+18,360);ctx.lineTo(x+35,385);ctx.lineTo(x+12,385);ctx.stroke();}
  // Phasen der kleinen Fahrrad-Episode
  let hx=450,jx=365,hy=510,jy=510;
@@ -765,13 +788,13 @@ function drawStreetStory(now){
   ctx.restore();
  }
  if(streetStoryPhase==="fall"||streetStoryPhase==="dialogue"){
-  ctx.fillStyle="#fff0d5";ctx.font="bold 15px Arial";ctx.textAlign="center";ctx.fillText("Autsch! Rechter Ellenbogen gebrochen!",680,590);
+  ctx.fillStyle="#fff0d5";ctx.font="bold 15px DM Sans";ctx.textAlign="center";ctx.fillText("Autsch! Rechter Ellenbogen gebrochen!",680,590);
  }
  if(streetStoryPhase==="dialogue"){
   const line=streetDialogue[streetDialogueIndex];
   if(line)drawStreetSpeechBubble(line.speaker,line.text);
  }
- ctx.fillStyle="#fff0d5";ctx.font="bold 17px Georgia";ctx.textAlign="left";ctx.fillText("DIEFFENBACHSTRASSE · GRAEFEKIEZ",22,600);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 17px Cormorant Garamond";ctx.textAlign="left";ctx.fillText("DIEFFENBACHSTRASSE · GRAEFEKIEZ",22,600);
 }
 function drawStreetBicycle(x,y,fallen){
  ctx.save();ctx.translate(x,y);if(fallen)ctx.rotate(-.42);
@@ -958,7 +981,7 @@ function drawBike(x,y,color,hair,name,direction="back"){
  ctx.fill();
 
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 11px Arial";
+ ctx.font="bold 11px DM Sans";
  ctx.textAlign="center";
  ctx.fillText(name,0,53);
  ctx.restore();
@@ -984,7 +1007,7 @@ function drawHeart(x,y,size,number){
  ctx.stroke();
  if(number){
   ctx.fillStyle="#fff7ed";
-  ctx.font="bold 7px Arial";
+  ctx.font="bold 7px DM Sans";
   ctx.textAlign="center";
   ctx.fillText(String(number),0,19);
  }
@@ -1193,9 +1216,9 @@ function drawObstacle(o){
   ctx.fillStyle="#20252a";ctx.beginPath();ctx.roundRect(-17,-13,34,22,7);ctx.fill();
   ctx.fillStyle="#111";ctx.fillRect(-8,-23,16,12);
   ctx.fillStyle="#f4c542";ctx.fillRect(-7,-20,14,7);
-  ctx.fillStyle="#f5f0df";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("UBER",0,-15);
+  ctx.fillStyle="#f5f0df";ctx.font="bold 8px DM Sans";ctx.textAlign="center";ctx.fillText("UBER",0,-15);
   ctx.fillStyle="#20252a";ctx.beginPath();ctx.roundRect(-10,-31,20,15,3);ctx.fill();
-  ctx.fillStyle="#f5f0df";ctx.font="bold 7px Arial";ctx.fillText("EATS",0,-21);
+  ctx.fillStyle="#f5f0df";ctx.font="bold 7px DM Sans";ctx.fillText("EATS",0,-21);
  }else if(o.type==="parkedcar"){
   // Berliner Lieferwagen/Pkw, der mit Warnblinkern eine Spur blockiert
   ctx.fillStyle="#15191d";ctx.beginPath();ctx.arc(-23,16,7,0,Math.PI*2);ctx.arc(23,16,7,0,Math.PI*2);ctx.fill();
@@ -1213,7 +1236,7 @@ function drawObstacle(o){
   ctx.fillStyle="#263746";ctx.fillRect(-27,-17,54,17);
   ctx.fillStyle="#d9e8e8";ctx.fillRect(-22,-13,18,10);ctx.fillRect(4,-13,18,10);
   ctx.fillStyle="#292a2d";ctx.fillRect(-29,19,12,7);ctx.fillRect(17,19,12,7);
-  ctx.fillStyle="#2c3d4a";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("M 41 · BVG",0,12);
+  ctx.fillStyle="#2c3d4a";ctx.font="bold 8px DM Sans";ctx.textAlign="center";ctx.fillText("M 41 · BVG",0,12);
  }else if(o.type==="tramtrack"){
   ctx.strokeStyle="#aeb5b8";ctx.lineWidth=5;
   ctx.beginPath();ctx.moveTo(-27,-18);ctx.lineTo(-22,18);ctx.moveTo(17,-18);ctx.lineTo(22,18);ctx.stroke();
@@ -1232,7 +1255,7 @@ function drawObstacle(o){
  }else if(o.type==="spati"){
   ctx.fillStyle="#f3d39b";ctx.beginPath();ctx.roundRect(-22,-19,44,38,5);ctx.fill();
   ctx.fillStyle="#8c4050";ctx.fillRect(-22,-19,44,10);
-  ctx.fillStyle="#fff0d5";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("SPÄTI",0,-12);
+  ctx.fillStyle="#fff0d5";ctx.font="bold 8px DM Sans";ctx.textAlign="center";ctx.fillText("SPÄTI",0,-12);
   ctx.fillStyle="#8fc0bc";ctx.fillRect(-15,-5,30,17);
   ctx.fillStyle="#d8a86e";ctx.fillRect(-5,-4,10,16);
  }else if(["dachshund","poodle","frenchie","shepherd"].includes(o.type)){
@@ -1351,11 +1374,11 @@ function drawBerlinBackdrop(now){
     box(sx+4,y+229,78,10,pal.awning);
     for(let stripe=0;stripe<6;stripe++)box(sx+5+stripe*13,y+229,6,10,pal.trim);
     box(sx+12,y+242,26,21,"#344c50");box(sx+46,y+242,27,21,"#344c50");
-    ctx.fillStyle="#ffe5bb";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("CAFÉ",sx+43,y+225);
+    ctx.fillStyle="#ffe5bb";ctx.font="bold 8px DM Sans";ctx.textAlign="center";ctx.fillText("CAFÉ",sx+43,y+225);
    }else if((Math.abs(buildingId+side*2))%3===1){
     box(sx+12,y+239,25,26,"#344c50");box(sx+44,y+239,28,26,"#a9c2ba");
     box(sx+39,y+238,4,27,pal.trim);
-    ctx.fillStyle="#ffe0a5";ctx.font="bold 8px Arial";ctx.textAlign="center";ctx.fillText("SPÄTI",sx+43,y+235);
+    ctx.fillStyle="#ffe0a5";ctx.font="bold 8px DM Sans";ctx.textAlign="center";ctx.fillText("SPÄTI",sx+43,y+235);
    }else{
     box(sx+27,y+236,32,29,"#493b3d");
     box(sx+31,y+240,24,25,"#9a7865");
@@ -1387,7 +1410,7 @@ function drawBerlinBackdrop(now){
   // Linke Häuserreihe ohne den Schriftzug „LIEBE BLEIBT“.
   // Das bisherige Kiez-Graffiti auf der rechten Seite bleibt erhalten.
   if(i%2===0){
-   ctx.fillStyle="#3d7180";ctx.font="italic bold 18px Arial";ctx.textAlign="center";
+   ctx.fillStyle="#3d7180";ctx.font="italic bold 18px DM Sans";ctx.textAlign="center";
    ctx.fillText("KIEZ ♥",952,y);
   }
   ctx.restore();
@@ -1407,14 +1430,14 @@ function drawBerlinBackdrop(now){
   for(let x=135;x<885;x+=48){ctx.beginPath();ctx.moveTo(x,-10);ctx.lineTo(x,H);ctx.stroke();}
  }
  // Kleine Straßenkulisse oben rechts
- box(755,12,126,34,"#211b2cbb");ctx.fillStyle="#ffe0a5";ctx.font="bold 12px Arial";ctx.textAlign="center";ctx.fillText("BERLIN · "+bikeSection,818,34);
+ box(755,12,126,34,"#211b2cbb");ctx.fillStyle="#ffe0a5";ctx.font="bold 12px DM Sans";ctx.textAlign="center";ctx.fillText("BERLIN · "+bikeSection,818,34);
 }
 function drawBikeCollectible(c){
  if(c.type==="gold"){
-  ctx.save();ctx.shadowColor="#ffe27a";ctx.shadowBlur=18;ctx.fillStyle="#ffd34e";ctx.beginPath();ctx.arc(c.x,c.y,13,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle="#fff4bc";ctx.lineWidth=3;ctx.stroke();ctx.fillStyle="#7c4d24";ctx.font="bold 13px Arial";ctx.textAlign="center";ctx.fillText("5",c.x,c.y+5);ctx.restore();
+  ctx.save();ctx.shadowColor="#ffe27a";ctx.shadowBlur=18;ctx.fillStyle="#ffd34e";ctx.beginPath();ctx.arc(c.x,c.y,13,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle="#fff4bc";ctx.lineWidth=3;ctx.stroke();ctx.fillStyle="#7c4d24";ctx.font="bold 13px DM Sans";ctx.textAlign="center";ctx.fillText("5",c.x,c.y+5);ctx.restore();
  }else if(c.type==="duo"){
   drawHeart(c.x-8,c.y,22,null);drawHeart(c.x+8,c.y,22,null);
-  ctx.fillStyle="#fff5db";ctx.font="bold 9px Arial";ctx.textAlign="center";ctx.fillText("ZU ZWEIT",c.x,c.y+24);
+  ctx.fillStyle="#fff5db";ctx.font="bold 9px DM Sans";ctx.textAlign="center";ctx.fillText("ZU ZWEIT",c.x,c.y+24);
  }else drawHeart(c.x,c.y,25,null);
 }
 function spawnBikeParticles(x,y,count=9){
@@ -1422,14 +1445,14 @@ function spawnBikeParticles(x,y,count=9){
 }
 function drawBikeParticles(){
  bikeParticles=bikeParticles.filter(p=>p.life>0);
- for(const p of bikeParticles){p.x+=p.vx;p.y+=p.vy;p.vy+=.035;p.life--;ctx.globalAlpha=Math.min(1,p.life/18);ctx.fillStyle="#ff8eae";ctx.font="bold 17px Arial";ctx.textAlign="center";ctx.fillText(p.emoji,p.x,p.y);}
+ for(const p of bikeParticles){p.x+=p.vx;p.y+=p.vy;p.vy+=.035;p.life--;ctx.globalAlpha=Math.min(1,p.life/18);ctx.fillStyle="#ff8eae";ctx.font="bold 17px DM Sans";ctx.textAlign="center";ctx.fillText(p.emoji,p.x,p.y);}
  ctx.globalAlpha=1;
 }
 function drawTrafficBoss(now){
  const remaining=60-bikeElapsed;
  if(remaining>12)return;
  if(!bikeBossStarted){bikeBossStarted=true;bikeBossObjects=[{x:500,y:-85,type:"bus",r:38,hitPlayers:{},speed:3.5},{x:265,y:-250,type:"construction",r:28,hitPlayers:{},speed:4.1},{x:735,y:-410,type:"uber",r:25,hitPlayers:{},speed:4.8}];}
- box(215,53,570,34,"#702f46dd");ctx.fillStyle="#fff0d5";ctx.font="bold 16px Arial";ctx.textAlign="center";ctx.fillText("ENDSPURT: DER BERLINER VERKEHR!",500,76);
+ box(215,53,570,34,"#702f46dd");ctx.fillStyle="#fff0d5";ctx.font="bold 16px DM Sans";ctx.textAlign="center";ctx.fillText("ENDSPURT: DER BERLINER VERKEHR!",500,76);
  for(const o of bikeBossObjects){o.y+=o.speed;drawObstacle(o);for(const p of Object.values(bikePlayers)){if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+18){o.hitPlayers[p.name]=true;if(now<shieldUntil){shieldUntil=0;}else{score=Math.max(0,score-3);p.x+=p.x<500?-28:28;bikeStart-=350;spawnBikeParticles(p.x,p.y,5);}}}}
  bikeBossObjects=bikeBossObjects.filter(o=>o.y<H+70);
  if(bikeBossObjects.length<2&&Math.random()<.035){const type=Math.random()<.5?"bus":"construction";bikeBossObjects.push({x:170+Math.random()*660,y:-70,type,r:type==="bus"?38:28,hitPlayers:{},speed:4.2});}
@@ -1472,7 +1495,7 @@ function drawBikeScene(now){
   collectibles.forEach(c=>c.y+=4.4);
   bikePowerups.forEach(power=>power.y+=4.4);
   for(const power of bikePowerups){
-   ctx.font="27px Arial";ctx.textAlign="center";ctx.fillText(power.type==="shield"?"🛡️":"🧲",power.x,power.y);
+   ctx.font="27px DM Sans";ctx.textAlign="center";ctx.fillText(power.type==="shield"?"🛡️":"🧲",power.x,power.y);
    for(const player of Object.values(bikePlayers)){
     if(power.y>-10&&Math.hypot(player.x-power.x,player.y-power.y)<32){
      if(power.type==="shield")shieldUntil=now+6500;else turboUntil=now+6500;
@@ -1524,17 +1547,17 @@ function drawBikeScene(now){
    const bounce=p.collectUntil>now?Math.sin((p.collectUntil-now)*.04)*7:0;
    ctx.save();if(p.hitUntil>now)ctx.globalAlpha=.55+.35*Math.sin(now*.05);
    drawBike(p.x,p.y+bounce,p.color,p.hair,p.name,p.direction);
-   if(p.collectUntil>now){ctx.fillStyle="#fff0d5";ctx.font="bold 20px Arial";ctx.textAlign="center";ctx.fillText("♥",p.x,p.y-38+bounce);}
+   if(p.collectUntil>now){ctx.fillStyle="#fff0d5";ctx.font="bold 20px DM Sans";ctx.textAlign="center";ctx.fillText("♥",p.x,p.y-38+bounce);}
    ctx.restore();
   }
 
   ctx.fillStyle="#fff0d5";
-  ctx.font="bold 18px Arial";
+  ctx.font="bold 18px DM Sans";
   ctx.textAlign="left";
   ctx.fillText(Math.max(0,60-Math.floor(bikeElapsed))+" s",25,32);
   ctx.textAlign="right";
   ctx.fillText("♥ "+score+" / 52",975,32);
-  if(now<shieldUntil||now<turboUntil){ctx.textAlign="center";ctx.font="13px Arial";ctx.fillText((now<shieldUntil?"🛡️ Schutzschild ":"")+(now<turboUntil?"🧲 Herzmagnet":""),500,600);}
+  if(now<shieldUntil||now<turboUntil){ctx.textAlign="center";ctx.font="13px DM Sans";ctx.fillText((now<shieldUntil?"🛡️ Schutzschild ":"")+(now<turboUntil?"🧲 Herzmagnet":""),500,600);}
   drawAchievementToast();
 
   // Kleines Herz als Shortcut bleibt sichtbar
@@ -1543,8 +1566,8 @@ function drawBikeScene(now){
   if(score>=52){
    if(!bikeCelebrationAt)bikeCelebrationAt=now;
    box(225,205,550,150,"#211b2cdd");
-   ctx.fillStyle="#ffe0a5";ctx.font="bold 30px Georgia";ctx.textAlign="center";ctx.fillText("52 HERZEN – IHR HABT ES GESCHAFFT!",500,255);
-   ctx.font="20px Georgia";ctx.fillText("Eine für jede gemeinsame Woche ♥",500,295);
+   ctx.fillStyle="#ffe0a5";ctx.font="bold 30px Cormorant Garamond";ctx.textAlign="center";ctx.fillText("52 HERZEN – IHR HABT ES GESCHAFFT!",500,255);
+   ctx.font="20px Cormorant Garamond";ctx.fillText("Eine für jede gemeinsame Woche ♥",500,295);
    for(let i=0;i<9;i++)drawHeart(270+i*58,330+Math.sin(now/180+i)*9,24,null);
    drawBikeParticles();
    if(now-bikeCelebrationAt>2100){
@@ -1564,6 +1587,7 @@ function drawBikeScene(now){
 }
 
 function showBikeFailure(){
+ playLoserSound();
  document.getElementById("resultEmoji").innerHTML=
   '<div style="display:flex;justify-content:center;gap:18px">'+
   '<svg width="105" height="135" viewBox="0 0 105 135"><circle cx="52" cy="22" r="18" fill="#d6a17e"/><path d="M34 20Q35 0 54 4Q73 4 70 24L40 13Z" fill="#38251f"/><path d="M27 46Q52 37 77 46L84 102H21Z" fill="#222"/><path d="M77 53L94 85" stroke="#d6a17e" stroke-width="10"/><path d="M86 78L101 88L91 109L77 99Z" fill="#f4eadb" stroke="#9b8d80" stroke-width="2"/><text x="52" y="129" text-anchor="middle" font-size="11" fill="#39283a">HASAN</text></svg>'+
@@ -1627,7 +1651,7 @@ function drawRestaurantFacade(){
  ctx.lineWidth=3;
  ctx.strokeRect(361,186,278,43);
  ctx.fillStyle="#633d37";
- ctx.font="bold 30px Georgia";
+ ctx.font="bold 30px Cormorant Garamond";
  ctx.textAlign="center";
  ctx.fillText("WEINBLATT",500,218);
 
@@ -1671,7 +1695,7 @@ function drawRestaurantArrival(){
 
  box(0,0,W,75,"#211b2cbb");
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 25px Georgia";
+ ctx.font="bold 25px Cormorant Garamond";
  ctx.textAlign="center";
  ctx.fillText("WEINBLATT – GESCHAFFT! ♥",500,44);
 
@@ -1681,9 +1705,9 @@ function drawRestaurantArrival(){
   restaurantPlayers.jill.y,restaurantPlayers.jill.direction,false);
 
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 15px Arial";
+ ctx.font="bold 15px DM Sans";
  ctx.fillText("Geht gemeinsam zur Eingangstür!",500,575);
- ctx.font="12px Arial";
+ ctx.font="12px DM Sans";
  ctx.fillText("Hasan: Pfeiltasten · Jill: WASD",500,598);
  drawHeart(31,581,30,null);
 }
@@ -2051,9 +2075,9 @@ function drawRestaurantInterior(){
   restaurantPlayers.jill.y,restaurantPlayers.jill.direction,false);
 
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 16px Arial";
+ ctx.font="bold 16px DM Sans";
 
- ctx.font="bold 13px Arial";
+ ctx.font="bold 13px DM Sans";
  ctx.fillText("Geht zur Theke und drückt E oder Leertaste",500,585);
  drawHeart(31,581,30,null);
 }
@@ -2215,7 +2239,7 @@ function drawFoodBackground(){
  box(0,0,W,100,"#704d3e");
 
  ctx.fillStyle="#f6e5c9";
- ctx.font="bold 26px Georgia";
+ ctx.font="bold 26px Cormorant Garamond";
  ctx.textAlign="center";
  ctx.fillText("DIE WEINBLATT-FRISCHETHEKE",500,55);
 
@@ -2226,13 +2250,13 @@ function drawFoodBackground(){
   ctx.lineWidth=2;
   ctx.strokeRect(x-47,115,94,435);
   ctx.fillStyle="#8b6c56";
-  ctx.font="12px Arial";
+  ctx.font="12px DM Sans";
   ctx.fillText(String(i+1),x,135);
  }
 
  box(0,550,W,70,"#75513d");
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 15px Arial";
+ ctx.font="bold 15px DM Sans";
  ctx.fillText("EURE TELLER",500,607);
 }
 
@@ -2247,7 +2271,7 @@ function drawFallingFood(item){
  }else{
   drawDishIllustration(item.dish?item.dish.name:"Dolma",item.x,item.y,1.12);
   if(item.dish&&!item.sauce){
-   ctx.fillStyle="#684b3c";ctx.font="9px Arial";ctx.textAlign="center";
+   ctx.fillStyle="#684b3c";ctx.font="9px DM Sans";ctx.textAlign="center";
    ctx.fillText(item.dish.name,item.x,item.y+39);
   }
  }
@@ -2280,7 +2304,7 @@ function drawFoodPlayer(player,images){
 function drawFoodHUD(){
  box(20,15,270,55,"#4d3832dd");
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 18px Arial";
+ ctx.font="bold 18px DM Sans";
  ctx.textAlign="left";
  ctx.fillText("🍽️ Leckereien: "+deliciousCount+" / 52",35,49);
 
@@ -2303,20 +2327,20 @@ function drawFoodHUD(){
  box(410,445,170,55,"#8a6047");box(435,420,120,28,"#d5b78d");ctx.fillStyle="#29222d";ctx.beginPath();ctx.arc(495,434,13,0,Math.PI*2);ctx.fill();
  // Regal mit Erinnerungsstücken
  box(730,75,205,220,"#684536");for(let y of [145,215,285])box(740,y,185,8,"#d0a276");
- ctx.font="25px Arial";ctx.textAlign="center";ctx.fillText("📷",780,135);ctx.fillText("💿",850,205);ctx.fillText("🗺️",900,275);
+ ctx.font="25px DM Sans";ctx.textAlign="center";ctx.fillText("📷",780,135);ctx.fillText("💿",850,205);ctx.fillText("🗺️",900,275);
  // Wohnungstür zum nächsten Kapitel
  box(455,500,90,110,"#57392f");box(463,508,74,102,"#95674f");ctx.fillStyle="#e4c28b";ctx.beginPath();ctx.arc(522,560,4,0,Math.PI*2);ctx.fill();
  // Teppich
  ctx.fillStyle="#8a4658";ctx.beginPath();ctx.ellipse(500,530,260,58,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#e1b77d";ctx.lineWidth=3;ctx.stroke();
  // Sammelobjekte
  const objects=[{x:275,y:485,key:"photo",emoji:"📸",label:"Foto"},{x:690,y:490,key:"record",emoji:"💿",label:"Schallplatte"},{x:885,y:385,key:"postcard",emoji:"💌",label:"Postkarte"}];
- for(const o of objects){if(!apartmentFound[o.key]){glow(o.x,o.y,34,"#ffe0a555");ctx.font="28px Arial";ctx.fillText(o.emoji,o.x,o.y+8);}}
+ for(const o of objects){if(!apartmentFound[o.key]){glow(o.x,o.y,34,"#ffe0a555");ctx.font="28px DM Sans";ctx.fillText(o.emoji,o.x,o.y+8);}}
  drawCharacter(hasanImages,restaurantPlayers.hasan.x,restaurantPlayers.hasan.y,restaurantPlayers.hasan.direction,false);
  drawCharacter(jillImages,restaurantPlayers.jill.x,restaurantPlayers.jill.y,restaurantPlayers.jill.direction,false);
- box(0,8,W,42,"#211b2cbb");ctx.fillStyle="#ffe0a5";ctx.font="bold 21px Georgia";ctx.fillText("Zuhause – unser kleines Glück",500,36);
- ctx.font="13px Arial";ctx.fillStyle="#fff0d5";ctx.fillText("Findet die drei Erinnerungsstücke und geht dann gemeinsam zur Tür",500,590);
+ box(0,8,W,42,"#211b2cbb");ctx.fillStyle="#ffe0a5";ctx.font="bold 21px Cormorant Garamond";ctx.fillText("Zuhause – unser kleines Glück",500,36);
+ ctx.font="13px DM Sans";ctx.fillStyle="#fff0d5";ctx.fillText("Findet die drei Erinnerungsstücke und geht dann gemeinsam zur Tür",500,590);
  drawInventoryHUD();drawHeart(31,581,30,null);
- if(apartmentMessage&&performance.now()<apartmentMessageUntil){box(220,510,560,45,"#211b2cee");ctx.fillStyle="#ffe0a5";ctx.font="bold 17px Arial";ctx.fillText(apartmentMessage,500,539);}
+ if(apartmentMessage&&performance.now()<apartmentMessageUntil){box(220,510,560,45,"#211b2cee");ctx.fillStyle="#ffe0a5";ctx.font="bold 17px DM Sans";ctx.fillText(apartmentMessage,500,539);}
 }
 function interactApartment(){
  const h=restaurantPlayers.hasan,j=restaurantPlayers.jill;
@@ -2466,66 +2490,66 @@ function sayingsSceneArt(index,now){
    ctx.fillStyle="#d9a45f";ctx.beginPath();ctx.ellipse(500,246,138,24,0,0,Math.PI*2);ctx.fill();
    ctx.fillStyle="#51303b";ctx.beginPath();ctx.ellipse(500,244,119,17,0,0,Math.PI*2);ctx.fill();
    for(let i=0;i<9;i++){let x=410+(i*37)%180,y=225+Math.sin(now/240+i)*18;glow(x,y,23,"#b9e6dc66");ctx.fillStyle="#e8d5a7";ctx.beginPath();ctx.arc(x,y,5+(i%3),0,Math.PI*2);ctx.fill();}
-   ctx.font="34px Arial";ctx.fillText("🗣️",300,210);ctx.fillText("💬",690,205);ctx.fillText("🫧",720,275);break;
+   ctx.font="34px DM Sans";ctx.fillText("🗣️",300,210);ctx.fillText("💬",690,205);ctx.fillText("🫧",720,275);break;
   case 1: // Socken-Wolken
    for(let i=0;i<5;i++)sayingsCloud(170+i*170,190+(i%2)*45,.8+(i%3)*.12,.8);
-   ctx.font="72px Arial";ctx.fillText("🧦",380,280);ctx.fillText("🧦",610,255);ctx.font="48px Arial";ctx.fillText("😲",500,170);
+   ctx.font="72px DM Sans";ctx.fillText("🧦",380,280);ctx.fillText("🧦",610,255);ctx.font="48px DM Sans";ctx.fillText("😲",500,170);
    for(let i=0;i<6;i++){ctx.strokeStyle="#f8dba5";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(120+i*150,295);ctx.lineTo(100+i*150,325);ctx.stroke();}break;
   case 2: // Feuerbändiger-Festung
    box(80,235,840,115,"#443b43");for(let x=100;x<930;x+=75){box(x,180,55,170,"#6b4b47");box(x+8,165,39,24,"#b47b58");}
-   for(let i=0;i<7;i++){let x=190+i*105;glow(x,260,60,"#f0783e55");ctx.font="40px Arial";ctx.fillText("🔥",x,275);}
-   ctx.font="76px Arial";ctx.fillText("🛡️",500,235);ctx.font="34px Arial";ctx.fillText("⚔️",500,320);break;
+   for(let i=0;i<7;i++){let x=190+i*105;glow(x,260,60,"#f0783e55");ctx.font="40px DM Sans";ctx.fillText("🔥",x,275);}
+   ctx.font="76px DM Sans";ctx.fillText("🛡️",500,235);ctx.font="34px DM Sans";ctx.fillText("⚔️",500,320);break;
   case 3: // Leier-Werkstatt
    box(140,300,720,30,"#704b3c");for(let x=190;x<850;x+=110){box(x,180,12,125,"#c79b65");}
    ctx.strokeStyle="#e5c58f";ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(300,285);ctx.quadraticCurveTo(300,145,500,160);ctx.quadraticCurveTo(700,145,700,285);ctx.stroke();
    for(let x=360;x<=640;x+=35){line(x,190,x+(x-500)*.15,285,"#f1d9ac",2);}
-   ctx.font="55px Arial";ctx.fillText("🎼",500,250);ctx.font="34px Arial";ctx.fillText("🦴",280,300);ctx.fillText("🪕",720,300);break;
+   ctx.font="55px DM Sans";ctx.fillText("🎼",500,250);ctx.font="34px DM Sans";ctx.fillText("🦴",280,300);ctx.fillText("🪕",720,300);break;
   case 4: // Drops-Brunnen
    ctx.fillStyle="#8a624e";ctx.beginPath();ctx.moveTo(340,330);ctx.lineTo(375,215);ctx.lineTo(625,215);ctx.lineTo(660,330);ctx.closePath();ctx.fill();
    box(365,205,270,25,"#d4ad79");ctx.fillStyle="#243e46";ctx.beginPath();ctx.ellipse(500,255,105,31,0,0,Math.PI*2);ctx.fill();
-   ctx.font="76px Arial";ctx.fillText("🍬",500,205);ctx.font="35px Arial";ctx.fillText("🪣",690,295);break;
+   ctx.font="76px DM Sans";ctx.fillText("🍬",500,205);ctx.font="35px DM Sans";ctx.fillText("🪣",690,295);break;
   case 5: // Windmühlen-Ebene
    box(0,300,W,55,"#8b7653");for(let i=0;i<6;i++)sayingsDrawWindmill(140+i*145,265,.62+(i%2)*.12);
    ctx.fillStyle="#a7b9a0";ctx.beginPath();ctx.moveTo(0,290);ctx.quadraticCurveTo(300,235,520,295);ctx.quadraticCurveTo(760,230,1000,285);ctx.lineTo(1000,355);ctx.lineTo(0,355);ctx.fill();
-   ctx.font="48px Arial";ctx.fillText("⚔️",500,300);break;
+   ctx.font="48px DM Sans";ctx.fillText("⚔️",500,300);break;
   case 6: // Auto gegen Mauer
    box(0,280,W,75,"#51434a");for(let y=185;y<355;y+=42)for(let x=690;x<980;x+=70){sayingsRounded(x,y,64,36,3,"#9a6c58","#d9b58b",2);}
-   ctx.save();ctx.translate(480,280);ctx.rotate(-.12);sayingsRounded(-100,-40,200,85,24,"#476d7a","#d6c7a7",4);ctx.fillStyle="#e7d7b5";ctx.fillRect(-55,-27,110,30);ctx.font="40px Arial";ctx.fillText("🚗",0,25);ctx.restore();
-   ctx.font="45px Arial";ctx.fillText("💥",640,280);break;
+   ctx.save();ctx.translate(480,280);ctx.rotate(-.12);sayingsRounded(-100,-40,200,85,24,"#476d7a","#d6c7a7",4);ctx.fillStyle="#e7d7b5";ctx.fillRect(-55,-27,110,30);ctx.font="40px DM Sans";ctx.fillText("🚗",0,25);ctx.restore();
+   ctx.font="45px DM Sans";ctx.fillText("💥",640,280);break;
   case 7: // Bahnhof
    box(0,285,W,70,"#3e3d4b");box(120,155,760,165,"#755a4d");box(145,175,710,125,"#b58a62");
    for(let x=180;x<850;x+=130){box(x,190,90,90,"#354650");line(x+45,190,x+45,280,"#cba978",4);}
    ctx.fillStyle="#ead6ae";ctx.beginPath();ctx.arc(500,180,60,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#6b4b43";ctx.lineWidth=5;ctx.stroke();line(500,180,500,140,"#6b4b43",5);line(500,180,535,195,"#6b4b43",5);
-   ctx.font="58px Arial";ctx.fillText("🚂",500,300);break;
+   ctx.font="58px DM Sans";ctx.fillText("🚂",500,300);break;
   case 8: // Goldwaage
    line(500,160,500,315,"#e4c78f",8);line(390,205,610,205,"#e4c78f",7);line(410,205,380,275,"#d5bd94",3);line(590,205,620,275,"#d5bd94",3);
    ctx.strokeStyle="#d5bd94";ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(380,280,55,14,0,0,Math.PI*2);ctx.ellipse(620,280,55,14,0,0,Math.PI*2);ctx.stroke();
-   ctx.font="65px Arial";ctx.fillText("👞",370,260);ctx.font="54px Arial";ctx.fillText("⚖️",500,170);ctx.font="50px Arial";ctx.fillText("🪙",625,260);break;
+   ctx.font="65px DM Sans";ctx.fillText("👞",370,260);ctx.font="54px DM Sans";ctx.fillText("⚖️",500,170);ctx.font="50px DM Sans";ctx.fillText("🪙",625,260);break;
   case 9: // Zahnfleisch-Wüste
    box(0,300,W,55,"#a97850");for(let i=0;i<8;i++){ctx.fillStyle=i%2?"#c99463":"#d9ad76";ctx.beginPath();ctx.ellipse(i*145-20,315,90,28,0,0,Math.PI*2);ctx.fill();}
-   ctx.font="82px Arial";ctx.fillText("🦷",500,265);ctx.font="48px Arial";ctx.fillText("🥵",370,300);ctx.fillText("👟",630,310);break;
+   ctx.font="82px DM Sans";ctx.fillText("🦷",500,265);ctx.font="48px DM Sans";ctx.fillText("🥵",370,300);ctx.fillText("👟",630,310);break;
   case 10: // Möglichkeitsgarten
    box(0,300,W,55,"#435b45");for(let i=0;i<9;i++){let x=100+i*100;line(x,300,x,225-(i%3)*18,"#8caa71",4);ctx.fillStyle=i%2?"#e5a6a5":"#e9c77c";ctx.beginPath();ctx.arc(x-10,220-(i%3)*18,12,0,Math.PI*2);ctx.arc(x+10,220-(i%3)*18,12,0,Math.PI*2);ctx.arc(x,205-(i%3)*18,12,0,Math.PI*2);ctx.fill();}
-   glow(500,220,150,"#f3df9b44");ctx.font="66px Arial";ctx.fillText("🌱",500,290);break;
+   glow(500,220,150,"#f3df9b44");ctx.font="66px DM Sans";ctx.fillText("🌱",500,290);break;
   case 11: // Herz-Kompass
    glow(500,250,180,"#e66a7955");ctx.strokeStyle="#e5c18a";ctx.lineWidth=5;ctx.beginPath();ctx.arc(500,245,100,0,Math.PI*2);ctx.stroke();
    line(500,130,500,360,"#e5c18a",3);line(385,245,615,245,"#e5c18a",3);
-   ctx.font="90px Arial";ctx.fillText("❤️",500,275);ctx.font="30px Arial";ctx.fillText("N",500,125);ctx.fillText("E",630,255);ctx.fillText("S",500,390);ctx.fillText("W",370,255);break;
+   ctx.font="90px DM Sans";ctx.fillText("❤️",500,275);ctx.font="30px DM Sans";ctx.fillText("N",500,125);ctx.fillText("E",630,255);ctx.fillText("S",500,390);ctx.fillText("W",370,255);break;
   case 12: // Crash-Kino
    box(0,275,W,80,"#3d3848");for(let y=165;y<355;y+=42)for(let x=720;x<990;x+=70){box(x,y,62,35,"#99745d");}
-   ctx.font="80px Arial";ctx.fillText("🚙",470,285);ctx.font="54px Arial";ctx.fillText("💥",640,255);ctx.font="36px Arial";ctx.fillText("🎬",270,205);break;
+   ctx.font="80px DM Sans";ctx.fillText("🚙",470,285);ctx.font="54px DM Sans";ctx.fillText("💥",640,255);ctx.font="36px DM Sans";ctx.fillText("🎬",270,205);break;
   case 13: // Alter Hase
    box(0,300,W,55,"#4a493f");sayingsTree(150,300,.9,"#455b48");sayingsTree(850,300,.9,"#455b48");
-   ctx.fillStyle="#795b48";ctx.beginPath();ctx.roundRect(350,205,300,125,22);ctx.fill();ctx.font="78px Arial";ctx.fillText("🐇",500,290);ctx.font="42px Arial";ctx.fillText("🎩",380,210);ctx.fillText("🕰️",620,210);break;
+   ctx.fillStyle="#795b48";ctx.beginPath();ctx.roundRect(350,205,300,125,22);ctx.fill();ctx.font="78px DM Sans";ctx.fillText("🐇",500,290);ctx.font="42px DM Sans";ctx.fillText("🎩",380,210);ctx.fillText("🕰️",620,210);break;
   case 14: // Misstrauische Hasenküche
-   box(0,300,W,55,"#493b3d");sayingsRounded(320,205,360,125,20,"#73513f","#d3ad78",5);ctx.font="74px Arial";ctx.fillText("🍖",500,285);ctx.font="52px Arial";ctx.fillText("🐇",350,230);ctx.fillText("👀",650,220);for(let i=0;i<7;i++)glow(360+i*45,195,20,"#e8c78c55");break;
+   box(0,300,W,55,"#493b3d");sayingsRounded(320,205,360,125,20,"#73513f","#d3ad78",5);ctx.font="74px DM Sans";ctx.fillText("🍖",500,285);ctx.font="52px DM Sans";ctx.fillText("🐇",350,230);ctx.fillText("👀",650,220);for(let i=0;i<7;i++)glow(360+i*45,195,20,"#e8c78c55");break;
   case 15: // Keller
    box(0,185,W,170,"#40343b");sayingsRounded(330,150,340,205,8,"#6d5549","#c79d6c",5);sayingsRounded(365,180,270,175,5,"#211e2b","#9c7757",4);
-   ctx.font="76px Arial";ctx.fillText("🚪",500,310);ctx.font="36px Arial";ctx.fillText("💀",420,275);ctx.fillText("💀",580,275);ctx.font="28px Arial";ctx.fillText("🔒",500,205);break;
+   ctx.font="76px DM Sans";ctx.fillText("🚪",500,310);ctx.font="36px DM Sans";ctx.fillText("💀",420,275);ctx.fillText("💀",580,275);ctx.font="28px DM Sans";ctx.fillText("🔒",500,205);break;
   case 16: // Pool der Möglichkeiten
    box(0,245,W,110,"#254e60");for(let y=260;y<350;y+=25){ctx.strokeStyle="#72b8c1";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,y+Math.sin(now/300+y)*5);ctx.quadraticCurveTo(250,y-12,500,y);ctx.quadraticCurveTo(750,y+12,1000,y);ctx.stroke();}
-   for(let i=0;i<5;i++){let x=170+i*165;sayingsRounded(x-38,135,76,130,8,i%2?"#805b4d":"#9b765b","#e3c38e",4);ctx.font="30px Arial";ctx.fillText(i%2?"🚪":"🔑",x,210);}
-   ctx.font="58px Arial";ctx.fillText("🏊",500,325);break;
+   for(let i=0;i<5;i++){let x=170+i*165;sayingsRounded(x-38,135,76,130,8,i%2?"#805b4d":"#9b765b","#e3c38e",4);ctx.font="30px DM Sans";ctx.fillText(i%2?"🚪":"🔑",x,210);}
+   ctx.font="58px DM Sans";ctx.fillText("🏊",500,325);break;
  }
  ctx.restore();
 }
@@ -2584,8 +2608,8 @@ function drawSayingsAtmosphere(now,idx){
 function drawSayingsSpark(){
  if(!sayingsSpark||sayingsSolved)return;
  if(sayingsSpark.collected&&sayingsSparkRevealed){
-  ctx.textAlign="center";ctx.fillStyle="#d5fff2";ctx.font="bold 9px Georgia";ctx.fillText("WORTFUNKEN-HINWEIS",500,600);
-  ctx.font="8px Georgia";ctx.fillText("Noch einmal anklicken, um eine falsche Antwort auszuschließen.",500,612);
+  ctx.textAlign="center";ctx.fillStyle="#d5fff2";ctx.font="bold 9px Cormorant Garamond";ctx.fillText("WORTFUNKEN-HINWEIS",500,600);
+  ctx.font="8px Cormorant Garamond";ctx.fillText("Noch einmal anklicken, um eine falsche Antwort auszuschließen.",500,612);
  }
  const t=performance.now()/260+sayingsSpark.phase;
  const x=sayingsSpark.x+Math.sin(t)*5,y=sayingsSpark.y+Math.sin(t*1.7)*5;
@@ -2607,12 +2631,12 @@ function drawSayingsBackdrop(item){
  // Dekorative Seitenbauten und Bodenschichten
  box(0,345,W,275,"#2d252d88");box(0,348,W,5,"#c59b68");
  drawSayingsAtmosphere(now,idx);
- if(idx>=0&&idx<17){drawWrongSayingsArt(idx,now);}else{ctx.textAlign="center";ctx.font="76px Georgia";ctx.fillText(item.art||"✧",500,270);}
+ if(idx>=0&&idx<17){drawWrongSayingsArt(idx,now);}else{ctx.textAlign="center";ctx.font="76px Cormorant Garamond";ctx.fillText(item.art||"✧",500,270);}
  // Die Kapitelüberschrift, Fortschrittsleiste und Sprachenergie-Anzeige bleiben ausgeblendet.
  // Die Originalaussage als zentrales Sammlerstück
  sayingsRounded(105,355,790,65,18,"#fff2dc","#c49a62",3);
- ctx.textAlign="center";ctx.fillStyle="#8a4c50";ctx.font="bold 10px Georgia";ctx.fillText("HASANS ORIGINALVERSION",500,372);
- ctx.fillStyle="#38283a";ctx.font="bold 18px Georgia";wrapSayingsText("„"+item.wrong+"“",500,399,745,20);
+ ctx.textAlign="center";ctx.fillStyle="#8a4c50";ctx.font="bold 10px Cormorant Garamond";ctx.fillText("HASANS ORIGINALVERSION",500,372);
+ ctx.fillStyle="#38283a";ctx.font="bold 18px Cormorant Garamond";wrapSayingsText("„"+item.wrong+"“",500,399,745,20);
 }
 function drawSayingsLevel(){
  const item=sayingssCurrent();drawSayingsBackdrop(item);
@@ -2629,27 +2653,27 @@ function drawSayingsLevel(){
   ctx.strokeStyle=portalColor;ctx.lineWidth=selected?6:3;ctx.beginPath();ctx.ellipse(x,485,104,58,0,Math.PI,Math.PI*2);ctx.stroke();
   if(!eliminated){
    sayingsRounded(x-101,458,202,88,18,portalFill,portalColor,selected?5:2);
-   ctx.textAlign="center";ctx.fillStyle=selected?"#286345":"#785044";ctx.font="bold 10px Georgia";ctx.fillText(selected?"✓ RICHTIG":"ANTWORT "+(i+1),x,475);
-   ctx.fillStyle="#38283a";ctx.font="bold 13px Georgia";wrapSayingsText(sayingsOptions[i],x,496,176,16);
+   ctx.textAlign="center";ctx.fillStyle=selected?"#286345":"#785044";ctx.font="bold 10px Cormorant Garamond";ctx.fillText(selected?"✓ RICHTIG":"ANTWORT "+(i+1),x,475);
+   ctx.fillStyle="#38283a";ctx.font="bold 13px Cormorant Garamond";wrapSayingsText(sayingsOptions[i],x,496,176,16);
   }else{
    sayingsRounded(x-101,458,202,88,18,"#e8d8c5","#a68c76",2);
-   ctx.fillStyle="#8a7566";ctx.font="bold 10px Georgia";ctx.fillText("WORTFUNKEN",x,495);
-   ctx.font="25px Georgia";ctx.fillText("✧",x,527);
+   ctx.fillStyle="#8a7566";ctx.font="bold 10px Cormorant Garamond";ctx.fillText("WORTFUNKEN",x,495);
+   ctx.font="25px Cormorant Garamond";ctx.fillText("✧",x,527);
   }
   if(active&&!sayingsSolved&&!eliminated){ctx.strokeStyle="#fff0c5";ctx.lineWidth=2;ctx.setLineDash([4,5]);ctx.beginPath();ctx.ellipse(x,493,109,57,0,Math.PI,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
  }
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
- ctx.textAlign="center";ctx.font="bold 10px Georgia";ctx.fillStyle="#b8d7f1";ctx.fillText("HASAN",hasan.x,604);ctx.fillStyle="#f0b4c7";ctx.fillText("JILL",jill.x,604);
+ ctx.textAlign="center";ctx.font="bold 10px Cormorant Garamond";ctx.fillStyle="#b8d7f1";ctx.fillText("HASAN",hasan.x,604);ctx.fillStyle="#f0b4c7";ctx.fillText("JILL",jill.x,604);
  drawHeart(31,581,30,null);
  sayingsRounded(265,425,470,22,10,sayingsFeedback?(sayingsAnswerCorrect?"#e1f2df":"#f4e4cc"):"#fff0dc",sayingsFeedback?(sayingsAnswerCorrect?"#76b88b":"#c8a879"):"#d4b98e",1);
- ctx.fillStyle=sayingsFeedback?(sayingsAnswerCorrect?"#286345":"#785044"):"#8b6d53";ctx.font="bold 10px Georgia";ctx.fillText(sayingsFeedback||"Wählt die passende Redewendung aus.",500,440);
+ ctx.fillStyle=sayingsFeedback?(sayingsAnswerCorrect?"#286345":"#785044"):"#8b6d53";ctx.font="bold 10px Cormorant Garamond";ctx.fillText(sayingsFeedback||"Wählt die passende Redewendung aus.",500,440);
  if(sayingsSolved){
   // Die Rückmeldung bleibt bei der Antwort; keine zusätzliche Statuszeile am unteren Bildschirmrand.
-  ctx.font="26px Georgia";ctx.fillText("✧",500,340);
+  ctx.font="26px Cormorant Garamond";ctx.fillText("✧",500,340);
   if(performance.now()-sayingsSolvedAt>=2000){continueSayings();return;}
  }
- if(sayingsBossMode){ctx.font="36px Arial";ctx.fillText("👑",500,330);}
+ if(sayingsBossMode){ctx.font="36px DM Sans";ctx.fillText("👑",500,330);}
 }
 function wrapSayingsText(text,x,y,maxWidth,lineHeight){
  const words=text.split(" ");let line="",lines=[];
@@ -2699,7 +2723,7 @@ function drawFoodGame(){
  drawFoodPlayer(foodPlayers.jill,jillImages);
 
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 13px Arial";
+ ctx.font="bold 13px DM Sans";
  ctx.textAlign="center";
  ctx.fillText("HASAN",foodPlayers.hasan.x,540);
  ctx.fillText("JILL",foodPlayers.jill.x,540);
@@ -2735,6 +2759,7 @@ function finishFoodGame(won){
   };
 
  }else{
+  playLoserSound();
   document.getElementById("resultEmoji").textContent="🥣";
   document.getElementById("resultTitle").textContent="Oh nein – zu viel Grüne Soße!";
   document.getElementById("resultText").textContent=
@@ -2764,7 +2789,7 @@ function drawFall(now){
 
  ctx.fillStyle="#f4d8a5";
  ctx.textAlign="center";
- ctx.font="bold 34px Georgia";
+ ctx.font="bold 34px Cormorant Garamond";
  ctx.fillText("Und los geht’s …",500,285);
 
  if(t>.65){
@@ -2783,35 +2808,35 @@ function drawLanding(now){
  ctx.strokeRect(105,48,790,489);
 
  ctx.fillStyle="#ffe0a5";ctx.textAlign="center";
- ctx.font="bold 31px Georgia";
+ ctx.font="bold 31px Cormorant Garamond";
  ctx.fillText("Auf zum Restaurant!",500,91);
- ctx.font="bold 18px Arial";
+ ctx.font="bold 18px DM Sans";
  ctx.fillText("Passt auf im Berliner Straßenverkehr!",500,126);
 
- ctx.font="15px Arial";ctx.fillStyle="#fff0d5";
+ ctx.font="15px DM Sans";ctx.fillStyle="#fff0d5";
  ctx.fillText("Weicht den Hindernissen aus: Hunden, Pfützen, Baustellen,",500,166);
  ctx.fillText("Flaschen, E-Scootern, Spätis und dem M41-BVG-Bus.",500,190);
  ctx.fillText("Sammelt gemeinsam mindestens 52 Herzen in 60 Sekunden.",500,224);
- ctx.fillStyle="#ffcf9d";ctx.font="bold 14px Arial";
+ ctx.fillStyle="#ffcf9d";ctx.font="bold 14px DM Sans";
  ctx.fillText("Achtung: Jeder Hindernis-Treffer kostet euch 3 Herzen!",500,246);
 
- ctx.textAlign="left";ctx.font="bold 16px Arial";ctx.fillStyle="#ffe0a5";
+ ctx.textAlign="left";ctx.font="bold 16px DM Sans";ctx.fillStyle="#ffe0a5";
  ctx.fillText("POWER-UPS & HERZEN",175,270);
- ctx.font="14px Arial";ctx.fillStyle="#fff0d5";
+ ctx.font="14px DM Sans";ctx.fillStyle="#fff0d5";
  ctx.fillText("🧲 Herzmagnet: zieht Herzen in eurer Nähe automatisch an.",175,298);
  ctx.fillText("🛡️ Schutzschild: schützt euch einmal vor einem Hindernis.",175,324);
  ctx.fillText("Goldenes Herz mit einer „5“ = 5 Punkte statt 1 Herz.",175,350);
  ctx.fillText("Doppelherz: sammelt es gemeinsam für einen Bonus.",175,376);
 
- ctx.textAlign="center";ctx.font="bold 15px Arial";ctx.fillStyle="#ffe0a5";
+ ctx.textAlign="center";ctx.font="bold 15px DM Sans";ctx.fillStyle="#ffe0a5";
  ctx.fillText("STEUERUNG",500,417);
- ctx.font="14px Arial";ctx.fillStyle="#fff0d5";
+ ctx.font="14px DM Sans";ctx.fillStyle="#fff0d5";
  ctx.fillText("Hasan: Pfeiltasten     ·     Jill: W A S D",500,442);
 
  // Start-Button: Das Rennen beginnt ausschließlich nach diesem Klick.
  box(395,465,210,54,"#e2bd7d");
  ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(395,465,210,54);
- ctx.fillStyle="#3d2634";ctx.font="bold 22px Arial";
+ ctx.fillStyle="#3d2634";ctx.font="bold 22px DM Sans";
  ctx.textAlign="center";ctx.fillText("START",500,500);
 
  drawBike(690,475,"#243e65","#38251f","HASAN");
@@ -2837,61 +2862,118 @@ function stopHeartAudio(){
 }
 function heartSetBeat(){
  const a=document.getElementById("heartBeat");
- if(a.paused){a.volume=0.18;a.playbackRate=0.82;a.play().catch(()=>{});}
- const intensity=heartPhase===0?0.9:heartPhase===1?1.18:1.48;
- a.playbackRate=intensity;
- a.volume=heartPhase===0?0.38:heartPhase===1?0.58:0.78;
+ if(a.paused){a.play().catch(()=>{});}
+ const progress=Math.min(1,heartTotalHits/24);
+ a.playbackRate=.82+progress*.78;
+ a.volume=.28+progress*.72;
 }
 function drawHeartExterior(){
- // Detailgetreue zeichnerische Nachbildung des Referenzfotos – kein externes Foto nötig.
- box(0,0,W,H,"#b9aa91");
- // gealterte Sandsteinfassade
- const facade=ctx.createLinearGradient(0,0,0,470);facade.addColorStop(0,"#665c4e");facade.addColorStop(.42,"#8d806c");facade.addColorStop(1,"#c1b49b");ctx.fillStyle=facade;ctx.fillRect(0,0,W,470);
- // obere dunkle Attika und Steinquader
- for(let y=0;y<470;y+=42){for(let x=(y/42%2)*34;x<W;x+=105){ctx.strokeStyle="#514a40";ctx.globalAlpha=.22;ctx.strokeRect(x,y,105,42);}}ctx.globalAlpha=1;
- // drei hohe Fenster mit tiefen steinernen Laibungen
- for(let i=0;i<3;i++){
-  const x=170+i*235;box(x-12,92,124,145,"#4e473e");box(x-5,99,110,130,"#a99b7f");box(x+3,107,94,114,"#29363a");
-  const glass=ctx.createLinearGradient(x,108,x+90,220);glass.addColorStop(0,"#9ab0b0");glass.addColorStop(1,"#536d74");ctx.fillStyle=glass;ctx.fillRect(x+7,111,86,106);
-  line(x+50,111,x+50,217,"#c6b99c",7);line(x+7,164,x+93,164,"#c6b99c",7);
-  ctx.strokeStyle="#403a32";ctx.lineWidth=5;ctx.strokeRect(x-7,104,114,121);
+ // Stadtbad Lichtenberg: maßstäbliche, perspektivisch leicht schräge Nachbildung
+ // anhand des vom User gelieferten Fassadenfotos. Keine Fotodatei wird eingebettet.
+ box(0,0,W,H,"#c9c5bb");
+ // Himmel und kahle Äste am oberen Bildrand
+ const sky=ctx.createLinearGradient(0,0,0,165);sky.addColorStop(0,"#c5d2d5");sky.addColorStop(1,"#e0ddd2");ctx.fillStyle=sky;ctx.fillRect(0,0,W,165);
+ ctx.save();ctx.strokeStyle="#393b32";ctx.lineCap="round";ctx.globalAlpha=.65;
+ const branches=[[560,0,650,75],[650,75,755,94],[755,94,870,45],[650,75,710,10],[755,94,840,145],[840,145,980,112],[710,10,760,0],[870,45,930,0],[840,145,900,205],[650,75,600,120]];
+ branches.forEach((b,i)=>{ctx.lineWidth=i<3?5:2.2;ctx.beginPath();ctx.moveTo(b[0],b[1]);ctx.quadraticCurveTo((b[0]+b[2])/2-18,(b[1]+b[3])/2-20,b[2],b[3]);ctx.stroke();});ctx.restore();
+ // Hauptfassade: grauer, verwitterter Putz und heller Natursteinsockel
+ const wall=ctx.createLinearGradient(0,40,1000,560);wall.addColorStop(0,"#aaa69d");wall.addColorStop(.48,"#89877f");wall.addColorStop(1,"#6f706d");ctx.fillStyle=wall;ctx.fillRect(0,36,1000,520);
+ // unregelmäßige Putz- und abgeplatzte Stellen
+ ctx.save();ctx.globalAlpha=.65;ctx.fillStyle="#d0c9b9";
+ [[0,115,120,18],[120,60,40,85],[0,380,55,105],[170,300,42,110],[815,340,30,85],[930,250,70,95],[360,60,30,75]].forEach(a=>{ctx.fillRect(...a);});
+ ctx.globalAlpha=.28;ctx.fillStyle="#e6dfcf";for(let i=0;i<85;i++){const x=(i*137)%1000,y=60+(i*71)%460;ctx.fillRect(x,y,8+(i%4)*5,2+(i%3)*3);}ctx.restore();
+ // Fensterrahmen mit tiefer Laibung und Sprossen
+ function facadeWindow(x,y,w,h,cols=2,rows=3){
+  box(x-10,y-9,w+20,h+18,"#77776f");box(x-5,y-5,w+10,h+10,"#c0b9a8");box(x,y,w,h,"#50636b");
+  const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,"#a9c4cf");g.addColorStop(.55,"#7895a2");g.addColorStop(1,"#425963");ctx.fillStyle=g;ctx.fillRect(x+4,y+4,w-8,h-8);
+  ctx.strokeStyle="#d5d0c2";ctx.lineWidth=3;for(let c=1;c<cols;c++)line(x+w*c/cols,y+3,x+w*c/cols,y+h-3,"#d5d0c2",3);for(let r=1;r<rows;r++)line(x+3,y+h*r/rows,x+w-3,y+h*r/rows,"#d5d0c2",3);
+  ctx.strokeStyle="#514f49";ctx.lineWidth=4;ctx.strokeRect(x-3,y-3,w+6,h+6);
  }
- // steinerne Figuren zwischen den Fenstern und an den Außenkanten
- for(const x of [45,290,525,760,955]){
-  ctx.fillStyle="#b7a98d";ctx.beginPath();ctx.moveTo(x-17,55);ctx.lineTo(x+17,55);ctx.lineTo(x+23,76);ctx.lineTo(x+14,90);ctx.lineTo(x+12,132);ctx.lineTo(x-12,132);ctx.lineTo(x-14,90);ctx.lineTo(x-23,76);ctx.closePath();ctx.fill();
-  ctx.fillStyle="#62594d";ctx.beginPath();ctx.arc(x,47,10,0,Math.PI*2);ctx.fill();
-  box(x-22,132,44,9,"#51493f");
+ // fünf Fenster im Obergeschoss, wie im Foto über die Fassade verteilt
+ [[18,8,76,120],[245,64,72,116],[425,128,72,112],[602,190,68,104],[780,252,63,96],[940,306,55,88]].forEach(a=>facadeWindow(...a,2,3));
+ // Gesims / horizontale Dachrinne und breites vorspringendes steinernes Band
+ ctx.fillStyle="#514f4a";ctx.beginPath();ctx.moveTo(0,155);ctx.lineTo(1000,420);ctx.lineTo(1000,438);ctx.lineTo(0,176);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#c0b8a7";ctx.beginPath();ctx.moveTo(0,178);ctx.lineTo(1000,442);ctx.lineTo(1000,462);ctx.lineTo(0,198);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#e0d6c3";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,184);ctx.lineTo(1000,448);ctx.stroke();
+ // Vier steinerne Atlanten: Kopf, Oberkörper, angewinkelte Arme und Beine tragen jeweils einen Konsolstein
+ function atlas(cx,cy,scale=1){ctx.save();ctx.translate(cx,cy);ctx.scale(scale,scale);
+  // Schatten und tragender Konsolblock
+  ctx.fillStyle="#494943";ctx.beginPath();ctx.moveTo(-28,-5);ctx.lineTo(27,-5);ctx.lineTo(34,13);ctx.lineTo(18,25);ctx.lineTo(-19,25);ctx.lineTo(-34,12);ctx.closePath();ctx.fill();
+  const stone=ctx.createLinearGradient(-24,0,24,0);stone.addColorStop(0,"#5a5b58");stone.addColorStop(.45,"#a19b8c");stone.addColorStop(1,"#555650");ctx.fillStyle=stone;
+  // Beine und Hüfte
+  ctx.beginPath();ctx.moveTo(-15,-18);ctx.lineTo(15,-18);ctx.lineTo(20,15);ctx.lineTo(12,48);ctx.lineTo(3,66);ctx.lineTo(-10,62);ctx.lineTo(-20,29);ctx.closePath();ctx.fill();
+  ctx.strokeStyle="#484a48";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-5,5);ctx.lineTo(9,29);ctx.lineTo(3,61);ctx.moveTo(13,2);ctx.lineTo(-7,27);ctx.stroke();
+  // Oberkörper, angewinkelte Arme
+  ctx.fillStyle=stone;ctx.beginPath();ctx.moveTo(-20,-62);ctx.quadraticCurveTo(-28,-43,-19,-20);ctx.lineTo(18,-18);ctx.quadraticCurveTo(27,-43,17,-62);ctx.quadraticCurveTo(0,-74,-20,-62);ctx.fill();
+  ctx.strokeStyle="#555650";ctx.lineWidth=10;ctx.lineCap="round";ctx.beginPath();ctx.moveTo(-18,-56);ctx.quadraticCurveTo(-37,-43,-24,-28);ctx.lineTo(-5,-23);ctx.moveTo(17,-55);ctx.quadraticCurveTo(34,-40,20,-27);ctx.lineTo(4,-23);ctx.stroke();
+  // Kopf und stilisierte Haar-/Gesichtspartie
+  ctx.fillStyle="#8c877a";ctx.beginPath();ctx.ellipse(0,-78,12,15,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#4e504d";ctx.beginPath();ctx.arc(0,-87,13,Math.PI,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#4a4c49";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-5,-77);ctx.lineTo(5,-77);ctx.stroke();
+  // Kapitell über dem Kopf
+  ctx.fillStyle="#c0b7a5";ctx.beginPath();ctx.moveTo(-32,-101);ctx.lineTo(31,-101);ctx.lineTo(24,-91);ctx.lineTo(12,-86);ctx.lineTo(-12,-86);ctx.lineTo(-25,-91);ctx.closePath();ctx.fill();
+  ctx.restore();}
+ [ [278,365,.92],[474,418,.92],[660,468,.86],[835,515,.78] ].forEach(a=>atlas(...a));
+ // Vier kleine Fenster auf Höhe der Figuren zwischen den Atlanten
+ [[65,278,78,112],[315,345,70,106],[515,397,65,98],[715,450,60,91],[900,500,55,82]].forEach(a=>facadeWindow(...a,2,3));
+ // Schriftfeld über den drei Eingangsbuchten
+ ctx.fillStyle="#55534d";ctx.fillRect(235,444,530,58);ctx.strokeStyle="#c7bda8";ctx.lineWidth=3;ctx.strokeRect(239,447,522,52);
+ ctx.textAlign="center";ctx.fillStyle="#c5c7b5";ctx.shadowColor="#343630";ctx.shadowBlur=3;ctx.font="bold 31px Cormorant Garamond";ctx.fillText("Stadtbad Lichtenberg",500,485);ctx.shadowBlur=0;
+ // drei hohe Eingangsachsen mit massiven steinernen Pfeilern; mittlere Tür ist der Zugang
+ function entranceBay(x,w,center=false){
+  box(x,505,w,115,"#57564f");box(x+9,512,w-18,108,"#b6aa94");box(x+17,520,w-34,100,"#343b3a");
+  if(center){
+   box(x+22,520,(w-44)/2,100,"#b8b19f");box(x+w/2+1,520,(w-44)/2,100,"#b8b19f");
+   box(x+27,525,(w-54)/2,91,"#6b7775");box(x+w/2+6,525,(w-54)/2,91,"#667574");
+   line(x+w/2,520,x+w/2,620,"#c7bca6",5);line(x+26,570,x+w-26,570,"#c4b99f",3);
+  }else{
+   box(x+23,522,w-46,98,"#8e9a94");box(x+29,528,w-58,88,"#303b3c");line(x+29,568,x+w-29,568,"#b6ad99",3);
+  }
+  ctx.strokeStyle="#4a4944";ctx.lineWidth=7;ctx.strokeRect(x+7,508,w-14,112);
  }
- // Schild mit dem originalen Namen
- box(250,245,500,45,"#4d493e");ctx.strokeStyle="#c0b18e";ctx.lineWidth=3;ctx.strokeRect(250,245,500,45);
- ctx.textAlign="center";ctx.fillStyle="#b5b99c";ctx.font="bold 25px Georgia";ctx.fillText("Stadtbad Lichtenberg",500,276);
- // drei Eingangs-/Fensterfelder im Erdgeschoss
- for(let i=0;i<3;i++){
-  const x=110+i*260;box(x-8,310,268,190,"#5a5145");box(x,320,252,180,i===1?"#28383b":"#b9b6a8");
-  if(i===1){box(x+54,320,144,180,"#34474a");box(x+68,330,116,170,"#233338");line(x+126,330,x+126,500,"#9a927d",4);}
-  else {for(let y=335;y<490;y+=26){line(x+8,y,x+244,y,"#d4c9b4",2);}}
-  ctx.strokeStyle="#413c34";ctx.lineWidth=8;ctx.strokeRect(x-3,313,258,187);
- }
- // verwitterte Graffiti-Spuren im unteren Mauerbereich, dezent wie im Foto
- ctx.save();ctx.globalAlpha=.65;ctx.lineWidth=4;ctx.strokeStyle="#3d4c8c";ctx.beginPath();ctx.moveTo(145,450);ctx.lineTo(164,420);ctx.lineTo(182,454);ctx.lineTo(198,426);ctx.stroke();ctx.strokeStyle="#a65b36";ctx.beginPath();ctx.moveTo(420,470);ctx.lineTo(455,442);ctx.lineTo(478,469);ctx.stroke();ctx.restore();
- // dunkler Abendlook
- ctx.fillStyle="#17131b35";ctx.fillRect(0,0,W,H);
+ entranceBay(210,180,false);entranceBay(410,180,true);entranceBay(610,180,false);
+ // seitliche Erdgeschossfenster
+ [[48,470,72,132],[870,530,58,85],[952,550,42,70]].forEach(a=>facadeWindow(...a,2,3));
+ // Treppe führt ausdrücklich zur mittleren Eingangstür
+ ctx.fillStyle="#77766f";ctx.beginPath();ctx.moveTo(350,620);ctx.lineTo(650,620);ctx.lineTo(610,548);ctx.lineTo(390,548);ctx.closePath();ctx.fill();
+ for(let i=0;i<5;i++){const y=555+i*13;const half=105+i*17;ctx.fillStyle=i%2?"#b7b1a4":"#8d8a81";ctx.fillRect(500-half,y,half*2,10);ctx.strokeStyle="#555650";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(500-half,y+10);ctx.lineTo(500+half,y+10);ctx.stroke();}
+ // Handläufe links und rechts der Treppe
+ ctx.strokeStyle="#484b4b";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(365,620);ctx.lineTo(395,555);ctx.lineTo(430,538);ctx.moveTo(635,620);ctx.lineTo(605,555);ctx.lineTo(570,538);ctx.stroke();
+ // Absperrgitter vor den rechten Eingangsbereichen wie auf dem Foto
+ ctx.strokeStyle="#6d7777";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(610,590);ctx.lineTo(1000,590);ctx.moveTo(610,614);ctx.lineTo(1000,614);ctx.stroke();for(let x=620;x<1000;x+=22){line(x,590,x,614,"#647273",2);}
+ // dezente Graffiti-Spuren im Sockelbereich
+ ctx.save();ctx.globalAlpha=.55;ctx.strokeStyle="#45617b";ctx.lineWidth=3;[[260,555],[330,570],[710,560],[770,570]].forEach(([x,y],i)=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+9,y-12);ctx.lineTo(x+18,y+4);ctx.lineTo(x+27,y-10);ctx.stroke();});ctx.restore();
+ // Figuren erst nach der Architektur zeichnen: Sie laufen die Treppe hinauf zur mittleren Tür.
  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,!!(keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown));
  drawCharacter(jillImages,jill.x,jill.y,jill.direction,!!(keys.a||keys.d||keys.w||keys.s));
- ctx.textAlign="center";ctx.font="bold 11px Arial";ctx.fillStyle="#d8e7ff";ctx.fillText("HASAN",hasan.x,hasan.y+12);ctx.fillStyle="#ffd1df";ctx.fillText("JILL",jill.x,jill.y+12);
- // Türbereich mittig; beide Figuren müssen ihn erreichen.
- const nearH=Math.hypot(hasan.x-500,hasan.y-455)<115,nearJ=Math.hypot(jill.x-500,jill.y-455)<115;
+ ctx.textAlign="center";ctx.font="bold 11px DM Sans";ctx.fillStyle="#d8e7ff";ctx.fillText("HASAN",hasan.x,hasan.y+12);ctx.fillStyle="#ffd1df";ctx.fillText("JILL",jill.x,jill.y+12);
+ const nearH=Math.hypot(hasan.x-500,hasan.y-545)<100,nearJ=Math.hypot(jill.x-500,jill.y-545)<100;
  if(nearH)heartExteriorEntered.hasan=true;if(nearJ)heartExteriorEntered.jill=true;
- ctx.fillStyle="#fff0d5";ctx.font="bold 14px Arial";
- ctx.fillText(heartExteriorEntered.hasan&&heartExteriorEntered.jill?"Ihr seid beide am Eingang.":"Geht gemeinsam zum Eingang – Hasan: Pfeiltasten · Jill: WASD",500,590);
+ ctx.fillStyle="#fff0d5";ctx.font="bold 14px DM Sans";
+ ctx.fillText(heartExteriorEntered.hasan&&heartExteriorEntered.jill?"Ihr seid beide an der mittleren Eingangstür.":"Geht die Treppe hinauf und durch die mittlere Tür – Hasan: Pfeiltasten · Jill: WASD",500,606);
 }
 
 function enterHeartBuilding(){
- scene="heartInterior";
- hasan.x=420;hasan.y=530;hasan.direction="back";
- jill.x=580;jill.y=530;jill.direction="back";
+ scene="heartEntering";
+ heartEnteringStartedAt=performance.now();
+ heartWalkAudioStarted=false;
+ hasan.x=420;hasan.y=605;hasan.direction="back";
+ jill.x=580;jill.y=605;jill.direction="back";
  heartDialogueIndex=0;
  document.getElementById("heart3d").style.display="none";
+ const outside=document.getElementById("stadtbadAmbience");
+ if(outside){outside.pause();outside.currentTime=0;}
+ const walk=document.getElementById("stadtbadWalk");
+ if(walk){
+  walk.pause();walk.volume=.8;walk.playbackRate=1;
+  const startWalkSegment=()=>{
+   walk.currentTime=8;
+   const playback=walk.play();
+   if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+  };
+  if(Number.isFinite(walk.duration)&&walk.duration>12){startWalkSegment();}
+  else{walk.addEventListener("loadedmetadata",startWalkSegment,{once:true});walk.load();}
+  heartWalkAudioStarted=true;
+ }
 }
 function drawHeartInterior(){
  // Recreated two-storey Stadtbad hall, deliberately without the original ceiling projection.
@@ -2905,10 +2987,13 @@ function drawHeartInterior(){
   const base=side?760:65;
   for(let i=0;i<4;i++){
    const x=base+(side?-1:1)*i*52;
-   box(x,120,38,112,"#171c22");box(x+4,124,30,104,"#8da0a0");
-   line(x+19,124,x+19,228,"#d2c9b5",3);line(x+4,174,x+34,174,"#d2c9b5",3);
+   box(x,62,38,166,"#171c22");box(x+4,66,30,158,"#8da0a0");
+   line(x+19,66,x+19,224,"#d2c9b5",3);line(x+4,145,x+34,145,"#d2c9b5",3);
   }
-  box(side?720:0,95,22,295,"#6a5b50");
+  // Monumentale, fast 15 Meter hohe Wandpfeiler ziehen den Blick bis zur Decke.
+  box(side?720:0,28,22,372,"#6a5b50");
+  box(side?690:285,35,9,360,"#857365");
+  box(side?660:520,35,9,360,"#857365");
  }
  // upper gallery / balcony
  box(0,275,W,18,"#352c2b");box(0,293,W,9,"#9a8065");
@@ -2933,36 +3018,64 @@ function drawHeartInterior(){
  if(scene==="heartInterior"||scene==="heartDialogue"){
   drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
   drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
-  if(scene==="heartInterior"){ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 14px Arial";ctx.fillText("Ihr tretet in die große Halle. Drückt E oder klickt, um weiterzugehen.",500,600);}
+ }
+}
+function drawHeartEntering(now){
+ drawHeartInterior();
+ const progress=Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000));
+ // Der Raum wirkt etwa 15 Meter hoch: Die Figuren laufen aus dem nahen,
+ // unteren Eingangsbereich in die Tiefe der hohen Halle.
+ const y=605-progress*205;
+ const scale=.58+progress*.42;
+ ctx.save();
+ ctx.translate(0,y);
+ ctx.scale(scale,scale);
+ drawCharacter(hasanImages,420/scale,0,"back",true);
+ drawCharacter(jillImages,580/scale,0,"back",true);
+ ctx.restore();
+ if(progress>=1){
+  const walk=document.getElementById("stadtbadWalk");
+  if(walk){walk.pause();walk.currentTime=0;}
+  hasan.x=420;hasan.y=400;hasan.direction="back";
+  jill.x=580;jill.y=400;jill.direction="back";
+  scene="heartDialogue";
+  heartDialogueIndex=0;
  }
 }
 function drawHeartDialogue(){
  drawHeartInterior();
  ctx.fillStyle="#09080bd9";ctx.fillRect(0,0,W,H);
- ctx.fillStyle="#f3d6a5";ctx.textAlign="center";ctx.font="bold 13px Arial";ctx.fillText(heartDialogueLines[heartDialogueIndex].speaker.toUpperCase(),500,435);
- ctx.fillStyle="#fff1dc";ctx.font="21px Georgia";
+ ctx.fillStyle="#f3d6a5";ctx.textAlign="center";ctx.font="bold 13px DM Sans";ctx.fillText(heartDialogueLines[heartDialogueIndex].speaker.toUpperCase(),500,435);
+ ctx.fillStyle="#fff1dc";ctx.font="21px Cormorant Garamond";
  wrapSayingsText(heartDialogueLines[heartDialogueIndex].text,500,475,800,30);
- ctx.fillStyle="#d7b47b";ctx.font="12px Arial";ctx.fillText("KLICKEN ODER E / LEERTASTE",500,565);
+ ctx.fillStyle="#d7b47b";ctx.font="12px DM Sans";ctx.fillText("KLICKEN ODER E / LEERTASTE",500,565);
 }
 function beginHeartGame(){
  scene="heartIntro";heartGameStarted=false;heartCountdownStarted=0;
  heartPhase=0;heartPhaseHits=0;heartTotalHits=0;heartSparks=[];
+ document.getElementById("heart3d").style.display="none";
+ const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=0.08;a.playbackRate=.78;
+ heartAudioStartAt=0;
+}
+function launchHeartCountdown(){
+ if(heartCountdownStarted)return;
  document.getElementById("heart3d").style.display="block";
  startHeart3D();
  const a=document.getElementById("heartBeat");a.currentTime=0;a.volume=0.08;a.playbackRate=.78;a.play().catch(()=>{});
  heartAudioStartAt=performance.now();
+ heartCountdownStarted=performance.now();
 }
 function drawHeartIntro(){
  drawHeartInterior();
  ctx.fillStyle="#09080bdc";ctx.fillRect(0,0,W,H);
- ctx.textAlign="center";ctx.fillStyle="#f4d49c";ctx.font="bold 32px Georgia";ctx.fillText("ENTFACHE MEIN HERZ",500,160);
- ctx.fillStyle="#fff0dc";ctx.font="17px Georgia";
+ ctx.textAlign="center";ctx.fillStyle="#f4d49c";ctx.font="bold 32px Cormorant Garamond";ctx.fillText("ENTFACHE MEIN HERZ",500,160);
+ ctx.fillStyle="#fff0dc";ctx.font="17px Cormorant Garamond";
  ["Das Herz schlägt noch ganz leise. Sammle die Funken, die um es herum aufleuchten.",
   "Klicke die glühenden Funken an, bevor sie verglühen. Jeder Treffer entfacht das Herz ein Stück weiter.",
   "Drei Phasen führen vom ersten Glimmen bis zum lodernden Feuer. Mit jeder Phase werden die Funken schneller.",
   "Du kannst mit der Maus oder durch Anklicken spielen. Ziel: Entfache alle 24 Funken."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
  ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
- ctx.fillStyle="#3b2830";ctx.font="bold 23px Arial";ctx.fillText(heartCountdownStarted?"":"START",500,482);
+ ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText(heartCountdownStarted?"":"START",500,482);
 }
 function spawnHeartSpark(now){
  const counts=[6,8,10];
@@ -2990,6 +3103,7 @@ function collectHeartSpark(x,y){
   const s=heartSparks[i];
   if(Math.hypot(s.x-x,s.y-y)<38){
    heartSparks.splice(i,1);heartPhaseHits++;heartTotalHits++;
+   if(window.heart3DAddFlame)window.heart3DAddFlame(x,y,heartTotalHits);
    if(window.heart3DSetFire)window.heart3DSetFire(heartTotalHits<6?.12:heartTotalHits<14?.42:Math.min(1,.68+(heartTotalHits-14)*.04));
    if(heartPhaseHits>=([6,8,10][heartPhase])){
     if(heartPhase<2){heartPhase++;heartPhaseHits=0;heartSetBeat();}
@@ -3003,7 +3117,9 @@ function collectHeartSpark(x,y){
 }
 function finishHeartGame(){
  scene="heartBurning";
- const a=document.getElementById("heartBeat");a.playbackRate=1.5;a.volume=.8;
+ const gameMusic=document.getElementById("heartGameMusic");
+ if(gameMusic){gameMusic.pause();gameMusic.currentTime=0;}
+ const a=document.getElementById("heartBeat");a.playbackRate=1.65;a.volume=1;
  if(window.heart3DSetFire)window.heart3DSetFire(1);
  setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=-100;heartPaperX=900;},3500);
 }
@@ -3021,9 +3137,9 @@ function drawHeartLetter(now){
  ctx.fillStyle="#b99a72";ctx.fillRect(-101,-128,202,256);
  ctx.fillStyle="#f5e8ce";ctx.fillRect(-96,-123,192,246);
  ctx.strokeStyle="#b78b58";ctx.lineWidth=1.5;ctx.strokeRect(-87,-114,174,228);
- ctx.fillStyle="#78494a";ctx.textAlign="center";ctx.font="bold 16px Georgia";ctx.fillText("Mein liebster Hasinator,",0,-75);
- if(heartLetterOpened){ctx.fillStyle="#493b36";ctx.font="13px Georgia";ctx.fillText(" ",0,-35);ctx.strokeStyle="#d6c3a4";ctx.lineWidth=1;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(-65,-20+i*25);ctx.lineTo(65,-20+i*25);ctx.stroke();}}
- ctx.fillStyle="#c4a77f";ctx.font="12px Georgia";ctx.fillText("",0,-38);
+ ctx.fillStyle="#78494a";ctx.textAlign="center";ctx.font="bold 16px Cormorant Garamond";ctx.fillText("Mein liebster Hasinator,",0,-75);
+ if(heartLetterOpened){ctx.fillStyle="#493b36";ctx.font="13px Cormorant Garamond";ctx.fillText(" ",0,-35);ctx.strokeStyle="#d6c3a4";ctx.lineWidth=1;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(-65,-20+i*25);ctx.lineTo(65,-20+i*25);ctx.stroke();}}
+ ctx.fillStyle="#c4a77f";ctx.font="12px Cormorant Garamond";ctx.fillText("",0,-38);
  ctx.restore();
  if(elapsed>3.5)heartLetterOpened=true;
 }
@@ -3042,6 +3158,8 @@ function advanceHeartChapter(){
 }
 function updateHeartChapter(now){
  if(scene==="heartExterior"){
+  const ambience=document.getElementById("stadtbadAmbience");
+  if(ambience&&ambience.paused){ambience.volume=.42;ambience.play().catch(()=>{});}
   let hx=0,hy=0;if(keys.ArrowLeft)hx--;if(keys.ArrowRight)hx++;if(keys.ArrowUp)hy--;if(keys.ArrowDown)hy++;
   if(hx&&hy){hx*=.707;hy*=.707;}if(hx<0)hasan.direction="left";if(hx>0)hasan.direction="right";if(hy<0)hasan.direction="back";if(hy>0)hasan.direction="front";
   hasan.x=Math.max(80,Math.min(920,hasan.x+hx*3));hasan.y=Math.max(360,Math.min(575,hasan.y+hy*3));
@@ -3050,15 +3168,22 @@ function updateHeartChapter(now){
   jill.x=Math.max(80,Math.min(920,jill.x+jx*3));jill.y=Math.max(360,Math.min(575,jill.y+jy*3));
   drawHeartExterior();
   if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){enterHeartBuilding();return;}
+ }else if(scene==="heartEntering"){
+  const walk=document.getElementById("stadtbadWalk");
+  if(walk&&walk.currentTime>=12){walk.pause();walk.currentTime=12;}
+  drawHeartEntering(now);
  }else if(scene==="heartInterior"){drawHeartInterior();}
  else if(scene==="heartDialogue"){drawHeartDialogue();}
  else if(scene==="heartIntro"){
   drawHeartIntro();
   if(heartCountdownStarted){
    const sec=Math.floor((now-heartCountdownStarted)/1000);
-   if(sec<3){ctx.fillStyle="#fff0dc";ctx.font="bold 72px Georgia";ctx.textAlign="center";ctx.fillText(String(3-sec),500,350);}
-   else if(sec===3){ctx.fillStyle="#ffd27f";ctx.font="bold 66px Georgia";ctx.textAlign="center";ctx.fillText("LOS!",500,350);}
-   else{scene="heartGame";heartGameStartAt=now;heartLastSpawn=0;heartSetBeat();}
+   if(sec<3){ctx.fillStyle="#fff0dc";ctx.font="bold 72px Cormorant Garamond";ctx.textAlign="center";ctx.fillText(String(3-sec),500,350);}
+   else if(sec===3){ctx.fillStyle="#ffd27f";ctx.font="bold 66px Cormorant Garamond";ctx.textAlign="center";ctx.fillText("LOS!",500,350);}
+   else{scene="heartGame";heartGameStartAt=now;heartLastSpawn=0;heartSetBeat();
+    const gameMusic=document.getElementById("heartGameMusic");
+    if(gameMusic){gameMusic.currentTime=0;gameMusic.volume=.48;gameMusic.play().catch(()=>{});}
+   }
   }
  }else if(scene==="heartGame"){
   if(keys.ArrowLeft)heartPointer.x=Math.max(20,heartPointer.x-5);
@@ -3068,13 +3193,13 @@ function updateHeartChapter(now){
   drawHeartInterior();
   ctx.fillStyle="#09060940";ctx.fillRect(0,0,W,H);
   spawnHeartSpark(now);drawHeartSparks(now);
-  ctx.textAlign="center";ctx.fillStyle="#fff0db";ctx.font="bold 17px Georgia";
+  ctx.textAlign="center";ctx.fillStyle="#fff0db";ctx.font="bold 17px Cormorant Garamond";
   ctx.fillText(["PHASE I – DIE ERSTEN FUNKEN","PHASE II – DAS FEUER BREITET SICH AUS","PHASE III – DAS HERZ BRENNT"][heartPhase],500,75);
-  ctx.font="14px Arial";ctx.fillText("Funken: "+heartTotalHits+" / 24",500,105);
+  ctx.font="14px DM Sans";ctx.fillText("Funken: "+heartTotalHits+" / 24",500,105);
  }else if(scene==="heartBurning"){
   drawHeartInterior();
   ctx.fillStyle="#08050833";ctx.fillRect(0,0,W,H);
-  ctx.textAlign="center";ctx.fillStyle="#fff0dc";ctx.font="bold 21px Georgia";ctx.fillText("MEIN HERZ STEHT IN FLAMMEN",500,80);
+  ctx.textAlign="center";ctx.fillStyle="#fff0dc";ctx.font="bold 21px Cormorant Garamond";ctx.fillText("MEIN HERZ STEHT IN FLAMMEN",500,80);
  }else if(scene==="heartLetter"){drawHeartLetter(now);}
 }
 
@@ -3103,19 +3228,18 @@ function drawSayingsCelebration(now){
  ctx.textAlign="center";
  const pop=Math.min(1,(now-sayingsCompletedAt)/650);
  ctx.save();ctx.translate(500,151);ctx.scale(.88+.12*(1-Math.pow(1-pop,3)),.88+.12*(1-Math.pow(1-pop,3)));
- ctx.shadowColor="#b77d5c66";ctx.shadowBlur=12;ctx.fillStyle="#573b4b";ctx.font="bold 34px Georgia";
+ ctx.shadowColor="#b77d5c66";ctx.shadowBlur=12;ctx.fillStyle="#573b4b";ctx.font="bold 34px Cormorant Garamond";
  ctx.fillText("Super! Du hast die",0,0);ctx.fillText("Sprachprüfung bestanden!",0,42);ctx.restore();
  const alpha=Math.min(1,Math.max(0,(now-sayingsCompletedAt-450)/900));
- ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle="#72535a";ctx.font="19px Georgia";
+ ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle="#72535a";ctx.font="19px Cormorant Garamond";
  ctx.fillText("Aber keine Sorge: Jill liebt deine kreativen",500,263);
  ctx.fillText("Neuinterpretationen von Redewendungen sowieso.",500,290);
- ctx.fillStyle="#9a5a50";ctx.font="italic 20px Georgia";ctx.fillText("Bitte hör niemals auf, sie falsch zu sagen!",500,337);ctx.restore();
+ ctx.fillStyle="#9a5a50";ctx.font="italic 20px Cormorant Garamond";ctx.fillText("Bitte hör niemals auf, sie falsch zu sagen!",500,337);ctx.restore();
  const bounce=Math.abs(Math.sin(t*5.4))*18;
  drawCharacter(hasanImages,405,560-bounce,"front",true);
  drawCharacter(jillImages,595,560-Math.abs(Math.sin(t*5.4+Math.PI*.65))*18,"front",true);
- ctx.fillStyle="#71515b";ctx.font="bold 13px Georgia";ctx.fillText("HASAN",405,606);ctx.fillText("JILL",595,606);
- ctx.fillStyle="#b85a57";ctx.font="26px Georgia";ctx.fillText("♥",500,492+Math.sin(t*3)*5);
- ctx.fillStyle="#795e50";ctx.font="13px Georgia";ctx.fillText("Ein Hoch auf eure ganz eigene Sprache!",500,462);
+ ctx.fillStyle="#71515b";ctx.font="bold 13px Cormorant Garamond";ctx.fillText("HASAN",405,606);ctx.fillText("JILL",595,606);
+ ctx.fillStyle="#b85a57";ctx.font="26px Cormorant Garamond";ctx.fillText("♥",500,492+Math.sin(t*3)*5);
  // Kein Weiter-Hinweis: Nach dem einmaligen Konfettiregen geht es per Taste oder Klick weiter.
 }
 
@@ -3234,7 +3358,7 @@ function interact(){
  if(scene==="heartExterior"){if(heartExteriorEntered.hasan&&heartExteriorEntered.jill)enterHeartBuilding();return;}
  if(scene==="heartInterior"){scene="heartDialogue";return;}
  if(scene==="heartDialogue"){advanceHeartChapter();return;}
- if(scene==="heartIntro"&&!heartCountdownStarted){heartCountdownStarted=performance.now();return;}
+ if(scene==="heartIntro"&&!heartCountdownStarted){launchHeartCountdown();return;}
  if(scene==="interior"){
   const h=restaurantPlayers.hasan;
   const j=restaurantPlayers.jill;
@@ -3306,7 +3430,7 @@ canvas.addEventListener("click",e=>{
  if(scene==="heartExterior"){if(heartExteriorEntered.hasan&&heartExteriorEntered.jill)enterHeartBuilding();return;}
  if(scene==="heartInterior"){scene="heartDialogue";return;}
  if(scene==="heartDialogue"){advanceHeartChapter();return;}
- if(scene==="heartIntro"&&!heartCountdownStarted&&x>=390&&x<=610&&y>=430&&y<=520){heartCountdownStarted=performance.now();return;}
+ if(scene==="heartIntro"&&!heartCountdownStarted&&x>=390&&x<=610&&y>=430&&y<=520){launchHeartCountdown();return;}
  if(scene==="heartGame"){collectHeartSpark(x,y);return;}
  if(scene==="heartLetter"&&!heartLetterOpened){heartLetterOpened=true;return;}
 
@@ -3432,14 +3556,29 @@ update();
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 const host=document.getElementById("heart3d");
-const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],light:null,fire:0};
+const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false};
 function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);state.camera.aspect=w/h;state.camera.updateProjectionMatrix();}
-function init(){if(state.renderer)return;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.5);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);state.renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.16));const key=new THREE.DirectionalLight(0xffe2c1,.35);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff3b12,0,8);state.light.position.set(0,0,1);state.scene.add(state.light);new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.y=.02;state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);o.material.emissive=new THREE.Color(0x160000);o.material.emissiveIntensity=.04;}});state.scene.add(state.heart);const ft=makeFlameTexture(),et=makeEmberTexture();for(let i=0;i<22;i++){const m=new THREE.SpriteMaterial({map:ft,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);s.scale.set(.35+Math.random()*.35,.85+Math.random()*.55,1);const a=Math.random()*Math.PI*2,r=.75+Math.random()*.6;s.position.set(Math.cos(a)*r,(Math.random()-.5)*1.7,Math.sin(a)*.55);state.scene.add(s);state.flames.push({sp:s,a,r,phase:Math.random()*6.28});}for(let i=0;i<85;i++){const m=new THREE.SpriteMaterial({map:et,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);s.scale.setScalar(.035+Math.random()*.045);state.scene.add(s);state.embers.push({sp:s,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.75+Math.random()*.7});}animate();},undefined,e=>console.error("Herzmodell konnte nicht geladen werden",e));}
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.rotation.y=.16*Math.sin(t*.45)+t*(.12+state.fire*.42);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.012+state.fire*.018);state.heart.scale.setScalar((state.baseScale||1)*beat);state.heart.traverse(o=>{if(o.isMesh&&o.material?.emissive){o.material.emissive.setRGB(.08+state.fire*.95,.006+state.fire*.12,.002);o.material.emissiveIntensity=.04+state.fire*1.8;}});state.light.intensity=state.fire*(2.5+Math.sin(t*8)*.7);state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.24+.35*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.x=Math.cos(f.a+t*.28)*f.r;f.sp.position.y=Math.sin(t*2+f.phase)*.22+Math.sin(t*1.8+f.phase)*.35;f.sp.scale.y=(.7+state.fire*.7)*(1+.16*Math.sin(t*7+f.phase));});state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r,((p/(Math.PI*2))-.5)*3.2,Math.sin(a)*.6);e.sp.material.opacity=state.fire*(.25+.55*Math.max(0,Math.sin(p)));});}state.renderer.render(state.scene,state.camera);}
-window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.addEventListener("resize",resize);
-// Falls das Spiel das Herz vor dem Laden des Moduls angefordert hat: jetzt starten.
+function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.2);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);state.renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.7,1);state.scene.add(state.light);
+ new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.set(0,0,0);state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);}});state.scene.add(state.heart);
+ const ownTex=makeFlameTexture(),emberTex=makeEmberTexture();
+ // Eigene, bereits etablierte Flammen: klein und ausschließlich am unteren Drittel des Herzens.
+ for(let i=0;i<12;i++){const m=new THREE.SpriteMaterial({map:ownTex,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(.22+Math.random()*.12,.48+Math.random()*.18,1);const x=-.62+(i%6)*.25;sp.position.set(x,-.88+Math.random()*.22,.22);state.scene.add(sp);state.flames.push({sp,phase:Math.random()*6.28});}
+ for(let i=0;i<45;i++){const m=new THREE.SpriteMaterial({map:emberTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.setScalar(.025+Math.random()*.025);state.scene.add(sp);state.embers.push({sp,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.55+Math.random()*.45});}
+ // Die drei hochgeladenen GIFs werden als animierte Texturen verwendet.
+ ["feuer1.gif","feuer3.gif","feuer4.gif"].forEach((src)=>{const tex=new THREE.TextureLoader().load(src);tex.colorSpace=THREE.SRGBColorSpace;state.gifTextures.push(tex);});
+ animate();},undefined,e=>{state.failed=true;console.error("Herzmodell konnte nicht geladen werden",e);});}
+function addGifFlame(screenX,screenY,hit){if(!state.heart||!state.gifTextures.length)return;const startX=(screenX-500)/190,startY=(310-screenY)/190;const targetX=-.58+Math.random()*1.16;const targetY=-.98+Math.random()*.26;const tex=state.gifTextures[(hit-1)%state.gifTextures.length];const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.96,depthWrite:false});const sp=new THREE.Sprite(mat);sp.scale.set(.28,.28,1);sp.position.set(startX,startY,.7);state.scene.add(sp);state.gifFlames.push({sp,fromX:startX,fromY:startY,toX:targetX,toY:targetY,start:performance.now(),life:900+Math.random()*250,tex});}
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.012+state.fire*.018);state.heart.scale.setScalar((state.baseScale||1)*beat);
+ // Originale Materialfarben bleiben unverändert – nur Licht und Flammen reagieren auf den Fortschritt.
+ state.light.intensity=state.fire*(.45+Math.sin(t*8)*.08);
+ state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.22+.30*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.91+Math.sin(t*2+f.phase)*.045;f.sp.scale.y=.44+.08*Math.sin(t*7+f.phase);});
+ state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r, -.62+((p/(Math.PI*2))*.9),.45);e.sp.material.opacity=state.fire*(.15+.45*Math.max(0,Math.sin(p)));});
+ state.gifFlames=state.gifFlames.filter(f=>{const q=Math.min(1,(performance.now()-f.start)/f.life);f.sp.position.x=f.fromX+(f.toX-f.fromX)*q;f.sp.position.y=f.fromY+(f.toY-f.fromY)*q;f.sp.scale.setScalar(.23+.08*Math.sin(q*Math.PI));f.sp.material.opacity=q<.82?.98:Math.max(0,(1-q)*5);f.tex.needsUpdate=true;if(q>=1){state.scene.remove(f.sp);f.sp.material.dispose();return false;}return true;});
+ state.gifTextures.forEach(tex=>{tex.needsUpdate=true;});}
+ state.renderer.render(state.scene,state.camera);}
+window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.heart3DAddFlame=addGifFlame;window.addEventListener("resize",resize);
 if(window.heart3dPending){window.heart3dPending=false;init();}
 </script>
 </body>
