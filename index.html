@@ -2860,27 +2860,14 @@ function startHeart3D(){
 }
 function stopHeartAudio(){
  const a=document.getElementById("heartBeat");
- a.pause();a.currentTime=0;a.playbackRate=1;a.volume=0.7;
+ a.pause();a.currentTime=0;a.playbackRate=1;a.volume=1;
 }
 function heartSetBeat(){
  const a=document.getElementById("heartBeat");
- const progress=Math.min(1,heartTotalHits/24);
- // Der Herzschlag wird mit jedem Funken etwas schneller und deutlich lauter.
- a.playbackRate=.82+progress*1.05;
- a.volume=.35+progress*.65;
- try{
-  const AudioCtx=window.AudioContext||window.webkitAudioContext;
-  if(AudioCtx){
-   if(!heartBeatAudioContext){
-    heartBeatAudioContext=new AudioCtx();
-    const source=heartBeatAudioContext.createMediaElementSource(a);
-    heartBeatGain=heartBeatAudioContext.createGain();
-    source.connect(heartBeatGain);heartBeatGain.connect(heartBeatAudioContext.destination);
-   }
-   if(heartBeatAudioContext.state==='suspended')heartBeatAudioContext.resume();
-   heartBeatGain.gain.setTargetAtTime(1.0+progress*5.0,heartBeatAudioContext.currentTime,.06);
-  }
- }catch(e){/* HTML-Audiolautstärke bleibt als Fallback aktiv. */}
+ // Der Herzschlag bleibt während des gesamten Spiels in Originaltempo und -lautstärke.
+ // Funken-Treffer verändern weder playbackRate noch volume oder Audio-Gain.
+ a.playbackRate=1;
+ a.volume=1;
  if(a.paused){a.play().catch(()=>{});}
 }
 function drawHeartExterior(){
@@ -3112,14 +3099,14 @@ function beginHeartGame(){
  heartPhase=0;heartPhaseHits=0;heartTotalHits=0;heartSparks=[];
  if(window.heart3DSetHitCount)window.heart3DSetHitCount(0);
  document.getElementById("heart3d").style.display="none";
- const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=0.08;a.playbackRate=.78;
+ const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=1;a.playbackRate=1;
  heartAudioStartAt=0;
 }
 function launchHeartCountdown(){
  if(heartCountdownStarted)return;
  document.getElementById("heart3d").style.display="block";
  startHeart3D();
- const a=document.getElementById("heartBeat");a.currentTime=0;a.volume=0.08;a.playbackRate=.78;a.play().catch(()=>{});
+ const a=document.getElementById("heartBeat");a.currentTime=0;a.volume=1;a.playbackRate=1;a.play().catch(()=>{});
  heartAudioStartAt=performance.now();
  heartCountdownStarted=performance.now();
 }
@@ -3174,7 +3161,7 @@ function finishHeartGame(){
  scene="heartBurning";
  const gameMusic=document.getElementById("heartGameMusic");
  if(gameMusic){gameMusic.pause();gameMusic.currentTime=0;}
- const a=document.getElementById("heartBeat");a.playbackRate=1.65;a.volume=1;
+ const a=document.getElementById("heartBeat");a.playbackRate=1;a.volume=1;
  if(window.heart3DSetFire)window.heart3DSetFire(1);
  setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=265;heartPaperX=500;heartPaperAngle=-.42;heartLetterOpened=false;document.getElementById("letterOverlay").style.display="block";},3500);
 }
@@ -3635,43 +3622,90 @@ function makeFlameTexture(){const c=document.createElement("canvas");c.width=128
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);if(state.camera.isOrthographicCamera){const halfH=2.35;state.camera.left=-halfH*(w/h);state.camera.right=halfH*(w/h);state.camera.top=halfH;state.camera.bottom=-halfH;}else{state.camera.aspect=w/h;}state.camera.updateProjectionMatrix();}
 function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
- new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=2.65/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.set(0,0,0);state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);state.baseMaterials.push({material:o.material,baseColor:o.material.color.clone(),baseOpacity:o.material.opacity??1,baseTransparent:o.material.transparent});}});state.scene.add(state.heart);
+ new GLTFLoader().load("veransi7-heart-5159.glb",g=>{
+ // Das GLB hat seinen Ursprung nicht in der geometrischen Mitte, sondern nahe
+ // der Herzbasis. Deshalb wird das Modell in eine zentrierte Pivot-Gruppe gesetzt.
+ const model=g.scene;
+ model.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(model);
+ const size=bounds.getSize(new THREE.Vector3());
+ const center=bounds.getCenter(new THREE.Vector3());
+ model.position.sub(center);
+ state.heart=new THREE.Group();
+ state.heart.add(model);
+ const scale=2.95/size.y; // ca. 63 % der sichtbaren Höhe
+ state.heart.scale.setScalar(scale);
+ state.baseScale=scale;
+ state.heartBounds={width:size.x,height:size.y,depth:size.z,center:new THREE.Vector3(0,0,0)};
+ state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);state.baseMaterials.push({material:o.material,baseColor:o.material.color.clone(),baseOpacity:o.material.opacity??1,baseTransparent:o.material.transparent});}});
+ state.scene.add(state.heart);
  state.ownTex=makeFlameTexture();const emberTex=makeEmberTexture();
  // Dezente, animierte Flammen bleiben im unteren Drittel des mittig platzierten Herzens.
- for(let i=0;i<12;i++){const m=new THREE.SpriteMaterial({map:state.ownTex,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(.16+Math.random()*.08,.30+Math.random()*.10,1);const x=-.42+(i%6)*.17;sp.position.set(x,-.67+Math.random()*.12,.32);state.scene.add(sp);state.flames.push({sp,phase:Math.random()*6.28});}
- for(let i=0;i<45;i++){const m=new THREE.SpriteMaterial({map:emberTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.setScalar(.025+Math.random()*.025);state.scene.add(sp);state.embers.push({sp,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.55+Math.random()*.45});}
+ for(let i=0;i<12;i++){const m=new THREE.SpriteMaterial({map:state.ownTex,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(.16+Math.random()*.08,.30+Math.random()*.10,1);const x=-.42+(i%6)*.17;sp.position.set(x,-.67+Math.random()*.12,.58);state.heart.add(sp);state.flames.push({sp,phase:Math.random()*6.28});}
+ for(let i=0;i<45;i++){const m=new THREE.SpriteMaterial({map:emberTex,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.setScalar(.025+Math.random()*.025);state.heart.add(sp);state.embers.push({sp,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.55+Math.random()*.45});}
  // HTMLImageElement behält die GIF-Animation; die Textur wird in jedem Render-Frame aktualisiert.
  ["feuer1.gif","feuer3.gif","feuer4.gif"].forEach(src=>{const img=new Image();img.src=src;const tex=new THREE.Texture(img);tex.colorSpace=THREE.SRGBColorSpace;tex.minFilter=THREE.LinearFilter;tex.magFilter=THREE.LinearFilter;img.onload=()=>{tex.needsUpdate=true;};state.gifTextures.push(tex);});
  animate();},undefined,e=>{state.failed=true;console.error("Herzmodell konnte nicht geladen werden",e);});}
 function addFlame(screenX,screenY,hit){
- if(!state.heart)return;
- // Canvas-Koordinaten in die orthografische 3D-Szene umrechnen.
- const w=host.clientWidth||1000,h=host.clientHeight||620,halfH=2.35,halfW=halfH*w/h;
- const worldStart=new THREE.Vector3((screenX/w-.5)*2*halfW,(.5-screenY/h)*2*halfH,.75);
+ if(!state.heart||!state.heartBounds)return;
+ const w=host.clientWidth||1000,h=host.clientHeight||620;
+ const halfH=2.35,halfW=halfH*w/h;
+ // Spark-Position im 3D-Weltraum; das Herz-Pivot ist geometrisch zentriert.
+ const worldStart=new THREE.Vector3((screenX/1000-.5)*2*halfW,(.5-screenY/620)*2*halfH,1.05);
  state.heart.updateMatrixWorld(true);
  const startLocal=state.heart.worldToLocal(worldStart.clone());
  const type=(hit-1)%4;
  const tex=type===3?state.ownTex:state.gifTextures[type];
  if(!tex)return;
- const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.98,depthWrite:false,blending:THREE.AdditiveBlending});
+ const mat=new THREE.SpriteMaterial({
+  map:tex,transparent:true,opacity:1,depthWrite:false,depthTest:false,
+  blending:THREE.AdditiveBlending
+ });
  const sp=new THREE.Sprite(mat);
- sp.scale.set(type===3?.22:.25,type===3?.40:.36,1);
+ sp.scale.set(type===3?.30:.34,type===3?.48:.48,1);
  sp.position.copy(startLocal);
  state.heart.add(sp);
- // Alle Flammen landen direkt auf der Vorderseite des unteren Herzdrittels
- // und bleiben als Teil des rotierenden Herzmodells dort befestigt.
- const targetX=-.34+Math.random()*.68;
- const targetY=-.72+Math.random()*.24;
- state.gifFlames.push({sp,fromX:startLocal.x,fromY:startLocal.y,toX:targetX,toY:targetY,start:performance.now(),life:1050+Math.random()*220,tex,landed:false,hit});
+ // Zielpunkte liegen auf der Vorderseite im unteren Herzdrittel.
+ // Das Modell ist zentriert: y=-H/2 ist die Herzspitze/-basis.
+ const width=state.heartBounds.width;
+ const height=state.heartBounds.height;
+ const depth=state.heartBounds.depth;
+ const targetX=(Math.random()-.5)*width*.62;
+ const targetY=-height*.5+height*(.18+Math.random()*.16);
+ const targetZ=depth*.5+.055;
+ state.gifFlames.push({
+  sp,fromX:startLocal.x,fromY:startLocal.y,fromZ:startLocal.z,
+  toX:targetX,toY:targetY,toZ:targetZ,
+  start:performance.now(),life:950+Math.random()*180,tex,landed:false,hit
+ });
 }
 function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
  const tint=Math.min(.16,(window.heart3DHitCount||0)*.0065);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
  state.light.intensity=state.fire*(.6+Math.sin(t*8)*.1);
- state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.18+.28*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.68+Math.sin(t*2+f.phase)*.035;f.sp.scale.y=.30+.06*Math.sin(t*7+f.phase);});
- state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r*.62,-.48+((p/(Math.PI*2))*.65),.45);e.sp.material.opacity=state.fire*(.12+.38*Math.max(0,Math.sin(p)));});
- state.gifFlames=state.gifFlames.filter(f=>{if(f.landed){f.sp.position.set(f.toX,f.toY,.86);f.sp.material.opacity=.82;f.sp.scale.set(.20,.30,1);f.tex.needsUpdate=true;return true;}const q=Math.min(1,(performance.now()-f.start)/f.life);const ease=1-Math.pow(1-q,2);f.sp.position.x=f.fromX+(f.toX-f.fromX)*ease;f.sp.position.y=f.fromY+(f.toY-f.fromY)*ease;f.sp.position.z=.86;f.sp.scale.set(.20+.09*Math.sin(q*Math.PI),.28+.12*Math.sin(q*Math.PI),1);f.sp.material.opacity=.98;if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,.86);f.sp.scale.set(.20,.30,1);f.sp.material.opacity=.82;}f.tex.needsUpdate=true;return true;});
+ state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.18+.28*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.67+Math.sin(t*2+f.phase)*.025;f.sp.scale.y=.30+.06*Math.sin(t*7+f.phase);});
+ state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r*.62,-.48+((p/(Math.PI*2))*.65),.60);e.sp.material.opacity=state.fire*(.12+.38*Math.max(0,Math.sin(p)));});
+ state.gifFlames.forEach(f=>{
+  if(f.landed){
+   f.sp.position.set(f.toX,f.toY,f.toZ);
+   f.sp.material.opacity=.96;
+   f.sp.scale.set(.30,.43,1);
+  }else{
+   const q=Math.min(1,(performance.now()-f.start)/f.life);
+   const ease=1-Math.pow(1-q,2);
+   f.sp.position.set(
+    f.fromX+(f.toX-f.fromX)*ease,
+    f.fromY+(f.toY-f.fromY)*ease,
+    f.fromZ+(f.toZ-f.fromZ)*ease+.12*Math.sin(q*Math.PI)
+   );
+   f.sp.scale.set(.24+.10*Math.sin(q*Math.PI),.32+.16*Math.sin(q*Math.PI),1);
+   f.sp.material.opacity=1;
+   if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,f.toZ);f.sp.scale.set(.30,.43,1);f.sp.material.opacity=.96;}
+  }
+  // Die GIF-Bilddaten werden pro Frame erneut an WebGL übergeben.
+  f.tex.needsUpdate=true;
+ });
  state.gifTextures.forEach(tex=>{tex.needsUpdate=true;});}
  state.renderer.render(state.scene,state.camera);}
 window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.heart3DAddFlame=addFlame;window.heart3DSetHitCount=n=>{window.heart3DHitCount=n;};window.addEventListener("resize",resize);
