@@ -10,7 +10,7 @@ body{margin:0;background:#211b2c;color:#fff0d5;font-family:Georgia,serif;text-al
 header{display:none}
 h1{margin:5px;color:#f3cf91;font-size:clamp(23px,4vw,36px)}
 header p{color:#d6c1b3;margin:5px}
-#game{width:min(100%,1100px);margin:auto}
+#game{width:min(100%,1100px);margin:auto;position:relative}#heart3d{position:absolute;inset:0;display:none;z-index:3;pointer-events:none}#heart3d canvas{width:100%;height:100%;border:0;display:block}
 canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c;touch-action:none}
 #help{padding:12px;color:#e6d5bd;font:13px/1.7 Arial,sans-serif}
 #popup,#finale,#dialogue,#foodIntro,#result{
@@ -44,6 +44,8 @@ button:hover{background:#6d3048}
 <audio id="streetAmbience" src="wr-sound-library-city-center-ambiance-sound-no-copyright-infinite-558460.mp3" preload="auto" loop></audio>
 <audio id="jillEatSound" src="jill_essen.mp3" preload="auto"></audio>
 <audio id="hasanEatSound" src="hasan_essen.mp3" preload="auto"></audio>
+<audio id="heartBeat" src="soul_serenity_sounds-heartbeat-241465.mp3" preload="auto" loop></audio>
+<div id="heart3d" aria-hidden="true"></div>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -238,6 +240,33 @@ let finaleFinished=false;
 let time=0;
 let scene="museum";
 let transitionStart=0;
+let heartExteriorEntered={hasan:false,jill:false};
+let heartDialogueIndex=0;
+let heartGameStarted=false;
+let heartCountdownStarted=0;
+let heartCountdownValue=0;
+let heartPhase=0;
+let heartPhaseHits=0;
+let heartTotalHits=0;
+let heartSparks=[];
+let heartLastSpawn=0;
+let heartGameStartAt=0;
+let heartLastBeatAt=0;
+let heartAudioStartAt=0;
+let heartLetterAt=0;
+let heartLetterOpened=false;
+let heartPaperY=-120;
+let heartPaperX=500;
+let heartPaperAngle=-0.4;
+let heartPointer={x:500,y:310,down:false};
+let heartSceneStartedAt=0;
+let heartDialogueLines=[
+ {speaker:"Hasan",text:"Warte mal … kommt dir dieser Raum nicht bekannt vor?"},
+ {speaker:"Jill",text:"Ich muss dir etwas zeigen."},
+ {speaker:"Hasan",text:"Oh nein. Was hast du jetzt wieder vor?"},
+ {speaker:"Jill",text:"Weißt du noch, was ich dir hier gesagt habe? Genau drei Wochen nachdem wir uns kennengelernt haben?"},
+ {speaker:"Jill",text:"Ich glaube, das war das erste Mal, dass ich dir etwas wirklich Kitschiges gesagt habe. Ich glaube, du hast damals noch gar nicht verstanden, wie ernst ich das gemeint habe."}
+];
 
 let bikeStart=0;
 let bikeElapsed=0;
@@ -2361,6 +2390,10 @@ function finishSayingsLevel(){
  document.getElementById("pageTitle").textContent="";
  document.getElementById("pageSubtitle").textContent="";
  document.getElementById("help").innerHTML="";
+ heartExteriorEntered={hasan:false,jill:false};
+ hasan.x=420;hasan.y=545;hasan.direction="front";
+ jill.x=580;jill.y=545;jill.direction="front";
+ heartSceneStartedAt=performance.now();
 }
 function sayingsRounded(x,y,w,h,r,fill,stroke=null,lineWidth=1){
  ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();
@@ -2741,6 +2774,244 @@ function drawLanding(now){
  drawBike(310,475,"#6d3048","#4b241c","JILL");
 }
 
+
+// --------------------------------------------------
+// Kapitel: Mein Herz steht in Flammen – Stadtbad Lichtenberg
+// --------------------------------------------------
+const heart3dState={ready:false,failed:false,renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],light:null,clock:0};
+function startHeart3D(){
+ if(heart3dState.ready||heart3dState.failed)return;
+ const host=document.getElementById("heart3d");
+ host.style.display="block";
+ if(window.initHeart3D){window.initHeart3D();return;}
+}
+function stopHeartAudio(){
+ const a=document.getElementById("heartBeat");
+ a.pause();a.currentTime=0;a.playbackRate=1;a.volume=0.7;
+}
+function heartSetBeat(){
+ const a=document.getElementById("heartBeat");
+ if(a.paused){a.volume=0.18;a.playbackRate=0.82;a.play().catch(()=>{});}
+ const intensity=heartPhase===0?0.9:heartPhase===1?1.18:1.48;
+ a.playbackRate=intensity;
+ a.volume=heartPhase===0?0.38:heartPhase===1?0.58:0.78;
+}
+function drawHeartExterior(){
+ ctx.save();
+ if(stadtbadExterior&&stadtbadExterior.complete&&stadtbadExterior.naturalWidth){
+  const s=Math.max(W/stadtbadExterior.naturalWidth,H/stadtbadExterior.naturalHeight);
+  const sw=W/s,sh=H/s;
+  ctx.drawImage(stadtbadExterior,(stadtbadExterior.naturalWidth-sw)/2,(stadtbadExterior.naturalHeight-sh)/2,sw,sh,0,0,W,H);
+ }else{
+  box(0,0,W,H,"#b8a58b");box(0,0,W,620,"#c3b39b");
+  box(80,150,840,330,"#c6bda9");
+  ctx.fillStyle="#b7aa94";ctx.fillRect(90,180,820,250);
+  ctx.fillStyle="#6c7a80";ctx.fillRect(390,290,220,190);
+ }
+ // cinematic twilight and readable architectural emphasis
+ ctx.fillStyle="#17131b55";ctx.fillRect(0,0,W,H);
+ ctx.fillStyle="#ead8b6";ctx.textAlign="center";ctx.font="bold 25px Georgia";
+ ctx.shadowColor="#171019";ctx.shadowBlur=8;ctx.fillText("STADTBAD LICHTENBERG",500,92);ctx.shadowBlur=0;
+ // entrance highlight, aligned with the central doorway of the reference facade
+ ctx.strokeStyle="#e8c98a";ctx.lineWidth=3;ctx.strokeRect(391,295,218,185);
+ ctx.fillStyle="#f1d6a5";ctx.font="14px Arial";ctx.fillText("E / LEERTASTE – EINTRETEN",500,520);
+ ctx.restore();
+ drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,!!(keys.ArrowLeft||keys.ArrowRight||keys.ArrowUp||keys.ArrowDown));
+ drawCharacter(jillImages,jill.x,jill.y,jill.direction,!!(keys.a||keys.d||keys.w||keys.s));
+ ctx.textAlign="center";ctx.font="bold 11px Arial";ctx.fillStyle="#d8e7ff";ctx.fillText("HASAN",hasan.x,hasan.y+12);ctx.fillStyle="#ffd1df";ctx.fillText("JILL",jill.x,jill.y+12);
+ const nearH=Math.hypot(hasan.x-500,hasan.y-455)<115,nearJ=Math.hypot(jill.x-500,jill.y-455)<115;
+ if(nearH)heartExteriorEntered.hasan=true;if(nearJ)heartExteriorEntered.jill=true;
+ if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){
+  ctx.fillStyle="#fff0d5";ctx.font="bold 15px Georgia";ctx.fillText("Ihr seid beide am Eingang. Drückt E oder die Leertaste.",500,580);
+ }
+}
+function enterHeartBuilding(){
+ scene="heartInterior";
+ hasan.x=420;hasan.y=530;hasan.direction="back";
+ jill.x=580;jill.y=530;jill.direction="back";
+ heartDialogueIndex=0;
+ document.getElementById("heart3d").style.display="none";
+}
+function drawHeartInterior(){
+ // Recreated two-storey Stadtbad hall, deliberately without the original ceiling projection.
+ const wall=ctx.createLinearGradient(0,0,0,390);wall.addColorStop(0,"#29252a");wall.addColorStop(1,"#51433e");
+ box(0,0,W,H,"#17161a");ctx.fillStyle=wall;ctx.fillRect(0,0,W,405);
+ // tall pale ceiling with only a very faint central glow
+ ctx.fillStyle="#81786d";ctx.beginPath();ctx.moveTo(125,0);ctx.lineTo(875,0);ctx.lineTo(770,180);ctx.lineTo(230,180);ctx.closePath();ctx.fill();
+ const dim=ctx.createRadialGradient(500,110,10,500,110,330);dim.addColorStop(0,"#f3d9a822");dim.addColorStop(1,"#f3d9a800");ctx.fillStyle=dim;ctx.fillRect(100,0,800,220);
+ // side windows and pilasters
+ for(let side of [0,1]){
+  const base=side?760:65;
+  for(let i=0;i<4;i++){
+   const x=base+(side?-1:1)*i*52;
+   box(x,120,38,112,"#171c22");box(x+4,124,30,104,"#8da0a0");
+   line(x+19,124,x+19,228,"#d2c9b5",3);line(x+4,174,x+34,174,"#d2c9b5",3);
+  }
+  box(side?720:0,95,22,295,"#6a5b50");
+ }
+ // upper gallery / balcony
+ box(0,275,W,18,"#352c2b");box(0,293,W,9,"#9a8065");
+ for(let x=15;x<W;x+=42){box(x,235,5,42,"#a18b75");line(x,235,x+28,235,"#bba58a",3);}
+ // lower walls, old changing-room doors and stone floor
+ box(0,300,W,100,"#66574b");
+ for(let x=35;x<970;x+=118){
+  box(x,315,82,76,"#423b38");box(x+6,321,70,64,"#79695b");
+  ctx.strokeStyle="#b49a7b";ctx.lineWidth=2;ctx.strokeRect(x,315,82,76);
+  ctx.fillStyle="#d3b98c";ctx.beginPath();ctx.arc(x+68,355,3,0,Math.PI*2);ctx.fill();
+ }
+ const floor=ctx.createLinearGradient(0,400,0,H);floor.addColorStop(0,"#6e6255");floor.addColorStop(1,"#211f20");ctx.fillStyle=floor;ctx.fillRect(0,400,W,220);
+ for(let x=-250;x<1300;x+=110)line(500,400,x,620,"#a08b72",1);
+ for(let y=450;y<620;y+=45)line(0,y,W,y,"#8b7967",1);
+ // oversized beanbag in foreground
+ ctx.save();ctx.translate(500,535);ctx.rotate(-.06);
+ ctx.fillStyle="#11151d";ctx.beginPath();ctx.ellipse(0,0,105,31,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#222a35";ctx.beginPath();ctx.ellipse(-4,-8,100,27,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#566071";ctx.lineWidth=2;ctx.stroke();ctx.restore();
+ // faint pool of light on ceiling, nothing projected
+ ctx.fillStyle="#f4dca51b";ctx.beginPath();ctx.ellipse(500,80,165,32,0,0,Math.PI*2);ctx.fill();
+ if(scene==="heartInterior"||scene==="heartDialogue"){
+  drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
+  drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
+  if(scene==="heartInterior"){ctx.fillStyle="#fff0d5";ctx.textAlign="center";ctx.font="bold 14px Arial";ctx.fillText("Ihr tretet in die große Halle. Drückt E oder klickt, um weiterzugehen.",500,600);}
+ }
+}
+function drawHeartDialogue(){
+ drawHeartInterior();
+ ctx.fillStyle="#09080bd9";ctx.fillRect(0,0,W,H);
+ ctx.fillStyle="#f3d6a5";ctx.textAlign="center";ctx.font="bold 13px Arial";ctx.fillText(heartDialogueLines[heartDialogueIndex].speaker.toUpperCase(),500,435);
+ ctx.fillStyle="#fff1dc";ctx.font="21px Georgia";
+ wrapSayingsText(heartDialogueLines[heartDialogueIndex].text,500,475,800,30);
+ ctx.fillStyle="#d7b47b";ctx.font="12px Arial";ctx.fillText("KLICKEN ODER E / LEERTASTE",500,565);
+}
+function beginHeartGame(){
+ scene="heartIntro";heartGameStarted=false;heartCountdownStarted=0;
+ heartPhase=0;heartPhaseHits=0;heartTotalHits=0;heartSparks=[];
+ document.getElementById("heart3d").style.display="block";
+ startHeart3D();
+ const a=document.getElementById("heartBeat");a.currentTime=0;a.volume=0.08;a.playbackRate=.78;a.play().catch(()=>{});
+ heartAudioStartAt=performance.now();
+}
+function drawHeartIntro(){
+ drawHeartInterior();
+ ctx.fillStyle="#09080bdc";ctx.fillRect(0,0,W,H);
+ ctx.textAlign="center";ctx.fillStyle="#f4d49c";ctx.font="bold 32px Georgia";ctx.fillText("ENTFACHE MEIN HERZ",500,160);
+ ctx.fillStyle="#fff0dc";ctx.font="17px Georgia";
+ ["Das Herz schlägt noch ganz leise. Sammle die Funken, die um es herum aufleuchten.",
+  "Klicke die glühenden Funken an, bevor sie verglühen. Jeder Treffer entfacht das Herz ein Stück weiter.",
+  "Drei Phasen führen vom ersten Glimmen bis zum lodernden Feuer. Mit jeder Phase werden die Funken schneller.",
+  "Du kannst mit der Maus oder durch Anklicken spielen. Ziel: Entfache alle 24 Funken."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
+ ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
+ ctx.fillStyle="#3b2830";ctx.font="bold 23px Arial";ctx.fillText(heartCountdownStarted?"":"START",500,482);
+}
+function spawnHeartSpark(now){
+ const counts=[6,8,10];
+ if(heartPhaseHits>=counts[heartPhase])return;
+ if(now-heartLastSpawn<Math.max(420,900-heartPhase*170))return;
+ heartLastSpawn=now;
+ heartSparks.push({x:150+Math.random()*700,y:175+Math.random()*260,r:11+Math.random()*5,life:1,created:now,phase:Math.random()*6.28});
+}
+function drawHeartSparks(now){
+ heartSparks=heartSparks.filter(s=>now-s.created<2600);
+ heartSparks.forEach(s=>{
+  const fade=Math.max(0,1-(now-s.created)/2600);
+  const pulse=(.7+Math.sin(now/90+s.phase)*.3)*fade;
+  const r=s.r*pulse;
+  const g=ctx.createRadialGradient(s.x,s.y,1,s.x,s.y,r*2.6);
+  g.addColorStop(0,"#fff9cf");g.addColorStop(.3,"#ffc65f");g.addColorStop(1,"#ff641500");
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.x,s.y,r*2.6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#fff4b8";ctx.beginPath();ctx.arc(s.x,s.y,r*.45,0,Math.PI*2);ctx.fill();
+ });
+ ctx.save();ctx.strokeStyle="#fff2c4";ctx.lineWidth=2;ctx.beginPath();ctx.arc(heartPointer.x,heartPointer.y,13,0,Math.PI*2);ctx.moveTo(heartPointer.x-20,heartPointer.y);ctx.lineTo(heartPointer.x+20,heartPointer.y);ctx.moveTo(heartPointer.x,heartPointer.y-20);ctx.lineTo(heartPointer.x,heartPointer.y+20);ctx.stroke();ctx.restore();
+}
+function collectHeartSpark(x,y){
+ if(scene!=="heartGame")return;
+ for(let i=heartSparks.length-1;i>=0;i--){
+  const s=heartSparks[i];
+  if(Math.hypot(s.x-x,s.y-y)<38){
+   heartSparks.splice(i,1);heartPhaseHits++;heartTotalHits++;
+   if(window.heart3DSetFire)window.heart3DSetFire(heartTotalHits<6?.12:heartTotalHits<14?.42:Math.min(1,.68+(heartTotalHits-14)*.04));
+   if(heartPhaseHits>=([6,8,10][heartPhase])){
+    if(heartPhase<2){heartPhase++;heartPhaseHits=0;heartSetBeat();}
+    else{finishHeartGame();}
+   }
+   heartSetBeat();
+   return true;
+  }
+ }
+ return false;
+}
+function finishHeartGame(){
+ scene="heartBurning";
+ const a=document.getElementById("heartBeat");a.playbackRate=1.5;a.volume=.8;
+ if(window.heart3DSetFire)window.heart3DSetFire(1);
+ setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=-100;heartPaperX=900;},3500);
+}
+function drawHeartLetter(now){
+ drawHeartInterior();
+ ctx.fillStyle="#07060999";ctx.fillRect(0,0,W,H);
+ const elapsed=(now-heartLetterAt)/1000;
+ heartPaperY=Math.min(280,heartPaperY+Math.max(1.8,(280-heartPaperY)*.018));
+ heartPaperX+=(500-heartPaperX)*.055+Math.sin(now/115)*1.8;
+ heartPaperAngle*=.985;
+ const unfold=heartLetterOpened?1:Math.min(1,elapsed/2.2);
+ ctx.save();ctx.translate(heartPaperX,heartPaperY);ctx.rotate(heartPaperAngle);ctx.scale(unfold,1);
+ ctx.fillStyle="#30221c";ctx.beginPath();ctx.moveTo(-118,-125);ctx.lineTo(-100,-145);ctx.lineTo(103,-140);ctx.lineTo(119,-110);ctx.lineTo(115,128);ctx.lineTo(88,145);ctx.lineTo(-112,137);ctx.lineTo(-120,105);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#e8d6b2";ctx.fillRect(-110,-137,220,274);
+ ctx.fillStyle="#b99a72";ctx.fillRect(-101,-128,202,256);
+ ctx.fillStyle="#f5e8ce";ctx.fillRect(-96,-123,192,246);
+ ctx.strokeStyle="#b78b58";ctx.lineWidth=1.5;ctx.strokeRect(-87,-114,174,228);
+ ctx.fillStyle="#78494a";ctx.textAlign="center";ctx.font="bold 16px Georgia";ctx.fillText("Mein liebster Hasinator,",0,-75);
+ if(heartLetterOpened){ctx.fillStyle="#493b36";ctx.font="13px Georgia";ctx.fillText(" ",0,-35);ctx.strokeStyle="#d6c3a4";ctx.lineWidth=1;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(-65,-20+i*25);ctx.lineTo(65,-20+i*25);ctx.stroke();}}
+ ctx.fillStyle="#c4a77f";ctx.font="12px Georgia";ctx.fillText("",0,-38);
+ ctx.restore();
+ if(elapsed>3.5)heartLetterOpened=true;
+}
+function advanceHeartChapter(){
+ if(scene==="sayingsComplete"){scene="heartExterior";heartSceneStartedAt=performance.now();return;}
+ if(scene==="heartInterior"){scene="heartDialogue";return;}
+ if(scene==="heartDialogue"){
+  heartDialogueIndex++;
+  if(heartDialogueIndex>=heartDialogueLines.length)beginHeartGame();
+ }
+}
+function updateHeartChapter(now){
+ if(scene==="heartExterior"){
+  let hx=0,hy=0;if(keys.ArrowLeft)hx--;if(keys.ArrowRight)hx++;if(keys.ArrowUp)hy--;if(keys.ArrowDown)hy++;
+  if(hx&&hy){hx*=.707;hy*=.707;}if(hx<0)hasan.direction="left";if(hx>0)hasan.direction="right";if(hy<0)hasan.direction="back";if(hy>0)hasan.direction="front";
+  hasan.x=Math.max(80,Math.min(920,hasan.x+hx*3));hasan.y=Math.max(360,Math.min(575,hasan.y+hy*3));
+  let jx=0,jy=0;if(keys.a)jx--;if(keys.d)jx++;if(keys.w)jy--;if(keys.s)jy++;
+  if(jx&&jy){jx*=.707;jy*=.707;}if(jx<0)jill.direction="left";if(jx>0)jill.direction="right";if(jy<0)jill.direction="back";if(jy>0)jill.direction="front";
+  jill.x=Math.max(80,Math.min(920,jill.x+jx*3));jill.y=Math.max(360,Math.min(575,jill.y+jy*3));
+  drawHeartExterior();
+  if(heartExteriorEntered.hasan&&heartExteriorEntered.jill){enterHeartBuilding();return;}
+ }else if(scene==="heartInterior"){drawHeartInterior();}
+ else if(scene==="heartDialogue"){drawHeartDialogue();}
+ else if(scene==="heartIntro"){
+  drawHeartIntro();
+  if(heartCountdownStarted){
+   const sec=Math.floor((now-heartCountdownStarted)/1000);
+   if(sec<3){ctx.fillStyle="#fff0dc";ctx.font="bold 72px Georgia";ctx.textAlign="center";ctx.fillText(String(3-sec),500,350);}
+   else if(sec===3){ctx.fillStyle="#ffd27f";ctx.font="bold 66px Georgia";ctx.textAlign="center";ctx.fillText("LOS!",500,350);}
+   else{scene="heartGame";heartGameStartAt=now;heartLastSpawn=0;heartSetBeat();}
+  }
+ }else if(scene==="heartGame"){
+  if(keys.ArrowLeft)heartPointer.x=Math.max(20,heartPointer.x-5);
+  if(keys.ArrowRight)heartPointer.x=Math.min(980,heartPointer.x+5);
+  if(keys.ArrowUp)heartPointer.y=Math.max(20,heartPointer.y-5);
+  if(keys.ArrowDown)heartPointer.y=Math.min(600,heartPointer.y+5);
+  drawHeartInterior();
+  ctx.fillStyle="#09060940";ctx.fillRect(0,0,W,H);
+  spawnHeartSpark(now);drawHeartSparks(now);
+  ctx.textAlign="center";ctx.fillStyle="#fff0db";ctx.font="bold 17px Georgia";
+  ctx.fillText(["PHASE I – DIE ERSTEN FUNKEN","PHASE II – DAS FEUER BREITET SICH AUS","PHASE III – DAS HERZ BRENNT"][heartPhase],500,75);
+  ctx.font="14px Arial";ctx.fillText("Funken: "+heartTotalHits+" / 24",500,105);
+ }else if(scene==="heartBurning"){
+  drawHeartInterior();
+  ctx.fillStyle="#08050833";ctx.fillRect(0,0,W,H);
+  ctx.textAlign="center";ctx.fillStyle="#fff0dc";ctx.font="bold 21px Georgia";ctx.fillText("MEIN HERZ STEHT IN FLAMMEN",500,80);
+ }else if(scene==="heartLetter"){drawHeartLetter(now);}
+}
+
 function update(now=performance.now()){
  time++;
  if(scene!=="museum")stopMuseumMusic();
@@ -2821,18 +3092,18 @@ function update(now=performance.now()){
   jill.x=Math.max(80,Math.min(920,jill.x+jx*3.4));jill.y=Math.max(365,Math.min(555,jill.y+jy*3.4));
   drawSayingsLevel();
   }else if(scene==="sayingsComplete"){
-  // Schlichter Abschluss: nur die persönliche Glückwunschbotschaft, ohne Symbole oder Zusatzgrafiken.
   ctx.fillStyle="#f4e8d3";ctx.fillRect(0,0,W,H);
   ctx.fillStyle="#4b3542";ctx.textAlign="center";
-  ctx.font="bold 27px Georgia";
-  ctx.fillText("Super! Du hast die Sprachprüfung bestanden!",W/2,H/2-28);
+  ctx.font="bold 27px Georgia";ctx.fillText("Super! Du hast die Sprachprüfung bestanden!",W/2,H/2-42);
   ctx.font="20px Georgia";
-  ctx.fillText("Aber keine Sorge: Jill liebt deine kreativen Neuinterpretationen von Redewendungen sowieso.",W/2,H/2+12);
-  ctx.fillText("Bitte hör niemals auf, sie falsch zu sagen!",W/2,H/2+48);
+  ctx.fillText("Aber keine Sorge: Jill liebt deine kreativen Neuinterpretationen von Redewendungen sowieso.",W/2,H/2-2);
+  ctx.fillText("Bitte hör niemals auf, sie falsch zu sagen!",W/2,H/2+38);
+  ctx.font="14px Arial";ctx.fillText("Klickt, um weiterzugehen.",W/2,H/2+100);
+ }else if(["heartExterior","heartInterior","heartDialogue","heartIntro","heartGame","heartBurning","heartLetter"].includes(scene)){
+  updateHeartChapter(now);
  }
 
- 
-requestAnimationFrame(update);
+ requestAnimationFrame(update);
 }
 
 // --------------------------------------------------
@@ -2855,6 +3126,11 @@ function interact(){
  }
  if(scene==="streetStory"&&streetStoryPhase==="dialogue"){advanceStreetStory();return;}
  if(scene==="sayings"){interactSayings();}
+ if(scene==="sayingsComplete"){advanceHeartChapter();return;}
+ if(scene==="heartExterior"){if(heartExteriorEntered.hasan&&heartExteriorEntered.jill)enterHeartBuilding();return;}
+ if(scene==="heartInterior"){scene="heartDialogue";return;}
+ if(scene==="heartDialogue"){advanceHeartChapter();return;}
+ if(scene==="heartIntro"&&!heartCountdownStarted){heartCountdownStarted=performance.now();return;}
  if(scene==="interior"){
   const h=restaurantPlayers.hasan;
   const j=restaurantPlayers.jill;
@@ -2895,6 +3171,7 @@ document.addEventListener("keydown",e=>{
   interact();
  }
  if(e.key.toLowerCase()==="h")useSayingsHint();
+ if(scene==="heartGame"&&e.key===" "){collectHeartSpark(heartPointer.x,heartPointer.y);}
  if(e.key==="Escape"&&opened)closeMemory();
 });
 
@@ -2907,6 +3184,14 @@ canvas.addEventListener("click",e=>{
  const r=canvas.getBoundingClientRect();
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
+
+ if(scene==="sayingsComplete"){advanceHeartChapter();return;}
+ if(scene==="heartExterior"){if(heartExteriorEntered.hasan&&heartExteriorEntered.jill)enterHeartBuilding();return;}
+ if(scene==="heartInterior"){scene="heartDialogue";return;}
+ if(scene==="heartDialogue"){advanceHeartChapter();return;}
+ if(scene==="heartIntro"&&!heartCountdownStarted&&x>=390&&x<=610&&y>=430&&y<=520){heartCountdownStarted=performance.now();return;}
+ if(scene==="heartGame"){collectHeartSpark(x,y);return;}
+ if(scene==="heartLetter"&&!heartLetterOpened){heartLetterOpened=true;return;}
 
  if(scene==="landing"&&x>=395&&x<=605&&y>=465&&y<=519){
   scene="bikes";
@@ -3001,13 +3286,27 @@ canvas.addEventListener("mousemove",e=>{
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
+ heartPointer.x=x;heartPointer.y=y;
 
  const overStart=scene==="landing"&&x>=395&&x<=605&&y>=465&&y<=519;
  canvas.style.cursor=(overStart||(overHeart&&
-  (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete")))?"pointer":"default";
+  (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete"||scene==="heartIntro"||scene==="heartGame"||scene==="heartLetter")))?"pointer":"default";
 });
 
 update();
+</script>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+const host=document.getElementById("heart3d");
+const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],light:null,fire:0};
+function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
+function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
+function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);state.camera.aspect=w/h;state.camera.updateProjectionMatrix();}
+function init(){if(state.renderer)return;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.5);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);state.renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.16));const key=new THREE.DirectionalLight(0xffe2c1,.35);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff3b12,0,8);state.light.position.set(0,0,1);state.scene.add(state.light);new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.y=.02;state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);o.material.emissive=new THREE.Color(0x160000);o.material.emissiveIntensity=.04;}});state.scene.add(state.heart);const ft=makeFlameTexture(),et=makeEmberTexture();for(let i=0;i<22;i++){const m=new THREE.SpriteMaterial({map:ft,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);s.scale.set(.35+Math.random()*.35,.85+Math.random()*.55,1);const a=Math.random()*Math.PI*2,r=.75+Math.random()*.6;s.position.set(Math.cos(a)*r,(Math.random()-.5)*1.7,Math.sin(a)*.55);state.scene.add(s);state.flames.push({sp:s,a,r,phase:Math.random()*6.28});}for(let i=0;i<85;i++){const m=new THREE.SpriteMaterial({map:et,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const s=new THREE.Sprite(m);s.scale.setScalar(.035+Math.random()*.045);state.scene.add(s);state.embers.push({sp:s,phase:Math.random()*6.28,speed:.35+Math.random()*.8,r:.75+Math.random()*.7});}animate();},undefined,e=>console.error("Herzmodell konnte nicht geladen werden",e));}
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.rotation.y=.16*Math.sin(t*.45)+t*(.12+state.fire*.42);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.012+state.fire*.018);state.heart.scale.setScalar((state.baseScale||1)*beat);state.heart.traverse(o=>{if(o.isMesh&&o.material?.emissive){o.material.emissive.setRGB(.08+state.fire*.95,.006+state.fire*.12,.002);o.material.emissiveIntensity=.04+state.fire*1.8;}});state.light.intensity=state.fire*(2.5+Math.sin(t*8)*.7);state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.24+.35*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.x=Math.cos(f.a+t*.28)*f.r;f.sp.position.y=Math.sin(t*2+f.phase)*.22+Math.sin(t*1.8+f.phase)*.35;f.sp.scale.y=(.7+state.fire*.7)*(1+.16*Math.sin(t*7+f.phase));});state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r,((p/(Math.PI*2))-.5)*3.2,Math.sin(a)*.6);e.sp.material.opacity=state.fire*(.25+.55*Math.max(0,Math.sin(p)));});}state.renderer.render(state.scene,state.camera);}
+window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.addEventListener("resize",resize);
 </script>
 </body>
 </html>
