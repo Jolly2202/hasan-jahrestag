@@ -18,7 +18,7 @@ body.sayings-celebrating canvas{border-color:transparent;background:transparent}
 header{display:none}
 h1{margin:5px;color:#f3cf91;font-family:"Cormorant Garamond",serif;font-size:clamp(23px,4vw,36px)}
 header p{color:#d6c1b3;margin:5px}
-#game{width:min(100%,1100px);margin:auto;position:relative}#heart3d{position:absolute;inset:0;display:none;z-index:3;pointer-events:none}#heart3d canvas{width:100%;height:100%;border:0;display:block}
+#game{width:min(100%,1100px);margin:auto;position:relative}#heart3d{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:3;pointer-events:none}#heart3d canvas{width:100%;height:100%;border:0;display:block}#letterOverlay{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:4;pointer-events:none;border:0}
 canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c;touch-action:none}
 #help{padding:12px;color:#e6d5bd;font:13px/1.7 "DM Sans",sans-serif}
 #popup,#finale,#dialogue,#foodIntro,#result{
@@ -46,7 +46,7 @@ button:hover{background:#6d3048}
 </header>
 
 <video id="sayingsVideo" src="sayings-celebration-video.mp4" muted loop playsinline preload="auto"></video>
-<div id="game"><canvas id="world" width="1000" height="620"></canvas></div>
+<div id="game"><canvas id="world" width="1000" height="620"></canvas><div id="heart3d" aria-hidden="true"></div><canvas id="letterOverlay" width="1000" height="620" aria-hidden="true"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
 <audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
 <audio id="weinblattMusic" src="aurec-restaurant-music-616478.mp3" preload="auto" loop></audio>
@@ -60,7 +60,6 @@ button:hover{background:#6d3048}
 <audio id="heartGameMusic" src="nastelbom-powerful-428189.mp3" preload="auto" loop></audio>
 <audio id="stadtbadAmbience" src="km007-street-ambience-9267.mp3" preload="auto" loop></audio>
 <audio id="stadtbadWalk" src="freesound_community-2-persons-walking-on-stonefloor-28579.mp3" preload="auto"></audio>
-<div id="heart3d" aria-hidden="true"></div>
 
 <div id="help">
  <b>Steuerung:</b> Pfeiltasten oder WASD zum Laufen.<br>
@@ -2867,8 +2866,8 @@ function heartSetBeat(){
  const a=document.getElementById("heartBeat");
  const progress=Math.min(1,heartTotalHits/24);
  // Der Herzschlag wird mit jedem Funken etwas schneller und deutlich lauter.
- a.playbackRate=.82+progress*.78;
- a.volume=.22+progress*.78;
+ a.playbackRate=.82+progress*1.05;
+ a.volume=.35+progress*.65;
  try{
   const AudioCtx=window.AudioContext||window.webkitAudioContext;
   if(AudioCtx){
@@ -2879,7 +2878,7 @@ function heartSetBeat(){
     source.connect(heartBeatGain);heartBeatGain.connect(heartBeatAudioContext.destination);
    }
    if(heartBeatAudioContext.state==='suspended')heartBeatAudioContext.resume();
-   heartBeatGain.gain.setTargetAtTime(.9+progress*2.2,heartBeatAudioContext.currentTime,.08);
+   heartBeatGain.gain.setTargetAtTime(1.0+progress*5.0,heartBeatAudioContext.currentTime,.06);
   }
  }catch(e){/* HTML-Audiolautstärke bleibt als Fallback aktiv. */}
  if(a.paused){a.play().catch(()=>{});}
@@ -3108,6 +3107,7 @@ function drawHeartDialogue(){
  ctx.fillStyle="#d7b47b";ctx.font="12px DM Sans";ctx.fillText("KLICKEN ODER E / LEERTASTE",500,565);
 }
 function beginHeartGame(){
+ document.getElementById("letterOverlay").style.display="none";
  scene="heartIntro";heartGameStarted=false;heartCountdownStarted=0;
  heartPhase=0;heartPhaseHits=0;heartTotalHits=0;heartSparks=[];
  if(window.heart3DSetHitCount)window.heart3DSetHitCount(0);
@@ -3176,27 +3176,45 @@ function finishHeartGame(){
  if(gameMusic){gameMusic.pause();gameMusic.currentTime=0;}
  const a=document.getElementById("heartBeat");a.playbackRate=1.65;a.volume=1;
  if(window.heart3DSetFire)window.heart3DSetFire(1);
- setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=-100;heartPaperX=900;},3500);
+ setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=265;heartPaperX=500;heartPaperAngle=-.42;heartLetterOpened=false;document.getElementById("letterOverlay").style.display="block";},3500);
 }
 function drawHeartLetter(now){
  drawHeartInterior();
- ctx.fillStyle="#07060999";ctx.fillRect(0,0,W,H);
+ const overlay=document.getElementById("letterOverlay");
+ const paperCtx=overlay.getContext("2d");
+ paperCtx.clearRect(0,0,W,H);
+ paperCtx.fillStyle="#07060955";paperCtx.fillRect(0,0,W,H);
  const elapsed=(now-heartLetterAt)/1000;
- heartPaperY=Math.min(280,heartPaperY+Math.max(1.8,(280-heartPaperY)*.018));
- heartPaperX+=(500-heartPaperX)*.055+Math.sin(now/115)*1.8;
- heartPaperAngle*=.985;
- const unfold=heartLetterOpened?1:Math.min(1,elapsed/2.2);
- ctx.save();ctx.translate(heartPaperX,heartPaperY);ctx.rotate(heartPaperAngle);ctx.scale(unfold,1);
- ctx.fillStyle="#30221c";ctx.beginPath();ctx.moveTo(-118,-125);ctx.lineTo(-100,-145);ctx.lineTo(103,-140);ctx.lineTo(119,-110);ctx.lineTo(115,128);ctx.lineTo(88,145);ctx.lineTo(-112,137);ctx.lineTo(-120,105);ctx.closePath();ctx.fill();
- ctx.fillStyle="#e8d6b2";ctx.fillRect(-110,-137,220,274);
- ctx.fillStyle="#b99a72";ctx.fillRect(-101,-128,202,256);
- ctx.fillStyle="#f5e8ce";ctx.fillRect(-96,-123,192,246);
- ctx.strokeStyle="#b78b58";ctx.lineWidth=1.5;ctx.strokeRect(-87,-114,174,228);
- ctx.fillStyle="#78494a";ctx.textAlign="center";ctx.font="bold 16px Cormorant Garamond";ctx.fillText("Mein liebster Hasinator,",0,-75);
- if(heartLetterOpened){ctx.fillStyle="#493b36";ctx.font="13px Cormorant Garamond";ctx.fillText(" ",0,-35);ctx.strokeStyle="#d6c3a4";ctx.lineWidth=1;for(let i=0;i<5;i++){ctx.beginPath();ctx.moveTo(-65,-20+i*25);ctx.lineTo(65,-20+i*25);ctx.stroke();}}
- ctx.fillStyle="#c4a77f";ctx.font="12px Cormorant Garamond";ctx.fillText("",0,-38);
- ctx.restore();
- if(elapsed>3.5)heartLetterOpened=true;
+ const travel=Math.min(1,elapsed/2.0);
+ // Der zerknüllte, angekokelte Brief löst sich aus dem Feuer und flattert nach vorne.
+ const flutter=heartLetterOpened?0:(1-travel);
+ const x=heartLetterOpened?500:500+Math.sin(elapsed*10)*30*(1-travel);
+ const y=heartLetterOpened?310:265-55*Math.sin(travel*Math.PI*.72)+45*travel;
+ const angle=heartLetterOpened?0:(-.42*(1-travel)+Math.sin(elapsed*12)*.16*(1-travel));
+ const scale=heartLetterOpened?1:(.28+.72*travel);
+ const unfold=heartLetterOpened?1:Math.min(1,Math.max(0,(elapsed-1.65)/1.0));
+ paperCtx.save();paperCtx.translate(x,y);paperCtx.rotate(angle);paperCtx.scale(scale,scale);
+ // Papierkörper mit unregelmäßigen, verbrannten Rändern.
+ paperCtx.beginPath();paperCtx.moveTo(-112,-132);paperCtx.lineTo(-82,-145);paperCtx.lineTo(-48,-137);paperCtx.lineTo(-12,-148);paperCtx.lineTo(30,-139);paperCtx.lineTo(75,-146);paperCtx.lineTo(112,-126);paperCtx.lineTo(120,-82);paperCtx.lineTo(113,-35);paperCtx.lineTo(122,12);paperCtx.lineTo(111,62);paperCtx.lineTo(118,112);paperCtx.lineTo(86,143);paperCtx.lineTo(43,136);paperCtx.lineTo(4,148);paperCtx.lineTo(-40,137);paperCtx.lineTo(-87,145);paperCtx.lineTo(-119,116);paperCtx.lineTo(-112,70);paperCtx.lineTo(-123,25);paperCtx.lineTo(-113,-20);paperCtx.lineTo(-121,-75);paperCtx.closePath();
+ paperCtx.fillStyle="#2a1711";paperCtx.shadowColor="#000";paperCtx.shadowBlur=20;paperCtx.fill();paperCtx.shadowBlur=0;
+ paperCtx.save();paperCtx.clip();
+ paperCtx.fillStyle="#9b6842";paperCtx.fillRect(-115,-145,235,295);
+ paperCtx.fillStyle="#f0dcb7";paperCtx.fillRect(-104,-132,208,264);
+ // Ruß- und Brandspuren an den Kanten und unregelmäßige Brandflecken.
+ const scorch=paperCtx.createLinearGradient(0,-140,0,140);scorch.addColorStop(0,"#3a1b13");scorch.addColorStop(.10,"#a35b31");scorch.addColorStop(.24,"#f0dcb7");scorch.addColorStop(.78,"#f0dcb7");scorch.addColorStop(.92,"#a34c29");scorch.addColorStop(1,"#321811");paperCtx.fillStyle=scorch;paperCtx.fillRect(-112,-145,224,290);
+ paperCtx.globalAlpha=.45;paperCtx.fillStyle="#54251a";[[ -82,-115,26,15],[-105,82,22,38],[88,-90,25,32],[75,112,31,22],[-10,130,40,14]].forEach(([px,py,rx,ry])=>{paperCtx.beginPath();paperCtx.ellipse(px,py,rx,ry,.3,0,Math.PI*2);paperCtx.fill();});
+ paperCtx.globalAlpha=.24;paperCtx.strokeStyle="#6c4030";paperCtx.lineWidth=2;for(let i=0;i<9;i++){paperCtx.beginPath();paperCtx.moveTo(-100+i*24,-125);paperCtx.quadraticCurveTo(-70+i*20,Math.sin(i*3)*40, -80+i*22,130);paperCtx.stroke();}
+ paperCtx.globalAlpha=1;
+ if(unfold>.15){
+  paperCtx.fillStyle="#78494a";paperCtx.textAlign="center";paperCtx.font="bold 20px Cormorant Garamond";paperCtx.fillText("Mein liebster Hasinator,",0,-76);
+  paperCtx.strokeStyle="#cbb18e";paperCtx.lineWidth=1.4;paperCtx.strokeRect(-88,-112,176,224);
+  paperCtx.fillStyle="#493b36";paperCtx.font="14px Cormorant Garamond";for(let i=0;i<5;i++){paperCtx.beginPath();paperCtx.moveTo(-65,-30+i*27);paperCtx.lineTo(65,-30+i*27);paperCtx.stroke();}
+ }
+ paperCtx.restore();
+ // Solange er noch zerknüllt ist, zeichnen wir sichtbare Knicke und Falten.
+ if(unfold<.98){paperCtx.strokeStyle="#8a6045";paperCtx.globalAlpha=.65;paperCtx.lineWidth=2;paperCtx.beginPath();paperCtx.moveTo(-80,-100);paperCtx.lineTo(-18,-25);paperCtx.lineTo(72,95);paperCtx.moveTo(90,-105);paperCtx.lineTo(10,8);paperCtx.lineTo(-75,112);paperCtx.moveTo(-105,15);paperCtx.lineTo(100,-18);paperCtx.stroke();paperCtx.globalAlpha=1;}
+ paperCtx.restore();
+ if(elapsed>=2.65){heartLetterOpened=true;document.getElementById("letterOverlay").style.display="block";}
 }
 function advanceHeartChapter(){
  if(scene==="sayingsComplete"){
@@ -3615,9 +3633,9 @@ const host=document.getElementById("heart3d");
 const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false,ownTex:null,baseMaterials:[]};
 function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
-function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);state.camera.aspect=w/h;state.camera.updateProjectionMatrix();}
-function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.PerspectiveCamera(34,1000/620,.1,100);state.camera.position.set(0,0,7.2);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
- new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=3.05/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.set(0,0,0);state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);state.baseMaterials.push({material:o.material,baseColor:o.material.color.clone(),baseOpacity:o.material.opacity??1,baseTransparent:o.material.transparent});}});state.scene.add(state.heart);
+function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);if(state.camera.isOrthographicCamera){const halfH=2.35;state.camera.left=-halfH*(w/h);state.camera.right=halfH*(w/h);state.camera.top=halfH;state.camera.bottom=-halfH;}else{state.camera.aspect=w/h;}state.camera.updateProjectionMatrix();}
+function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
+ new GLTFLoader().load("veransi7-heart-5159.glb",g=>{state.heart=g.scene;const b=new THREE.Box3().setFromObject(state.heart),sz=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3());state.heart.position.sub(c);const scale=2.65/Math.max(sz.x,sz.y,sz.z,1);state.heart.scale.setScalar(scale);state.baseScale=scale;state.heart.position.set(0,0,0);state.heart.traverse(o=>{if(o.isMesh&&o.material){o.material=o.material.clone();o.material.roughness=Math.min(o.material.roughness??.7,.72);o.material.metalness=Math.min(o.material.metalness??0,.12);state.baseMaterials.push({material:o.material,baseColor:o.material.color.clone(),baseOpacity:o.material.opacity??1,baseTransparent:o.material.transparent});}});state.scene.add(state.heart);
  state.ownTex=makeFlameTexture();const emberTex=makeEmberTexture();
  // Dezente, animierte Flammen bleiben im unteren Drittel des mittig platzierten Herzens.
  for(let i=0;i<12;i++){const m=new THREE.SpriteMaterial({map:state.ownTex,color:i%3===0?0xffe3a0:0xff6a20,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(.16+Math.random()*.08,.30+Math.random()*.10,1);const x=-.42+(i%6)*.17;sp.position.set(x,-.67+Math.random()*.12,.32);state.scene.add(sp);state.flames.push({sp,phase:Math.random()*6.28});}
@@ -3625,18 +3643,35 @@ function init(){if(state.renderer||state.ready)return;state.ready=true;state.sce
  // HTMLImageElement behält die GIF-Animation; die Textur wird in jedem Render-Frame aktualisiert.
  ["feuer1.gif","feuer3.gif","feuer4.gif"].forEach(src=>{const img=new Image();img.src=src;const tex=new THREE.Texture(img);tex.colorSpace=THREE.SRGBColorSpace;tex.minFilter=THREE.LinearFilter;tex.magFilter=THREE.LinearFilter;img.onload=()=>{tex.needsUpdate=true;};state.gifTextures.push(tex);});
  animate();},undefined,e=>{state.failed=true;console.error("Herzmodell konnte nicht geladen werden",e);});}
-function addFlame(screenX,screenY,hit){if(!state.heart)return;const startX=(screenX-500)/190,startY=(310-screenY)/190;const type=(hit-1)%4;const tex=type===3?state.ownTex:state.gifTextures[type];if(!tex)return;const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.98,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(mat);sp.scale.set(type===3?.23:.30,type===3?.43:.38,1);sp.position.set(startX,startY,.85);state.scene.add(sp);
- // Zielpunkte liegen sichtbar auf dem unteren Drittel des anatomischen Herzens.
- const targetX=-.48+Math.random()*.96;const targetY=-.48+Math.random()*.20;
- state.gifFlames.push({sp,fromX:startX,fromY:startY,toX:targetX,toY:targetY,start:performance.now(),life:1150+Math.random()*250,tex,landed:false,hit});}
+function addFlame(screenX,screenY,hit){
+ if(!state.heart)return;
+ // Canvas-Koordinaten in die orthografische 3D-Szene umrechnen.
+ const w=host.clientWidth||1000,h=host.clientHeight||620,halfH=2.35,halfW=halfH*w/h;
+ const worldStart=new THREE.Vector3((screenX/w-.5)*2*halfW,(.5-screenY/h)*2*halfH,.75);
+ state.heart.updateMatrixWorld(true);
+ const startLocal=state.heart.worldToLocal(worldStart.clone());
+ const type=(hit-1)%4;
+ const tex=type===3?state.ownTex:state.gifTextures[type];
+ if(!tex)return;
+ const mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.98,depthWrite:false,blending:THREE.AdditiveBlending});
+ const sp=new THREE.Sprite(mat);
+ sp.scale.set(type===3?.22:.25,type===3?.40:.36,1);
+ sp.position.copy(startLocal);
+ state.heart.add(sp);
+ // Alle Flammen landen direkt auf der Vorderseite des unteren Herzdrittels
+ // und bleiben als Teil des rotierenden Herzmodells dort befestigt.
+ const targetX=-.34+Math.random()*.68;
+ const targetY=-.72+Math.random()*.24;
+ state.gifFlames.push({sp,fromX:startLocal.x,fromY:startLocal.y,toX:targetX,toY:targetY,start:performance.now(),life:1050+Math.random()*220,tex,landed:false,hit});
+}
 function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
- const tint=Math.min(.19,(window.heart3DHitCount||0)*.008);
+ const tint=Math.min(.16,(window.heart3DHitCount||0)*.0065);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
  state.light.intensity=state.fire*(.6+Math.sin(t*8)*.1);
  state.flames.forEach(f=>{f.sp.material.opacity=state.fire*(.18+.28*(.5+.5*Math.sin(t*5+f.phase)));f.sp.position.y=-.68+Math.sin(t*2+f.phase)*.035;f.sp.scale.y=.30+.06*Math.sin(t*7+f.phase);});
  state.embers.forEach((e,i)=>{const p=(t*e.speed+e.phase)%(Math.PI*2),a=e.phase+i*.13;e.sp.position.set(Math.cos(a)*e.r*.62,-.48+((p/(Math.PI*2))*.65),.45);e.sp.material.opacity=state.fire*(.12+.38*Math.max(0,Math.sin(p)));});
- state.gifFlames=state.gifFlames.filter(f=>{if(f.landed){f.sp.position.set(f.toX,f.toY,.82);f.sp.material.opacity=.68;f.sp.scale.set(.15,.23,1);f.tex.needsUpdate=true;return true;}const q=Math.min(1,(performance.now()-f.start)/f.life);const ease=1-Math.pow(1-q,2);f.sp.position.x=f.fromX+(f.toX-f.fromX)*ease;f.sp.position.y=f.fromY+(f.toY-f.fromY)*ease;f.sp.scale.set(.22+.10*Math.sin(q*Math.PI),.28+.14*Math.sin(q*Math.PI),1);f.sp.material.opacity=.98;if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,.82);f.sp.scale.set(.15,.23,1);f.sp.material.opacity=.72;}f.tex.needsUpdate=true;return true;});
+ state.gifFlames=state.gifFlames.filter(f=>{if(f.landed){f.sp.position.set(f.toX,f.toY,.86);f.sp.material.opacity=.82;f.sp.scale.set(.20,.30,1);f.tex.needsUpdate=true;return true;}const q=Math.min(1,(performance.now()-f.start)/f.life);const ease=1-Math.pow(1-q,2);f.sp.position.x=f.fromX+(f.toX-f.fromX)*ease;f.sp.position.y=f.fromY+(f.toY-f.fromY)*ease;f.sp.position.z=.86;f.sp.scale.set(.20+.09*Math.sin(q*Math.PI),.28+.12*Math.sin(q*Math.PI),1);f.sp.material.opacity=.98;if(q>=1){f.landed=true;f.sp.position.set(f.toX,f.toY,.86);f.sp.scale.set(.20,.30,1);f.sp.material.opacity=.82;}f.tex.needsUpdate=true;return true;});
  state.gifTextures.forEach(tex=>{tex.needsUpdate=true;});}
  state.renderer.render(state.scene,state.camera);}
 window.initHeart3D=init;window.heart3DSetFire=v=>{state.fire=Math.max(0,Math.min(1,v));};window.heart3DAddFlame=addFlame;window.heart3DSetHitCount=n=>{window.heart3DHitCount=n;};window.addEventListener("resize",resize);
