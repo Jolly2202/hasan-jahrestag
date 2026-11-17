@@ -3242,9 +3242,9 @@ function drawHeartLetter(now){
  // Der zerknüllte, angekokelte Brief löst sich aus dem Feuer und flattert nach vorne.
  const flutter=heartLetterOpened?0:(1-travel);
  const x=heartLetterOpened?500:500+Math.sin(elapsed*10)*30*(1-travel);
- const y=heartLetterOpened?310:265-55*Math.sin(travel*Math.PI*.72)+45*travel;
+ const y=heartLetterOpened?282:265-55*Math.sin(travel*Math.PI*.72)+45*travel;
  const angle=heartLetterOpened?0:(-.42*(1-travel)+Math.sin(elapsed*12)*.16*(1-travel));
- const scale=heartLetterOpened?2.0:(.28+1.72*travel);
+ const scale=heartLetterOpened?1.55:(.28+1.72*travel);
  const unfold=heartLetterOpened?1:Math.min(1,Math.max(0,(elapsed-1.65)/1.0));
  paperCtx.save();paperCtx.translate(x,y);paperCtx.rotate(angle);paperCtx.scale(scale,scale);
  // Unregelmäßige Papierkante mit echten Einbuchtungen und verkohltem Rand.
@@ -3327,6 +3327,29 @@ function drawHeartLetter(now){
  if(unfold<.98){paperCtx.strokeStyle="#8a6045";paperCtx.globalAlpha=.65;paperCtx.lineWidth=2;paperCtx.beginPath();paperCtx.moveTo(-80,-100);paperCtx.lineTo(-18,-25);paperCtx.lineTo(72,95);paperCtx.moveTo(90,-105);paperCtx.lineTo(10,8);paperCtx.lineTo(-75,112);paperCtx.moveTo(-105,15);paperCtx.lineTo(100,-18);paperCtx.stroke();paperCtx.globalAlpha=1;}
  paperCtx.restore();
  if(elapsed>=2.65){heartLetterOpened=true;document.getElementById("letterOverlay").style.display="block";}
+ if(heartLetterOpened){
+  paperCtx.save();
+  paperCtx.shadowColor="rgba(15,8,30,.28)";paperCtx.shadowBlur=9;paperCtx.shadowOffsetY=3;
+  paperCtx.fillStyle="#e9a2c4";
+  paperCtx.beginPath();paperCtx.roundRect(444,540,112,36,15);paperCtx.fill();
+  paperCtx.shadowColor="transparent";paperCtx.shadowBlur=0;paperCtx.shadowOffsetY=0;
+  paperCtx.fillStyle="#fff8fc";paperCtx.textAlign="center";paperCtx.textBaseline="middle";
+  paperCtx.font='italic 17px "Cormorant Garamond", cursive';
+  paperCtx.fillText("Fertig",500,558);
+  paperCtx.restore();
+ }
+}
+function revealHeartSymbol(){
+ heartLetterOpened=true;
+ scene="heartSymbolReveal";
+ window.currentGameScene="heartSymbolReveal";
+ document.getElementById("letterOverlay").style.display="none";
+ document.getElementById("heart3d").style.display="block";
+ startHeart3D();
+}
+function drawHeartSymbolReveal(){
+ window.currentGameScene="heartSymbolReveal";
+ ctx.clearRect(0,0,W,H);
 }
 function advanceHeartChapter(){
  if(scene==="sayingsComplete"){
@@ -3510,6 +3533,8 @@ function update(now=performance.now()){
   drawSayingsLevel();
   }else if(scene==="sayingsComplete"){
   drawSayingsCelebration(now);
+ }else if(scene==="heartSymbolReveal"){
+  drawHeartSymbolReveal();
  }else if(["heartExterior","heartDoorOpening","heartEntering","heartInterior","heartDialogue","heartIntro","heartGame","heartBurning","heartLetter"].includes(scene)){
   updateHeartChapter(now);
  }
@@ -3618,7 +3643,11 @@ canvas.addEventListener("click",e=>{
  if(scene==="heartDialogue"){advanceHeartChapter();return;}
  if(scene==="heartIntro"&&!heartCountdownStarted&&x>=390&&x<=610&&y>=430&&y<=520){launchHeartCountdown();return;}
  if(scene==="heartGame"){collectHeartSpark(x,y);return;}
- if(scene==="heartLetter"&&!heartLetterOpened){heartLetterOpened=true;return;}
+ if(scene==="heartLetter"){
+  if(!heartLetterOpened){heartLetterOpened=true;return;}
+  if(x>=438&&x<=562&&y>=534&&y<=582){revealHeartSymbol();return;}
+  return;
+ }
 
  if(scene==="landing"&&y>=416&&y<=456&&x>=270&&x<=475){bikePlayerMode="solo";return;}
  if(scene==="landing"&&y>=416&&y<=456&&x>=525&&x<=730){bikePlayerMode="duo";return;}
@@ -3748,68 +3777,43 @@ update();
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 const host=document.getElementById("heart3d");
-const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false,ownTex:null,baseMaterials:[]};
-const letterOrbit={models:[],visible:false};
+const state={renderer:null,scene:null,camera:null,heart:null,symbol:null,room:null,royalBlue:null,revealActive:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false,ownTex:null,baseMaterials:[]};
 function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);if(state.camera.isOrthographicCamera){const halfH=2.35;state.camera.left=-halfH*(w/h);state.camera.right=halfH*(w/h);state.camera.top=halfH;state.camera.bottom=-halfH;}else{state.camera.aspect=w/h;}state.camera.updateProjectionMatrix();}
-function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
- new GLTFLoader().load("liebeszeichen_25_scharf.glb",asset=>{
-  const source=asset.scene;source.updateMatrixWorld(true);
-  // Das Logo wird anhand seiner tatsächlichen 3D-Geometrie ausgerichtet:
-  // die lange Achse der vier Punkte steht senkrecht, der Bogen liegt rechts davon.
-  const initialBounds=new THREE.Box3().setFromObject(source);
-  const initialCenter=initialBounds.getCenter(new THREE.Vector3());
-  const samples=[];let meanX=0,meanY=0;
-  const samplePoint=new THREE.Vector3();
-  source.traverse(o=>{
-   if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
-   const positions=o.geometry.attributes.position;
-   const stride=Math.max(1,Math.floor(positions.count/5000));
-   for(let j=0;j<positions.count;j+=stride){
-    samplePoint.fromBufferAttribute(positions,j).applyMatrix4(o.matrixWorld);
-    samples.push([samplePoint.x,samplePoint.y]);meanX+=samplePoint.x;meanY+=samplePoint.y;
-   }
-  });
-  if(samples.length>8){
-   meanX/=samples.length;meanY/=samples.length;
-   let covXX=0,covXY=0,covYY=0;
-   samples.forEach(([px,py])=>{const dx=px-meanX,dy=py-meanY;covXX+=dx*dx;covXY+=dx*dy;covYY+=dy*dy;});
-   const mainAxisAngle=.5*Math.atan2(2*covXY,covXX-covYY);
-   let orientAngle=Math.PI/2-mainAxisAngle;
-   const offsetX=meanX-initialCenter.x,offsetY=meanY-initialCenter.y;
-   const projectedArcSide=offsetX*Math.cos(orientAngle)-offsetY*Math.sin(orientAngle);
-   if(projectedArcSide<0)orientAngle+=Math.PI;
-   source.rotation.z+=orientAngle;
-  }
+function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.royalBlue=new THREE.Color(0x4169e1);state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
+ const chromeKey=new THREE.DirectionalLight(0xffffff,1.15);chromeKey.position.set(4,3,6);state.scene.add(chromeKey);
+ const chromeRim=new THREE.DirectionalLight(0xdce7ff,.85);chromeRim.position.set(-4,1,2);state.scene.add(chromeRim);
+ const roomFloor=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0x2445a4,roughness:.92,metalness:0}));
+ roomFloor.rotation.x=-Math.PI/2;roomFloor.position.set(0,-2.28,0);roomFloor.visible=false;state.scene.add(roomFloor);
+ state.room={floor:roomFloor};
+ new GLTFLoader().load("Chrom_Symbol_4_Kugeln_Bogen(1).glb",asset=>{
+  const source=asset.scene;
   source.updateMatrixWorld(true);
-  const b=new THREE.Box3().setFromObject(source);const sz=b.getSize(new THREE.Vector3());const c=b.getCenter(new THREE.Vector3());source.position.sub(c);
-  // Silberne Metalloberfläche wie im ursprünglichen Modell.
+  const bounds=new THREE.Box3().setFromObject(source);
+  const size=bounds.getSize(new THREE.Vector3());
+  const center=bounds.getCenter(new THREE.Vector3());
+  source.position.sub(center);
+  // Originalausrichtung beibehalten: vier Kugeln senkrecht, der Bogen rechts.
   source.traverse(o=>{
    if(o.isMesh&&o.material){
     const materials=Array.isArray(o.material)?o.material:[o.material];
     materials.forEach(material=>{
-     material.color.set(0xc6cbd0);
-     material.metalness=.62;
-     material.roughness=.27;
+     material.metalness=.72;
+     material.roughness=.2;
+     material.envMapIntensity=1.5;
      material.needsUpdate=true;
     });
    }
   });
-  // Die Drehung liegt in einer eigenen Pivot-Gruppe und erfolgt um die senkrechte
-  // Mittelachse des ausgerichteten Logos – nicht um eine schräge Weltachse.
-  const spinPivot=new THREE.Group();spinPivot.add(source);
-  const base=new THREE.Group();base.add(spinPivot);
-  const modelScale=1.45/Math.max(sz.x,sz.y,sz.z);
-  [-2.55,2.55].forEach((sideX,i)=>{
-   const clone=base.clone(true);
-   clone.scale.setScalar(modelScale);
-   clone.position.set(sideX,0,.25);
-   clone.visible=false;
-   state.scene.add(clone);
-   letterOrbit.models.push({group:clone,spin:clone.children[0],speed:i===0?.48:-.48});
-  });
- },undefined,e=>console.error("Liebeszeichen-Modell konnte nicht geladen werden",e));
+  const spin=new THREE.Group();spin.add(source);
+  const group=new THREE.Group();group.add(spin);
+  const fitScale=Math.min(1.02,4.38/size.y,(2*2.35*.94)/size.x);
+  group.scale.setScalar(fitScale);
+  group.visible=false;
+  state.symbol={group,spin};
+  state.scene.add(group);
+ },undefined,e=>console.error("Das Chrom-Symbol konnte nicht geladen werden",e));
  new GLTFLoader().load("veransi7-heart-5159.glb",g=>{
  // Das GLB hat seinen Ursprung nicht in der geometrischen Mitte, sondern nahe
  // der Herzbasis. Deshalb wird das Modell in eine zentrierte Pivot-Gruppe gesetzt.
@@ -3873,7 +3877,21 @@ function addFlame(screenX,screenY,hit){
   start:performance.now(),life:950+Math.random()*180,tex,landed:false,hit
  });
 }
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach(m=>{m.group.visible=showOrbit;m.spin.rotation.y+=.004*m.speed;});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const reveal=window.currentGameScene==="heartSymbolReveal";
+ if(state.revealActive!==reveal){
+  state.revealActive=reveal;
+  state.scene.background=reveal?state.royalBlue:null;
+  state.renderer.setClearColor(0x4169e1,reveal?1:0);
+  if(reveal){state.camera.position.set(0,.82,10);state.camera.lookAt(0,0,0);}
+  else{state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);}
+  state.camera.updateProjectionMatrix();
+ }
+ if(state.symbol){
+  state.symbol.group.visible=reveal;
+  if(reveal)state.symbol.spin.rotation.y+=.0009;
+ }
+ if(state.room&&state.room.floor)state.room.floor.visible=reveal;
+ if(state.heart){state.heart.visible=!reveal;state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
  const tint=Math.min(.23,(window.heart3DHitCount||0)*.0095);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
