@@ -3166,6 +3166,7 @@ function finishHeartGame(){
  setTimeout(()=>{stopHeartAudio();scene="heartLetter";heartLetterAt=performance.now();heartPaperY=265;heartPaperX=500;heartPaperAngle=-.42;heartLetterOpened=false;document.getElementById("letterOverlay").style.display="block";},3500);
 }
 function drawHeartLetter(now){
+ window.currentGameScene="heartLetter";
  drawHeartInterior();
  const overlay=document.getElementById("letterOverlay");
  const paperCtx=overlay.getContext("2d");
@@ -3193,9 +3194,28 @@ function drawHeartLetter(now){
  paperCtx.globalAlpha=.24;paperCtx.strokeStyle="#6c4030";paperCtx.lineWidth=2;for(let i=0;i<9;i++){paperCtx.beginPath();paperCtx.moveTo(-100+i*24,-125);paperCtx.quadraticCurveTo(-70+i*20,Math.sin(i*3)*40, -80+i*22,130);paperCtx.stroke();}
  paperCtx.globalAlpha=1;
  if(unfold>.15){
-  paperCtx.fillStyle="#78494a";paperCtx.textAlign="center";paperCtx.font="bold 20px Cormorant Garamond";paperCtx.fillText("Mein liebster Hasinator,",0,-76);
-  paperCtx.strokeStyle="#cbb18e";paperCtx.lineWidth=1.4;paperCtx.strokeRect(-88,-112,176,224);
-  paperCtx.fillStyle="#493b36";paperCtx.font="14px Cormorant Garamond";for(let i=0;i<5;i++){paperCtx.beginPath();paperCtx.moveTo(-65,-30+i*27);paperCtx.lineTo(65,-30+i*27);paperCtx.stroke();}
+  paperCtx.strokeStyle="#cbb18e";paperCtx.lineWidth=1.1;paperCtx.strokeRect(-98,-126,196,252);
+  paperCtx.textAlign="left";paperCtx.textBaseline="top";
+  paperCtx.fillStyle="#78494a";paperCtx.font="bold 10px Cormorant Garamond";
+  paperCtx.fillText("Mein liebster Hasinator,",-86,-113);
+  const letterParagraphs=[
+   "manchmal kann ich kaum glauben, dass es dich wirklich gibt. Dass ausgerechnet wir uns gefunden haben. Dass es diesen einen Menschen gibt, auf den ich so lange gehofft, den ich mir so oft vorgestellt und von dem ich manchmal schon fast nicht mehr geglaubt habe, dass ich ihn tatsächlich finden würde.",
+   "Ich weiß gar nicht, wie oft ich mich gefragt habe, wann es endlich so weit sein würde. Jemanden, mit dem ich lachen, albern sein, diskutieren, schweigen und die Welt entdecken möchte. Und dann kamst du. Und plötzlich war da so viel mehr, als ich mir überhaupt hätte ausmalen können.",
+   "Du machst mich unglaublich glücklich. Nicht nur durch die großen Momente, die aufregenden Erlebnisse oder die besonderen Erinnerungen, die wir miteinander sammeln. Sondern vor allem durch die vielen kleinen Dinge dazwischen. Durch deine Art, durch dein Lachen, durch unsere Gespräche, unsere Eigenheiten und all die Momente, in denen ich einfach nur dasitze und denke, wie verdammt schön es ist, dass es dich in meinem Leben gibt.",
+   "Ich glaube, die super aufregende Anfangsphase, in der alles neu ist und jedes Treffen ein kleines Abenteuer ist, neigt sich irgendwann dem Ende zu. Und natürlich werde ich diese Zeit vermissen. Aber weißt du was? Ich freue mich mindestens genauso sehr auf das, was jetzt kommt. Auf all die Dinge, die wir noch nicht kennen. Auf neue Orte, gemeinsame Pläne, alltägliche Abende, auf Vertrautheit und darauf, immer mehr von dir kennenzulernen. Denn das Schönste daran ist, dass ich all das mit dir erleben darf.",
+   "Ich möchte nicht nur mit dir die aufregenden Kapitel erleben. Ich möchte auch die ganz normalen. Die langweiligen Dienstage, die spontanen Ideen, die kleinen Katastrophen, die großen Entscheidungen und alles, was das Leben sonst noch für uns bereithält. Ich bin gespannt darauf, wie wir uns gemeinsam verändern und was wir noch alles entdecken.",
+   "Ich bin so froh, dass es dich gibt. Und noch viel froher, dass du ausgerechnet mein Mensch geworden bist.",
+   "Ich liebe dich.",
+   "Deine Jill"
+  ];
+  paperCtx.fillStyle="#493b36";paperCtx.font="6.5px 'Cormorant Garamond',serif";
+  let yy=-98;const maxWidth=172,lineHeight=7.1;
+  for(const para of letterParagraphs){
+   const words=para.split(/\s+/);let line="";
+   for(const word of words){const test=line?line+" "+word:word;if(paperCtx.measureText(test).width>maxWidth&&line){paperCtx.fillText(line,-86,yy);yy+=lineHeight;line=word;}else line=test;}
+   if(line){paperCtx.fillText(line,-86,yy);yy+=lineHeight;}
+   yy+=3.2;
+  }
  }
  paperCtx.restore();
  // Solange er noch zerknüllt ist, zeichnen wir sichtbare Knicke und Falten.
@@ -3618,10 +3638,16 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
 const host=document.getElementById("heart3d");
 const state={renderer:null,scene:null,camera:null,heart:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false,ownTex:null,baseMaterials:[]};
+const letterOrbit={models:[],visible:false};
 function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);if(state.camera.isOrthographicCamera){const halfH=2.35;state.camera.left=-halfH*(w/h);state.camera.right=halfH*(w/h);state.camera.top=halfH;state.camera.bottom=-halfH;}else{state.camera.aspect=w/h;}state.camera.updateProjectionMatrix();}
 function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
+ new GLTFLoader().load("liebeszeichen_25_scharf.glb",asset=>{
+  const source=asset.scene;source.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(source);const sz=b.getSize(new THREE.Vector3());const c=b.getCenter(new THREE.Vector3());source.position.sub(c);
+  const base=new THREE.Group();base.add(source);const modelScale=.22/Math.max(sz.x,sz.y,sz.z);
+  for(let i=0;i<20;i++){const clone=base.clone(true);clone.scale.setScalar(modelScale);const a=(i/20)*Math.PI*2;clone.position.set(Math.cos(a)*2.55,Math.sin(a)*1.95,.25+(i%3)*.035);clone.rotation.set((i%4)*.13,0,(i%5)*.11);clone.visible=false;state.scene.add(clone);letterOrbit.models.push({group:clone,speed:.25+(i%7)*.13,phase:i*.37,axis:i%3});}
+ },undefined,e=>console.error("Liebeszeichen-Modell konnte nicht geladen werden",e));
  new GLTFLoader().load("veransi7-heart-5159.glb",g=>{
  // Das GLB hat seinen Ursprung nicht in der geometrischen Mitte, sondern nahe
  // der Herzbasis. Deshalb wird das Modell in eine zentrierte Pivot-Gruppe gesetzt.
@@ -3685,7 +3711,7 @@ function addFlame(screenX,screenY,hit){
   start:performance.now(),life:950+Math.random()*180,tex,landed:false,hit
  });
 }
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach((m,i)=>{m.group.visible=showOrbit;if(m.axis===0)m.group.rotation.x+=.004*m.speed;else if(m.axis===1)m.group.rotation.y+=.004*m.speed;else m.group.rotation.z+=.004*m.speed;m.group.rotation.y+=.0015*Math.sin(t*.7+m.phase);});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
  const tint=Math.min(.23,(window.heart3DHitCount||0)*.0095);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
