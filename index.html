@@ -385,9 +385,12 @@ function setFoodMode(mode){
  document.getElementById("foodModeDescription").textContent=mode==="solo"
   ?"Hasan spielt allein und startet in der Mitte. Bewege ihn mit den Pfeiltasten links und rechts, um die herunterfallenden Leckereien einzusammeln."
   :"Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.";
+ if(mode==="solo"){
+  document.getElementById("foodModeDescription").textContent="Der Bildschirm ist in vier Spalten aufgeteilt. Hasan spielt allein und bewegt sich mit den Pfeiltasten links und rechts, um die herunterfallenden Leckereien einzusammeln.";
+ }
  document.getElementById("foodGoalDescription").innerHTML=mode==="solo"
-  ?"<b>Dein Ziel:</b> Sammle 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf dich Grüne Soße erwischen."
-  :"<b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen.";
+  ?"<b>Dein Ziel:</b> Sammle 26 Teller ein – die Hälfte der 52 Teller für eure gemeinsamen Wochen. Höchstens zweimal darf dich Grüne Soße erwischen."
+  :"<b>Euer Ziel:</b> Sammelt jeweils 26 Teller – zusammen 52, einen für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen.";
  document.getElementById("foodWarningDescription").innerHTML=mode==="solo"
   ?"<b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Sie schmeckt Hasan nicht. Weiche ihr unbedingt aus."
   :"<b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.";
@@ -403,6 +406,8 @@ const restaurantPlayers={
 
 const FOOD_COLUMNS=8;
 const FOOD_X=Array.from({length:FOOD_COLUMNS},(_,i)=>110+i*(780/7));
+function activeFoodColumnPositions(){return foodPlayerMode==="solo"?[200,400,600,800]:FOOD_X;}
+function activeFoodColumnCount(){return activeFoodColumnPositions().length;}
 
 const foodPlayers={
  hasan:{column:7,x:0,y:535,leftHeld:false,rightHeld:false},
@@ -423,6 +428,7 @@ const foodItems=[
 ];
 let fallingFood=[];
 let deliciousCount=0;
+let foodPlayerCounts={hasan:0,jill:0};
 let greenSauceHits=0;
 let lastFoodSpawn=0;
 let foodFinished=false;
@@ -1308,7 +1314,7 @@ function drawObstacle(o){
 function spawnThings(){
  const t=performance.now()-bikeStart;
 
- if(t-lastObstacleAt>455){
+ if(t-lastObstacleAt>414){ // rund 10 % mehr Hindernisse in beiden Spielmodi
   lastObstacleAt=t;
   const laneX=145+Math.random()*710;
   const quotaTypes=[
@@ -1354,7 +1360,7 @@ function spawnThings(){
   collectibles.push({
    x:145+Math.random()*710,
    y:-35,
-   type:specialRoll<.10?"gold":specialRoll<.18?"duo":"normal",
+   type:specialRoll<.10?"gold":(specialRoll<.18&&bikePlayerMode==="duo")?"duo":"normal",
    value:specialRoll<.10?5:1,
    collectedBy:{},
    createdAt:performance.now()
@@ -2197,12 +2203,12 @@ function startFoodGame(){
  document.getElementById("foodIntro").style.display="none";
  scene="food";
  document.getElementById("help").innerHTML=foodPlayerMode==="solo"
-  ?"<b>Hasan:</b> Pfeiltasten links/rechts · Sammle 52 Leckereien und weiche der Grünen Soße aus."
-  :"<b>Hasan:</b> Pfeiltasten links/rechts &nbsp; <b>Jill:</b> A und D · Sammelt 52 Leckereien und weicht der Grünen Soße aus.";
+  ?"<b>Hasan:</b> Pfeiltasten links/rechts · Sammle 26 Teller und weiche der Grünen Soße aus."
+  :"<b>Hasan:</b> Pfeiltasten links/rechts &nbsp; <b>Jill:</b> A und D · Sammelt jeweils 26 Teller und weicht der Grünen Soße aus.";
 
- foodPlayers.hasan.column=foodPlayerMode==="solo"?4:7;
+ foodPlayers.hasan.column=foodPlayerMode==="solo"?2:7;
  foodPlayers.jill.column=0;
- foodPlayers.hasan.x=FOOD_X[foodPlayers.hasan.column];
+ foodPlayers.hasan.x=activeFoodColumnPositions()[foodPlayers.hasan.column];
  foodPlayers.jill.x=FOOD_X[0];
 
  foodPlayers.hasan.leftHeld=false;
@@ -2212,6 +2218,7 @@ function startFoodGame(){
 
  fallingFood=[];
  deliciousCount=0;
+ foodPlayerCounts={hasan:0,jill:0};
  greenSauceHits=0;
  foodFinished=false;
  lastFoodSpawn=0;
@@ -2229,12 +2236,13 @@ function spawnFood(){
  if(now-lastFoodSpawn<330)return;
  lastFoodSpawn=now;
 
- const column=Math.floor(Math.random()*FOOD_COLUMNS);
+ const positions=activeFoodColumnPositions();
+ const column=Math.floor(Math.random()*positions.length);
  const sauce=Math.random()<.468;
 
  fallingFood.push({
   column,
-  x:FOOD_X[column],
+  x:positions[column],
   y:-35,
   speed:4.15+Math.random()*1.25,
   sauce,
@@ -2256,7 +2264,7 @@ function moveFoodPlayers(){
  if(!keys.ArrowLeft)h.leftHeld=false;
 
  if(keys.ArrowRight&&!h.rightHeld){
-  h.column=Math.min(7,h.column+1);
+  h.column=Math.min(activeFoodColumnCount()-1,h.column+1);
   h.rightHeld=true;
  }
  if(!keys.ArrowRight)h.rightHeld=false;
@@ -2269,12 +2277,13 @@ function moveFoodPlayers(){
  if(foodPlayerMode!=="duo"||!keys.a)j.leftHeld=false;
 
  if(foodPlayerMode==="duo"&&keys.d&&!j.rightHeld){
-  j.column=Math.min(7,j.column+1);
+  j.column=Math.min(activeFoodColumnCount()-1,j.column+1);
   j.rightHeld=true;
  }
  if(foodPlayerMode!=="duo"||!keys.d)j.rightHeld=false;
 
- h.x=FOOD_X[h.column];
+ const positions=activeFoodColumnPositions();
+ h.x=positions[h.column];
  j.x=FOOD_X[j.column];
 }
 
@@ -2287,8 +2296,9 @@ function drawFoodBackground(){
  ctx.textAlign="center";
  ctx.fillText("DIE WEINBLATT-FRISCHETHEKE",500,55);
 
- for(let i=0;i<FOOD_COLUMNS;i++){
-  const x=FOOD_X[i];
+ const positions=activeFoodColumnPositions();
+ for(let i=0;i<positions.length;i++){
+  const x=positions[i];
   box(x-47,115,94,435,i%2?"#f4e9d8":"#eadcc8");
   ctx.strokeStyle="#c3a98b";
   ctx.lineWidth=2;
@@ -2346,11 +2356,12 @@ function drawFoodPlayer(player,images){
 }
 
 function drawFoodHUD(){
- box(20,15,270,55,"#4d3832dd");
+ box(20,15,foodPlayerMode==="solo"?270:440,55,"#4d3832dd");
  ctx.fillStyle="#fff0d5";
- ctx.font="bold 18px DM Sans";
+ ctx.font="bold 17px DM Sans";
  ctx.textAlign="left";
- ctx.fillText("🍽️ Leckereien: "+deliciousCount+" / 52",35,49);
+ if(foodPlayerMode==="solo")ctx.fillText("🍽️ Hasan: "+foodPlayerCounts.hasan+" / 26 Teller",35,49);
+ else ctx.fillText("🍽️ Hasan: "+foodPlayerCounts.hasan+"/26   Jill: "+foodPlayerCounts.jill+"/26",35,49);
 
  box(710,15,270,55,"#4d3832dd");
  ctx.fillStyle="#fff0d5";
@@ -2752,7 +2763,9 @@ function drawFoodGame(){
      item.caught=true;
      if(item.sauce){greenSauceHits++;playGreenSauceSound();}
      else {
-      deliciousCount++;player.eatUntil=performance.now()+520;playCharacterEatSound(player);
+      deliciousCount++;
+      if(player===foodPlayers.hasan)foodPlayerCounts.hasan++;else foodPlayerCounts.jill++;
+      player.eatUntil=performance.now()+520;playCharacterEatSound(player);
       if(item.dish&&item.dish.name===foodItems[foodOrderIndex%foodItems.length].name){foodOrderCount++;foodOrderIndex++;if(foodOrderCount%3===0){achievements.add("Feinschmecker:innen");}}
      }
      break;
@@ -2776,7 +2789,10 @@ function drawFoodGame(){
 
  drawHeart(31,581,30,null);
 
- if(deliciousCount>=52&&greenSauceHits<=2){
+ const foodGoalReached=foodPlayerMode==="solo"
+  ?foodPlayerCounts.hasan>=26
+  :foodPlayerCounts.hasan>=26&&foodPlayerCounts.jill>=26;
+ if(foodGoalReached&&greenSauceHits<=2){
   finishFoodGame(true);
  }else if(greenSauceHits>2){
   finishFoodGame(false);
@@ -2794,8 +2810,8 @@ function finishFoodGame(won){
   document.getElementById("resultEmoji").textContent="🥂❤️";
   document.getElementById("resultTitle").textContent="Das perfekte Weinblatt-Menü!";
   document.getElementById("resultText").textContent=foodPlayerMode==="solo"
-   ?"Hasan hat 52 leckere Sachen gesammelt – ein Gericht für jede gemeinsame Woche – und ist der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat ein fantastisches Essen zusammengestellt. Guten Appetit!"
-   :"Ihr habt 52 leckere Sachen gesammelt – ein Gericht für jede gemeinsame Woche – und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
+   ?"Hasan hat 26 Teller gesammelt – die Hälfte der 52 Teller für eure gemeinsamen Wochen – und ist der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat ein fantastisches Essen zusammengestellt. Guten Appetit!"
+   :"Ihr habt jeweils 26 Teller gesammelt – zusammen 52, einen für jede Woche, die ihr zusammen seid – und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
   button.textContent="Weiter auf die Straße ♥";
   button.onclick=()=>{
@@ -2872,7 +2888,7 @@ function drawLanding(now){
  ctx.fillText("🧲 Herzmagnet: zieht Herzen in eurer Nähe automatisch an.",175,298);
  ctx.fillText("🛡️ Schutzschild: schützt euch einmal vor einem Hindernis.",175,324);
  ctx.fillText("Goldenes Herz mit einer „5“ = 5 Punkte statt 1 Herz.",175,350);
- ctx.fillText(bikePlayerMode==="solo"?"Doppelherzen zählen für Hasan als Bonus.":"Doppelherz: sammelt es gemeinsam für einen Bonus.",175,376);
+ if(bikePlayerMode==="duo")ctx.fillText("Doppelherz: sammelt es gemeinsam für einen Bonus.",175,376);
 
  ctx.textAlign="center";ctx.font="bold 14px DM Sans";ctx.fillStyle="#ffe0a5";
  ctx.fillText("WER SOLL SPIELEN?",500,404);
