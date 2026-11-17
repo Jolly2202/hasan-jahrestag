@@ -34,6 +34,10 @@ canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-
 button{background:#863c52;color:white;border:0;padding:12px 22px;border-radius:6px;
  cursor:pointer;font-family:"DM Sans",sans-serif;font-size:16px}
 button:hover{background:#6d3048}
+.modeChoices{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+.modeChoices button{font-size:14px;padding:10px 14px;background:#a17b78;color:#fff}
+.modeChoices button.selected{background:#863c52;outline:3px solid #d5ad72;outline-offset:2px}
+#foodIntro .card{max-height:calc(100vh - 32px);overflow-y:auto}
 #choices{position:relative;display:flex;align-items:center;justify-content:center;gap:24px;min-height:75px}
 #noButton{background:#777}
 </style>
@@ -102,10 +106,15 @@ button:hover{background:#6d3048}
   <div style="font-size:34px">🥖 🧀 🍅</div>
   <h2>Einmal quer durch die Frischetheke!</h2>
   <p>Jetzt wird es ernst: Eure freundliche Weinblatt-Dame stellt euch ein richtig gutes Essen zusammen.</p>
-  <p>Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
-  <p><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
-  <p><b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen.</p>
-  <p><b>Hasan:</b> Pfeiltasten links/rechts<br><b>Jill:</b> A und D</p>
+  <p id="foodModeDescription">Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.</p>
+  <p id="foodWarningDescription"><b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.</p>
+  <p id="foodGoalDescription"><b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen.</p>
+  <p><b>Wer spielt?</b></p>
+  <div class="modeChoices">
+   <button id="foodSoloButton" type="button" onclick="setFoodMode('solo')">Nur Hasan</button>
+   <button id="foodDuoButton" type="button" onclick="setFoodMode('duo')" class="selected">Hasan &amp; Jill</button>
+  </div>
+  <p id="foodControlsDescription"><b>Steuerung:</b> Hasan: Pfeiltasten links/rechts · Jill: A und D</p>
   <button onclick="startFoodGame()">Start</button>
  </div>
 </div>
@@ -361,10 +370,31 @@ const exhibits=[
   story:"Eine unserer liebsten Beschäftigungen\n\nDie genießenden Genießer:innen genießen das genussvolle Gericht."}
 ];
 
+let bikePlayerMode="duo";
+let foodPlayerMode="duo";
 const bikePlayers={
  hasan:{x:735,y:500,color:"#243e65",hair:"#38251f",name:"HASAN",direction:"back"},
  jill:{x:265,y:500,color:"#6d3048",hair:"#4b241c",name:"JILL",direction:"back"}
 };
+function activeBikePlayers(){return bikePlayerMode==="solo"?[bikePlayers.hasan]:[bikePlayers.hasan,bikePlayers.jill];}
+function activeFoodPlayers(){return foodPlayerMode==="solo"?[foodPlayers.hasan]:[foodPlayers.hasan,foodPlayers.jill];}
+function setFoodMode(mode){
+ foodPlayerMode=mode;
+ document.getElementById("foodSoloButton").classList.toggle("selected",mode==="solo");
+ document.getElementById("foodDuoButton").classList.toggle("selected",mode==="duo");
+ document.getElementById("foodModeDescription").textContent=mode==="solo"
+  ?"Hasan spielt allein und startet in der Mitte. Bewege ihn mit den Pfeiltasten links und rechts, um die herunterfallenden Leckereien einzusammeln."
+  :"Der Bildschirm ist in acht Spalten aufgeteilt. Hasan startet ganz rechts, Jill ganz links. Bewegt eure Figuren nach links und rechts, damit ihr die herunterfallenden Leckereien einsammelt.";
+ document.getElementById("foodGoalDescription").innerHTML=mode==="solo"
+  ?"<b>Dein Ziel:</b> Sammle 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf dich Grüne Soße erwischen."
+  :"<b>Euer Ziel:</b> Sammelt gemeinsam 52 leckere Essenssachen – ein Gericht für jede Woche, die ihr zusammen seid. Höchstens zweimal darf euch Grüne Soße erwischen.";
+ document.getElementById("foodWarningDescription").innerHTML=mode==="solo"
+  ?"<b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Sie schmeckt Hasan nicht. Weiche ihr unbedingt aus."
+  :"<b>Aber Achtung:</b> Frankfurter Grüne Soße ist dabei! Die schmeckt euch nicht. Weicht ihr unbedingt aus.";
+ document.getElementById("foodControlsDescription").innerHTML=mode==="solo"
+  ?"<b>Steuerung:</b> Hasan: Pfeiltasten links/rechts"
+  :"<b>Steuerung:</b> Hasan: Pfeiltasten links/rechts · Jill: A und D";
+}
 
 const restaurantPlayers={
  hasan:{x:420,y:510,direction:"front"},
@@ -873,8 +903,7 @@ function sayYes(){
  document.getElementById("pageTitle").textContent="Unser nächstes Abenteuer";
  document.getElementById("pageSubtitle").textContent="Zwei Fahrräder, ein Ziel und ganz viel Wir ♥";
  document.getElementById("help").innerHTML=
- '<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D<br>'+
- 'Sammelt gemeinsam 52 Herzen in 60 Sekunden. Goldene Herzen zählen 5, Doppelherzen bringen euch zu dritt weiter – sammelt sie gemeinsam!';
+ '<b>Spielmodus:</b> Wählt gleich aus, ob Hasan allein oder ihr beide spielt.';
 
  resetBikeGame();
 }
@@ -1463,7 +1492,7 @@ function drawTrafficBoss(now){
  if(remaining>12)return;
  if(!bikeBossStarted){bikeBossStarted=true;bikeBossObjects=[{x:500,y:-85,type:"bus",r:38,hitPlayers:{},speed:3.5},{x:265,y:-250,type:"construction",r:28,hitPlayers:{},speed:4.1},{x:735,y:-410,type:"uber",r:25,hitPlayers:{},speed:4.8}];}
  box(215,53,570,34,"#702f46dd");ctx.fillStyle="#fff0d5";ctx.font="bold 16px DM Sans";ctx.textAlign="center";ctx.fillText("ENDSPURT: DER BERLINER VERKEHR!",500,76);
- for(const o of bikeBossObjects){o.y+=o.speed;drawObstacle(o);for(const p of Object.values(bikePlayers)){if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+18){o.hitPlayers[p.name]=true;if(now<shieldUntil){shieldUntil=0;}else{score=Math.max(0,score-3);p.x+=p.x<500?-28:28;bikeStart-=350;spawnBikeParticles(p.x,p.y,5);}}}}
+ for(const o of bikeBossObjects){o.y+=o.speed;drawObstacle(o);for(const p of activeBikePlayers()){if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+18){o.hitPlayers[p.name]=true;if(now<shieldUntil){shieldUntil=0;}else{score=Math.max(0,score-3);p.x+=p.x<500?-28:28;bikeStart-=350;spawnBikeParticles(p.x,p.y,5);}}}}
  bikeBossObjects=bikeBossObjects.filter(o=>o.y<H+70);
  if(bikeBossObjects.length<2&&Math.random()<.035){const type=Math.random()<.5?"bus":"construction";bikeBossObjects.push({x:170+Math.random()*660,y:-70,type,r:type==="bus"?38:28,hitPlayers:{},speed:4.2});}
 }
@@ -1478,7 +1507,7 @@ function drawBikeScene(now){
  if(!restaurantReached&&!bikeFailed){
   spawnThings();
 
-  for(const p of Object.values(bikePlayers)){
+  for(const p of activeBikePlayers()){
    let dx=0,dy=0;
    if(p===bikePlayers.hasan){
     if(keys.ArrowLeft)dx--;
@@ -1506,7 +1535,7 @@ function drawBikeScene(now){
   bikePowerups.forEach(power=>power.y+=4.4);
   for(const power of bikePowerups){
    ctx.font="27px DM Sans";ctx.textAlign="center";ctx.fillText(power.type==="shield"?"🛡️":"🧲",power.x,power.y);
-   for(const player of Object.values(bikePlayers)){
+   for(const player of activeBikePlayers()){
     if(power.y>-10&&Math.hypot(player.x-power.x,player.y-power.y)<32){
      if(power.type==="shield")shieldUntil=now+6500;else turboUntil=now+6500;
      power.y=9999;achievements.add(power.type==="shield"?"Unverwüstlich":"Herzmagnet");
@@ -1517,7 +1546,7 @@ function drawBikeScene(now){
 
   for(const o of obstacles){
    drawObstacle(o);
-   for(const p of Object.values(bikePlayers)){
+   for(const p of activeBikePlayers()){
     if(!o.hitPlayers[p.name]&&Math.hypot(p.x-o.x,p.y-o.y)<o.r+14){
      o.hitPlayers[p.name]=true;
      if(now<shieldUntil){shieldUntil=0;achievements.add("Schutzengel");}
@@ -1528,11 +1557,11 @@ function drawBikeScene(now){
 
   drawTrafficBoss(now);
   for(const c of collectibles){
-   if(now<turboUntil){const nearest=[bikePlayers.hasan,bikePlayers.jill].sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];c.x+=(nearest.x-c.x)*.025;}
+   if(now<turboUntil){const nearest=activeBikePlayers().sort((a,b)=>Math.hypot(a.x-c.x,a.y-c.y)-Math.hypot(b.x-c.x,b.y-c.y))[0];c.x+=(nearest.x-c.x)*.025;}
    drawBikeCollectible(c);
-   for(const p of Object.values(bikePlayers)){
+   for(const p of activeBikePlayers()){
     if(c.x>-50&&Math.hypot(p.x-c.x,p.y-c.y)<29){
-     if(c.type==="duo"){
+     if(c.type==="duo"&&bikePlayerMode==="duo"){
       c.collectedBy[p.name]=now;
       const other=p.name==="HASAN"?"JILL":"HASAN";
       if(c.collectedBy[other]&&now-c.collectedBy[other]<2600){const px=c.x,py=c.y;c.x=-100;score+=3;spawnBikeParticles(px,py,15);achievements.add("Doppelherz-Teamwork");}
@@ -1549,11 +1578,11 @@ function drawBikeScene(now){
 
   obstacles=obstacles.filter(o=>o.y<H+55);
   collectibles=collectibles.filter(c=>c.y<H+55);
-  if(Math.hypot(bikePlayers.hasan.x-bikePlayers.jill.x,bikePlayers.hasan.y-bikePlayers.jill.y)<75&&now-teamBonusAt>1800){
+  if(bikePlayerMode==="duo"&&Math.hypot(bikePlayers.hasan.x-bikePlayers.jill.x,bikePlayers.hasan.y-bikePlayers.jill.y)<75&&now-teamBonusAt>1800){
    teamBonusAt=now;score++;achievements.add("Teamwork-Profi");
   }
 
-  for(const p of [bikePlayers.hasan,bikePlayers.jill]){
+  for(const p of activeBikePlayers()){
    const bounce=p.collectUntil>now?Math.sin((p.collectUntil-now)*.04)*7:0;
    ctx.save();if(p.hitUntil>now)ctx.globalAlpha=.55+.35*Math.sin(now*.05);
    drawBike(p.x,p.y+bounce,p.color,p.hair,p.name,p.direction);
@@ -1576,7 +1605,7 @@ function drawBikeScene(now){
   if(score>=52){
    if(!bikeCelebrationAt)bikeCelebrationAt=now;
    box(225,205,550,150,"#211b2cdd");
-   ctx.fillStyle="#ffe0a5";ctx.font="bold 30px Cormorant Garamond";ctx.textAlign="center";ctx.fillText("52 HERZEN – IHR HABT ES GESCHAFFT!",500,255);
+   ctx.fillStyle="#ffe0a5";ctx.font="bold 30px Cormorant Garamond";ctx.textAlign="center";ctx.fillText(bikePlayerMode==="solo"?"52 HERZEN – HASAN HAT ES GESCHAFFT!":"52 HERZEN – IHR HABT ES GESCHAFFT!",500,255);
    ctx.font="20px Cormorant Garamond";ctx.fillText("Eine für jede gemeinsame Woche ♥",500,295);
    for(let i=0;i<9;i++)drawHeart(270+i*58,330+Math.sin(now/180+i)*9,24,null);
    drawBikeParticles();
@@ -1598,13 +1627,15 @@ function drawBikeScene(now){
 
 function showBikeFailure(){
  playLoserSound();
- document.getElementById("resultEmoji").innerHTML=
-  '<div style="display:flex;justify-content:center;gap:18px">'+
+ document.getElementById("resultEmoji").innerHTML=bikePlayerMode==="solo"
+  ?'<div style="display:flex;justify-content:center"><svg width="105" height="135" viewBox="0 0 105 135"><circle cx="52" cy="22" r="18" fill="#d6a17e"/><path d="M34 20Q35 0 54 4Q73 4 70 24L40 13Z" fill="#38251f"/><path d="M27 46Q52 37 77 46L84 102H21Z" fill="#222"/><path d="M77 53L94 85" stroke="#d6a17e" stroke-width="10"/><path d="M86 78L101 88L91 109L77 99Z" fill="#f4eadb" stroke="#9b8d80" stroke-width="2"/><text x="52" y="129" text-anchor="middle" font-size="11" fill="#39283a">HASAN</text></svg></div>'
+  :'<div style="display:flex;justify-content:center;gap:18px">'+
   '<svg width="105" height="135" viewBox="0 0 105 135"><circle cx="52" cy="22" r="18" fill="#d6a17e"/><path d="M34 20Q35 0 54 4Q73 4 70 24L40 13Z" fill="#38251f"/><path d="M27 46Q52 37 77 46L84 102H21Z" fill="#222"/><path d="M77 53L94 85" stroke="#d6a17e" stroke-width="10"/><path d="M86 78L101 88L91 109L77 99Z" fill="#f4eadb" stroke="#9b8d80" stroke-width="2"/><text x="52" y="129" text-anchor="middle" font-size="11" fill="#39283a">HASAN</text></svg>'+
   '<svg width="105" height="135" viewBox="0 0 105 135"><circle cx="52" cy="22" r="18" fill="#d6a17e"/><path d="M29 28Q24 0 53 3Q80 4 75 38L67 15L39 13Z" fill="#39251f"/><path d="M27 46Q52 37 77 46L87 105H17Z" fill="#17151b"/><path d="M27 53L10 85" stroke="#d6a17e" stroke-width="10"/><path d="M3 78L20 84L17 108L2 102Z" fill="#f4eadb" stroke="#9b8d80" stroke-width="2"/><text x="52" y="129" text-anchor="middle" font-size="11" fill="#39283a">JILL</text></svg></div>';
  document.getElementById("resultTitle").textContent="Oh nein!";
- document.getElementById("resultText").textContent=
- "Mist. Ihr habt nicht genügend Herzen eingesammelt und euch beide den Ellenbogen gebrochen. Probiert es erneut!";
+ document.getElementById("resultText").textContent=bikePlayerMode==="solo"
+  ?"Mist. Hasan hat nicht genügend Herzen eingesammelt und sich den Ellenbogen gebrochen. Probiert es erneut!"
+  :"Mist. Ihr habt nicht genügend Herzen eingesammelt und euch beide den Ellenbogen gebrochen. Probiert es erneut!";
  const button=document.getElementById("resultButton");
  button.textContent="Nochmal versuchen ❤️";
  button.onclick=()=>{
@@ -2165,10 +2196,13 @@ function acceptFood(){
 function startFoodGame(){
  document.getElementById("foodIntro").style.display="none";
  scene="food";
+ document.getElementById("help").innerHTML=foodPlayerMode==="solo"
+  ?"<b>Hasan:</b> Pfeiltasten links/rechts · Sammle 52 Leckereien und weiche der Grünen Soße aus."
+  :"<b>Hasan:</b> Pfeiltasten links/rechts &nbsp; <b>Jill:</b> A und D · Sammelt 52 Leckereien und weicht der Grünen Soße aus.";
 
- foodPlayers.hasan.column=7;
+ foodPlayers.hasan.column=foodPlayerMode==="solo"?4:7;
  foodPlayers.jill.column=0;
- foodPlayers.hasan.x=FOOD_X[7];
+ foodPlayers.hasan.x=FOOD_X[foodPlayers.hasan.column];
  foodPlayers.jill.x=FOOD_X[0];
 
  foodPlayers.hasan.leftHeld=false;
@@ -2227,18 +2261,18 @@ function moveFoodPlayers(){
  }
  if(!keys.ArrowRight)h.rightHeld=false;
 
- // Jill – A und D
- if(keys.a&&!j.leftHeld){
+ // Jill – A und D (nur im Mehrspielermodus)
+ if(foodPlayerMode==="duo"&&keys.a&&!j.leftHeld){
   j.column=Math.max(0,j.column-1);
   j.leftHeld=true;
  }
- if(!keys.a)j.leftHeld=false;
+ if(foodPlayerMode!=="duo"||!keys.a)j.leftHeld=false;
 
- if(keys.d&&!j.rightHeld){
+ if(foodPlayerMode==="duo"&&keys.d&&!j.rightHeld){
   j.column=Math.min(7,j.column+1);
   j.rightHeld=true;
  }
- if(!keys.d)j.rightHeld=false;
+ if(foodPlayerMode!=="duo"||!keys.d)j.rightHeld=false;
 
  h.x=FOOD_X[h.column];
  j.x=FOOD_X[j.column];
@@ -2711,7 +2745,7 @@ function drawFoodGame(){
   drawFallingFood(item);
 
   if(!item.caught&&item.y>=500&&item.y<=560){
-   const players=[foodPlayers.hasan,foodPlayers.jill];
+   const players=activeFoodPlayers();
 
    for(const player of players){
     if(player.column===item.column){
@@ -2730,13 +2764,13 @@ function drawFoodGame(){
  fallingFood=fallingFood.filter(item=>item.y<590&&!item.caught);
 
  drawFoodPlayer(foodPlayers.hasan,hasanImages);
- drawFoodPlayer(foodPlayers.jill,jillImages);
+ if(foodPlayerMode==="duo")drawFoodPlayer(foodPlayers.jill,jillImages);
 
  ctx.fillStyle="#fff0d5";
  ctx.font="bold 13px DM Sans";
  ctx.textAlign="center";
  ctx.fillText("HASAN",foodPlayers.hasan.x,540);
- ctx.fillText("JILL",foodPlayers.jill.x,540);
+ if(foodPlayerMode==="duo")ctx.fillText("JILL",foodPlayers.jill.x,540);
 
  drawFoodHUD();
 
@@ -2759,8 +2793,9 @@ function finishFoodGame(won){
  if(won){
   document.getElementById("resultEmoji").textContent="🥂❤️";
   document.getElementById("resultTitle").textContent="Das perfekte Weinblatt-Menü!";
-  document.getElementById("resultText").textContent=
-   "Ihr habt 52 leckere Sachen gesammelt – ein Gericht für jede gemeinsame Woche – und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
+  document.getElementById("resultText").textContent=foodPlayerMode==="solo"
+   ?"Hasan hat 52 leckere Sachen gesammelt – ein Gericht für jede gemeinsame Woche – und ist der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat ein fantastisches Essen zusammengestellt. Guten Appetit!"
+   :"Ihr habt 52 leckere Sachen gesammelt – ein Gericht für jede gemeinsame Woche – und seid der Grünen Soße erfolgreich ausgewichen. Die Frischetheke hat euch ein fantastisches Essen zusammengestellt. Guten Appetit, ihr zwei!";
 
   button.textContent="Weiter auf die Straße ♥";
   button.onclick=()=>{
@@ -2772,8 +2807,9 @@ function finishFoodGame(won){
   playLoserSound();
   document.getElementById("resultEmoji").textContent="🥣";
   document.getElementById("resultTitle").textContent="Oh nein – zu viel Grüne Soße!";
-  document.getElementById("resultText").textContent=
-   "Euch hat die Frankfurter Grüne Soße mehr als zweimal erwischt. Das Essen ist damit leider nicht ganz nach eurem Geschmack. Probiert es noch einmal!";
+  document.getElementById("resultText").textContent=foodPlayerMode==="solo"
+   ?"Hasan hat die Frankfurter Grüne Soße mehr als zweimal erwischt. Das Essen ist damit leider nicht ganz nach seinem Geschmack. Probiert es noch einmal!"
+   :"Euch hat die Frankfurter Grüne Soße mehr als zweimal erwischt. Das Essen ist damit leider nicht ganz nach eurem Geschmack. Probiert es noch einmal!";
 
   button.textContent="Nochmal versuchen";
   button.onclick=restartFoodGame;
@@ -2826,9 +2862,9 @@ function drawLanding(now){
  ctx.font="15px DM Sans";ctx.fillStyle="#fff0d5";
  ctx.fillText("Weicht den Hindernissen aus: Hunden, Pfützen, Baustellen,",500,166);
  ctx.fillText("Flaschen, E-Scootern, Spätis und dem M41-BVG-Bus.",500,190);
- ctx.fillText("Sammelt gemeinsam mindestens 52 Herzen in 60 Sekunden.",500,224);
+ ctx.fillText(bikePlayerMode==="solo"?"Hasan sammelt mindestens 52 Herzen in 60 Sekunden.":"Sammelt gemeinsam mindestens 52 Herzen in 60 Sekunden.",500,224);
  ctx.fillStyle="#ffcf9d";ctx.font="bold 14px DM Sans";
- ctx.fillText("Achtung: Jeder Hindernis-Treffer kostet euch 3 Herzen!",500,246);
+ ctx.fillText(bikePlayerMode==="solo"?"Achtung: Jeder Hindernis-Treffer kostet 3 Herzen!":"Achtung: Jeder Hindernis-Treffer kostet euch 3 Herzen!",500,246);
 
  ctx.textAlign="left";ctx.font="bold 16px DM Sans";ctx.fillStyle="#ffe0a5";
  ctx.fillText("POWER-UPS & HERZEN",175,270);
@@ -2836,21 +2872,27 @@ function drawLanding(now){
  ctx.fillText("🧲 Herzmagnet: zieht Herzen in eurer Nähe automatisch an.",175,298);
  ctx.fillText("🛡️ Schutzschild: schützt euch einmal vor einem Hindernis.",175,324);
  ctx.fillText("Goldenes Herz mit einer „5“ = 5 Punkte statt 1 Herz.",175,350);
- ctx.fillText("Doppelherz: sammelt es gemeinsam für einen Bonus.",175,376);
+ ctx.fillText(bikePlayerMode==="solo"?"Doppelherzen zählen für Hasan als Bonus.":"Doppelherz: sammelt es gemeinsam für einen Bonus.",175,376);
 
- ctx.textAlign="center";ctx.font="bold 15px DM Sans";ctx.fillStyle="#ffe0a5";
- ctx.fillText("STEUERUNG",500,417);
- ctx.font="14px DM Sans";ctx.fillStyle="#fff0d5";
- ctx.fillText("Hasan: Pfeiltasten     ·     Jill: W A S D",500,442);
+ ctx.textAlign="center";ctx.font="bold 14px DM Sans";ctx.fillStyle="#ffe0a5";
+ ctx.fillText("WER SOLL SPIELEN?",500,404);
+ const soloSelected=bikePlayerMode==="solo";
+ box(270,416,205,40,soloSelected?"#e2bd7d":"#775866");
+ box(525,416,205,40,soloSelected?"#775866":"#e2bd7d");
+ ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(270,416,205,40);ctx.strokeRect(525,416,205,40);
+ ctx.fillStyle=soloSelected?"#3d2634":"#fff0d5";ctx.font="bold 14px DM Sans";ctx.fillText("Nur Hasan",372,441);
+ ctx.fillStyle=soloSelected?"#fff0d5":"#3d2634";ctx.fillText("Hasan & Jill",627,441);
+ ctx.font="12px DM Sans";ctx.fillStyle="#fff0d5";
+ ctx.fillText(bikePlayerMode==="solo"?"Steuerung: Pfeiltasten":"Hasan: Pfeiltasten · Jill: W A S D",500,475);
 
  // Start-Button: Das Rennen beginnt ausschließlich nach diesem Klick.
- box(395,465,210,54,"#e2bd7d");
- ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(395,465,210,54);
+ box(395,490,210,54,"#e2bd7d");
+ ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(395,490,210,54);
  ctx.fillStyle="#3d2634";ctx.font="bold 22px DM Sans";
- ctx.textAlign="center";ctx.fillText("START",500,500);
+ ctx.textAlign="center";ctx.fillText("START",500,525);
 
- drawBike(690,475,"#243e65","#38251f","HASAN");
- drawBike(310,475,"#6d3048","#4b241c","JILL");
+ drawBike(bikePlayerMode==="solo"?500:690,570,"#243e65","#38251f","HASAN");
+ if(bikePlayerMode==="duo")drawBike(310,570,"#6d3048","#4b241c","JILL");
 }
 
 
@@ -3125,8 +3167,7 @@ function drawHeartIntro(){
  ctx.fillStyle="#fff0dc";ctx.font="17px Cormorant Garamond";
  ["Sammle die aufleuchtenden Funken ein, indem du sie anklickst.",
   "Aus jedem Funken löst sich eine Flamme, die zu Jills Herz fliegt.",
-  "Das Herzklopfen begleitet dich während des gesamten Spiels.",
-  "Deine Aufgabe: Sammle alle 24 Funken ein, um Jills Herz zum Brennen zu bringen."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
+  "Deine Aufgabe: Sammle alle Funken ein, um Jills Herz zum Brennen zu bringen."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
  ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
  ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText(heartCountdownStarted?"":"START",500,482);
 }
@@ -3558,8 +3599,14 @@ canvas.addEventListener("click",e=>{
  if(scene==="heartGame"){collectHeartSpark(x,y);return;}
  if(scene==="heartLetter"&&!heartLetterOpened){heartLetterOpened=true;return;}
 
- if(scene==="landing"&&x>=395&&x<=605&&y>=465&&y<=519){
+ if(scene==="landing"&&y>=416&&y<=456&&x>=270&&x<=475){bikePlayerMode="solo";return;}
+ if(scene==="landing"&&y>=416&&y<=456&&x>=525&&x<=730){bikePlayerMode="duo";return;}
+ if(scene==="landing"&&x>=395&&x<=605&&y>=490&&y<=544){
   scene="bikes";
+  document.getElementById("help").innerHTML=bikePlayerMode==="solo"
+   ?"<b>Hasan:</b> Pfeiltasten · Sammle mindestens 52 Herzen in 60 Sekunden und weiche den Hindernissen aus."
+   :"<b>Hasan:</b> Pfeiltasten &nbsp; <b>Jill:</b> W A S D · Sammelt gemeinsam mindestens 52 Herzen in 60 Sekunden.";
+  if(bikePlayerMode==="solo")bikePlayers.hasan.x=500;
   startBikeMusic();
   bikeStart=performance.now();
   bikeElapsed=0;
@@ -3653,7 +3700,7 @@ canvas.addEventListener("mousemove",e=>{
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
  heartPointer.x=x;heartPointer.y=y;
 
- const overStart=scene==="landing"&&x>=395&&x<=605&&y>=465&&y<=519;
+ const overStart=scene==="landing"&&((x>=270&&x<=475&&y>=416&&y<=456)||(x>=525&&x<=730&&y>=416&&y<=456)||(x>=395&&x<=605&&y>=490&&y<=544));
  canvas.style.cursor=(overStart||(overHeart&&
   (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete"||scene==="heartIntro"||scene==="heartGame"||scene==="heartLetter")))?"pointer":"default";
 });
