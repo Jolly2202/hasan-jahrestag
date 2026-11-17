@@ -3793,12 +3793,13 @@ update();
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import { RoomEnvironment } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js";
 const host=document.getElementById("heart3d");
 const state={renderer:null,scene:null,camera:null,heart:null,symbol:null,room:null,royalBlue:null,revealActive:null,flames:[],embers:[],gifFlames:[],gifTextures:[],light:null,fire:0,ready:false,ownTex:null,baseMaterials:[]};
 function makeFlameTexture(){const c=document.createElement("canvas");c.width=128;c.height=256;const g=c.getContext("2d");const grad=g.createLinearGradient(0,256,0,0);grad.addColorStop(0,"rgba(255,245,190,0.95)");grad.addColorStop(.22,"rgba(255,151,43,0.88)");grad.addColorStop(.58,"rgba(237,58,15,0.52)");grad.addColorStop(1,"rgba(120,15,0,0)");g.fillStyle=grad;g.beginPath();g.moveTo(64,256);g.bezierCurveTo(8,210,48,145,28,95);g.bezierCurveTo(78,130,55,48,91,0);g.bezierCurveTo(91,80,139,118,104,196);g.bezierCurveTo(98,229,93,244,64,256);g.fill();return new THREE.CanvasTexture(c);}
 function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.height=64;const g=c.getContext("2d");const grad=g.createRadialGradient(32,32,1,32,32,31);grad.addColorStop(0,"#fff8bf");grad.addColorStop(.22,"#ffad42");grad.addColorStop(.55,"#ed4215aa");grad.addColorStop(1,"#ed421500");g.fillStyle=grad;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);if(state.camera.isOrthographicCamera){const halfH=2.35;state.camera.left=-halfH*(w/h);state.camera.right=halfH*(w/h);state.camera.top=halfH;state.camera.bottom=-halfH;}else{state.camera.aspect=w/h;}state.camera.updateProjectionMatrix();}
-function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.royalBlue=new THREE.Color(0x2445a4);state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
+function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.royalBlue=new THREE.Color(0x2445a4);state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);const pmremGenerator=new THREE.PMREMGenerator(state.renderer);const studioEnvironment=new RoomEnvironment();state.scene.environment=pmremGenerator.fromScene(studioEnvironment).texture;pmremGenerator.dispose();studioEnvironment.dispose();state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
  const chromeKey=new THREE.DirectionalLight(0xffffff,1.15);chromeKey.position.set(4,3,6);state.scene.add(chromeKey);
  const chromeRim=new THREE.DirectionalLight(0xdce7ff,.85);chromeRim.position.set(-4,1,2);state.scene.add(chromeRim);
  state.room={floor:null};
@@ -3818,9 +3819,9 @@ function init(){if(state.renderer||state.ready)return;state.ready=true;state.sce
    if(o.isMesh&&o.material){
     const materials=Array.isArray(o.material)?o.material:[o.material];
     materials.forEach(material=>{
-     material.metalness=.72;
-     material.roughness=.2;
-     material.envMapIntensity=1.5;
+     material.metalness=1;
+     material.roughness=.065;
+     material.envMapIntensity=2.4;
      material.needsUpdate=true;
     });
    }
@@ -3908,7 +3909,7 @@ function animate(){requestAnimationFrame(animate);const t=performance.now()/1000
  if(state.symbol){
   state.symbol.group.visible=reveal;
   if(reveal){
-   state.symbol.spin.rotation.y+=.00225;
+   state.symbol.spin.rotation.y+=.0045;
    state.symbol.group.position.set(0,0,0);
   }
  }
