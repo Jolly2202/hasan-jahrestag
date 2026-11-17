@@ -841,6 +841,8 @@ function drawStreetStory(now){
   if(line)drawStreetSpeechBubble(line.speaker,line.text);
  }
  ctx.fillStyle="#fff0d5";ctx.font="bold 17px Cormorant Garamond";ctx.textAlign="left";ctx.fillText("DIEFFENBACHSTRASSE · GRAEFEKIEZ",22,600);
+ // Herzförmiger Skip-Button unten links – überspringt die Straßenszene.
+ drawHeart(31,581,30,null);
 }
 function drawStreetBicycle(x,y,fallen){
  ctx.save();ctx.translate(x,y);if(fallen)ctx.rotate(-.42);
@@ -3222,6 +3224,16 @@ function collectHeartSpark(x,y){
  }
  return false;
 }
+function skipHeartGameToLetter(){
+ const gameMusic=document.getElementById("heartGameMusic");
+ if(gameMusic){gameMusic.pause();gameMusic.currentTime=0;}
+ stopHeartAudio();
+ scene="heartLetter";
+ heartLetterAt=performance.now()-3000;
+ heartLetterOpened=true;
+ document.getElementById("letterOverlay").style.display="block";
+ document.getElementById("heart3d").style.display="none";
+}
 function finishHeartGame(){
  scene="heartBurning";
  const gameMusic=document.getElementById("heartGameMusic");
@@ -3405,6 +3417,8 @@ function updateHeartChapter(now){
   spawnHeartSpark(now);drawHeartSparks(now);
   ctx.textAlign="center";ctx.fillStyle="#fff0db";ctx.font="14px DM Sans";
   ctx.fillText("Funken: "+heartTotalHits+" / 24",500,75);
+  // Herzförmiger Skip-Button unten links – öffnet den Brief direkt.
+  drawHeart(31,581,30,null);
  }else if(scene==="heartBurning"){
   drawHeartInterior();
   ctx.fillStyle="#08050833";ctx.fillRect(0,0,W,H);
@@ -3634,6 +3648,9 @@ canvas.addEventListener("click",e=>{
  const x=(e.clientX-r.left)*canvas.width/r.width;
  const y=(e.clientY-r.top)*canvas.height/r.height;
 
+ // Skip-Buttons zuerst prüfen, damit sie auch während des Straßendialogs funktionieren.
+ if(scene==="streetStory"&&x>=8&&x<=62&&y>=552&&y<=605){startSayingsLevel();return;}
+ if(scene==="heartGame"&&x>=8&&x<=62&&y>=552&&y<=605){skipHeartGameToLetter();return;}
  if(scene==="sayingsComplete"){
   if(performance.now()-sayingsCompletedAt>=6500)advanceHeartChapter();
   return;
@@ -3752,7 +3769,7 @@ canvas.addEventListener("mousemove",e=>{
 
  const overStart=scene==="landing"&&((x>=270&&x<=475&&y>=416&&y<=456)||(x>=525&&x<=730&&y>=416&&y<=456)||(x>=395&&x<=605&&y>=490&&y<=544));
  canvas.style.cursor=(overStart||(overHeart&&
-  (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete"||scene==="heartIntro"||scene==="heartGame"||scene==="heartLetter")))?"pointer":"default";
+  (scene==="museum"||scene==="bikes"||scene==="arrival"||scene==="interior"||scene==="food"||scene==="apartment"||scene==="sayings"||scene==="sayingsComplete"||scene==="heartIntro"||scene==="heartGame"||scene==="heartLetter"||scene==="streetStory")))?"pointer":"default";
 });
 
 // Auch Klicks außerhalb der Spielfläche dürfen die bestandene Sprachprüfung verlassen.
