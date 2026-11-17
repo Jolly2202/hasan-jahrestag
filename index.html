@@ -326,6 +326,11 @@ let heartPhaseHits=0;
 let heartTotalHits=0;
 let heartSparks=[];
 let heartLastSpawn=0;
+let heartLives=3;
+let heartCombo=0;
+let heartComboAt=0;
+let heartGameOver=false;
+let heartGameOverAt=0;
 let heartGameStartAt=0;
 let heartLastBeatAt=0;
 let heartAudioStartAt=0;
@@ -3165,6 +3170,7 @@ function beginHeartGame(){
  document.getElementById("letterOverlay").style.display="none";
  scene="heartIntro";heartGameStarted=false;heartCountdownStarted=0;
  heartPhase=0;heartPhaseHits=0;heartTotalHits=0;heartSparks=[];
+ heartLives=3;heartCombo=0;heartComboAt=0;heartGameOver=false;heartGameOverAt=0;
  if(window.heart3DSetHitCount)window.heart3DSetHitCount(0);
  document.getElementById("heart3d").style.display="none";
  const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=1;a.playbackRate=1;
@@ -3183,46 +3189,106 @@ function drawHeartIntro(){
  ctx.fillStyle="#09080bdc";ctx.fillRect(0,0,W,H);
  ctx.textAlign="center";ctx.fillStyle="#f4d49c";ctx.font="bold 32px Cormorant Garamond";ctx.fillText("ENTFACHE MEIN HERZ",500,160);
  ctx.fillStyle="#fff0dc";ctx.font="17px Cormorant Garamond";
- ["Sammle die aufleuchtenden Funken ein, indem du sie anklickst.",
-  "Aus jedem Funken löst sich eine Flamme, die zu Jills Herz fliegt.",
-  "Deine Aufgabe: Sammle alle Funken ein, um Jills Herz zum Brennen zu bringen."].forEach((t,i)=>ctx.fillText(t,500,225+i*34));
+ ["Klicke die Funken an – sie bewegen sich und verschwinden wieder.",
+  "Goldene und blaue Funken bringen Extrapunkte; manche teilen sich beim Anklicken.",
+  "Schwarze Funken musst du meiden: Du hast nur drei Leben.",
+  "Sammle schnelle Treffer-Serien für Komboboni und erreiche 24 Punkte.",
+  "Je länger du spielst, desto schneller und unberechenbarer werden die Funken."].forEach((t,i)=>ctx.fillText(t,500,210+i*31));
  ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
  ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText(heartCountdownStarted?"":"START",500,482);
 }
 function spawnHeartSpark(now){
- if(heartTotalHits>=24)return;
- if(now-heartLastSpawn<Math.max(360,760-heartTotalHits*12))return;
+ if(heartTotalHits>=24||heartGameOver)return;
+ const difficulty=Math.min(1,heartTotalHits/24);
+ const interval=Math.max(310,690-heartTotalHits*13);
+ if(now-heartLastSpawn<interval||heartSparks.length>=8)return;
  heartLastSpawn=now;
- heartSparks.push({x:150+Math.random()*700,y:175+Math.random()*260,r:11+Math.random()*5,life:1,created:now,phase:Math.random()*6.28});
+ const roll=Math.random();
+ let type="normal";
+ if(roll<.18)type="dark";
+ else if(roll<.30)type="gold";
+ else if(roll<.40)type="blue";
+ else if(roll<.53)type="split";
+ const angle=Math.random()*Math.PI*2;
+ const speed=(.35+Math.random()*.65+difficulty*.9)*(type==="dark"?1.25:1);
+ heartSparks.push({x:145+Math.random()*710,y:155+Math.random()*315,r:(type==="split"?13:11)+Math.random()*5,life:1,created:now,phase:Math.random()*6.28,type,
+  vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed*.75,wiggle:Math.random()*2.2+.5,ttl:type==="blue"?1750:2350});
 }
 function drawHeartSparks(now){
- heartSparks=heartSparks.filter(s=>now-s.created<2600);
+ heartSparks=heartSparks.filter(s=>now-s.created<s.ttl);
  heartSparks.forEach(s=>{
-  const fade=Math.max(0,1-(now-s.created)/2600);
-  const pulse=(.7+Math.sin(now/90+s.phase)*.3)*fade;
+  const age=(now-s.created)/s.ttl;
+  const fade=Math.min(1,(1-age)*4);
+  const pulse=(.72+Math.sin(now/85+s.phase)*.28)*fade;
   const r=s.r*pulse;
-  const g=ctx.createRadialGradient(s.x,s.y,1,s.x,s.y,r*2.6);
-  g.addColorStop(0,"#fff9cf");g.addColorStop(.3,"#ffc65f");g.addColorStop(1,"#ff641500");
-  ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.x,s.y,r*2.6,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle="#fff4b8";ctx.beginPath();ctx.arc(s.x,s.y,r*.45,0,Math.PI*2);ctx.fill();
+  const colors=s.type==="dark"?["#e9d7ff","#5a315f","#160d24"]:s.type==="gold"?["#fffbe0","#ffd34f","#d66a18"]:s.type==="blue"?["#f2ffff","#70e8ff","#2768d8"]:["#fff9cf","#ffc65f","#ff6415"];
+  const g=ctx.createRadialGradient(s.x,s.y,1,s.x,s.y,r*2.8);
+  g.addColorStop(0,colors[0]);g.addColorStop(.32,colors[1]);g.addColorStop(1,colors[2]+"00");
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.x,s.y,r*2.8,0,Math.PI*2);ctx.fill();
+  if(s.type==="dark"){
+   ctx.save();ctx.translate(s.x,s.y);ctx.rotate(now/450+s.phase);ctx.strokeStyle="#b58bc5";ctx.lineWidth=2;ctx.beginPath();
+   for(let k=0;k<8;k++){const a=k*Math.PI/4;ctx.moveTo(Math.cos(a)*r*.65,Math.sin(a)*r*.65);ctx.lineTo(Math.cos(a)*r*1.35,Math.sin(a)*r*1.35);}ctx.stroke();ctx.restore();
+   ctx.fillStyle="#1a1024";ctx.beginPath();ctx.arc(s.x,s.y,r*.45,0,Math.PI*2);ctx.fill();
+  }else{
+   ctx.fillStyle=colors[0];ctx.beginPath();ctx.arc(s.x,s.y,r*.42,0,Math.PI*2);ctx.fill();
+   if(s.type==="gold"||s.type==="blue"){
+    ctx.fillStyle="#fff";ctx.font="bold 12px DM Sans";ctx.textAlign="center";ctx.fillText(s.type==="gold"?"+2":"+3",s.x,s.y-r-7);
+   }
+   if(s.type==="split"){ctx.strokeStyle="#fff2c4";ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(s.x,s.y,r*.85,0,Math.PI*2);ctx.stroke();}
+  }
  });
  ctx.save();ctx.strokeStyle="#fff2c4";ctx.lineWidth=2;ctx.beginPath();ctx.arc(heartPointer.x,heartPointer.y,13,0,Math.PI*2);ctx.moveTo(heartPointer.x-20,heartPointer.y);ctx.lineTo(heartPointer.x+20,heartPointer.y);ctx.moveTo(heartPointer.x,heartPointer.y-20);ctx.lineTo(heartPointer.x,heartPointer.y+20);ctx.stroke();ctx.restore();
 }
+function updateHeartSparks(now){
+ const difficulty=Math.min(1,heartTotalHits/24);
+ heartSparks.forEach(s=>{
+  const t=(now-s.created)/1000;
+  s.x+=s.vx*(1+difficulty*.8);s.y+=s.vy*(1+difficulty*.8)+Math.sin(t*s.wiggle+s.phase)*.55;
+  if(s.x<125||s.x>875)s.vx*=-1;
+  if(s.y<140||s.y>495)s.vy*=-1;
+  s.x=Math.max(125,Math.min(875,s.x));s.y=Math.max(140,Math.min(495,s.y));
+ });
+}
+function heartGameMissileHit(spark){
+ heartLives=Math.max(0,heartLives-1);heartCombo=0;heartComboAt=0;
+ if(heartLives===0){heartGameOver=true;heartGameOverAt=performance.now();}
+}
 function collectHeartSpark(x,y){
  if(scene!=="heartGame")return;
+ if(heartGameOver){restartHeartGame();return;}
  for(let i=heartSparks.length-1;i>=0;i--){
   const spark=heartSparks[i];
-  if(Math.hypot(spark.x-x,spark.y-y)<38){
-   heartSparks.splice(i,1);heartTotalHits++;
+  if(Math.hypot(spark.x-x,spark.y-y)<(spark.r+17)){
+   heartSparks.splice(i,1);
+   if(spark.type==="dark"){heartGameMissileHit(spark);return true;}
+   const now=performance.now();
+   heartCombo=now-heartComboAt<1450?heartCombo+1:1;heartComboAt=now;
+   let points=spark.type==="gold"?2:spark.type==="blue"?3:1;
+   if(heartCombo>0&&heartCombo%3===0)points+=1;
+   const before=heartTotalHits;heartTotalHits=Math.min(24,heartTotalHits+points);
    if(window.heart3DSetHitCount)window.heart3DSetHitCount(heartTotalHits);
    if(window.heart3DAddFlame)window.heart3DAddFlame(spark.x,spark.y,heartTotalHits);
    if(window.heart3DSetFire)window.heart3DSetFire(Math.min(.42,heartTotalHits*.0175));
    heartSetBeat();
+   if(spark.type==="split"){
+    for(let k=0;k<2;k++){
+     const a=k*Math.PI+Math.random()*.5;
+     heartSparks.push({x:spark.x,y:spark.y,r:8,created:now,ttl:1550,phase:Math.random()*6.28,type:"mini",vx:Math.cos(a)*1.5,vy:Math.sin(a)*1.3,wiggle:2});
+    }
+   }
    if(heartTotalHits>=24)finishHeartGame();
    return true;
   }
  }
  return false;
+}
+function restartHeartGame(){
+ heartTotalHits=0;heartLives=3;heartCombo=0;heartComboAt=0;heartSparks=[];heartLastSpawn=0;heartGameOver=false;heartGameOverAt=0;
+ heartGameStartAt=performance.now();
+ if(window.heart3DSetHitCount)window.heart3DSetHitCount(0);
+ if(window.heart3DSetFire)window.heart3DSetFire(0);
+ const a=document.getElementById("heartBeat");a.pause();a.currentTime=0;a.volume=1;a.playbackRate=1;a.play().catch(()=>{});
+ const gameMusic=document.getElementById("heartGameMusic");if(gameMusic){gameMusic.currentTime=0;gameMusic.volume=.48;gameMusic.play().catch(()=>{});}
 }
 function skipHeartGameToLetter(){
  const gameMusic=document.getElementById("heartGameMusic");
@@ -3414,11 +3480,22 @@ function updateHeartChapter(now){
   if(keys.ArrowDown)heartPointer.y=Math.min(600,heartPointer.y+5);
   drawHeartInterior();
   ctx.fillStyle="#09060940";ctx.fillRect(0,0,W,H);
-  spawnHeartSpark(now);drawHeartSparks(now);
+  if(!heartGameOver){spawnHeartSpark(now);updateHeartSparks(now);}
+  drawHeartSparks(now);
   ctx.textAlign="center";ctx.fillStyle="#fff0db";ctx.font="14px DM Sans";
-  ctx.fillText("Funken: "+heartTotalHits+" / 24",500,75);
+  ctx.fillText("Punkte: "+heartTotalHits+" / 24",500,57);
+  ctx.textAlign="left";ctx.fillStyle="#fff0db";ctx.font="16px DM Sans";
+  ctx.fillText("Leben: "+"♥ ".repeat(heartLives),32,88);
+  ctx.textAlign="right";ctx.fillStyle="#ffe2a0";ctx.fillText("Serie: "+heartCombo,968,88);
   // Herzförmiger Skip-Button unten links – öffnet den Brief direkt.
   drawHeart(31,581,30,null);
+  if(heartGameOver){
+   ctx.fillStyle="#08050bdc";ctx.fillRect(190,190,620,245);
+   ctx.strokeStyle="#d9a7c2";ctx.lineWidth=2;ctx.strokeRect(190,190,620,245);
+   ctx.textAlign="center";ctx.fillStyle="#fff0dc";ctx.font="bold 32px Cormorant Garamond";ctx.fillText("Das Herz braucht eine zweite Chance",500,265);
+   ctx.font="18px Cormorant Garamond";ctx.fillText("Du hast alle drei Leben verloren.",500,310);
+   ctx.fillStyle="#e7c58c";ctx.fillRect(390,345,220,55);ctx.fillStyle="#3b2830";ctx.font="bold 20px DM Sans";ctx.fillText("NOCH EINMAL",500,380);
+  }
  }else if(scene==="heartBurning"){
   drawHeartInterior();
   ctx.fillStyle="#08050833";ctx.fillRect(0,0,W,H);
@@ -3651,6 +3728,7 @@ canvas.addEventListener("click",e=>{
  // Skip-Buttons zuerst prüfen, damit sie auch während des Straßendialogs funktionieren.
  if(scene==="streetStory"&&x>=8&&x<=62&&y>=552&&y<=605){startSayingsLevel();return;}
  if(scene==="heartGame"&&x>=8&&x<=62&&y>=552&&y<=605){skipHeartGameToLetter();return;}
+ if(scene==="heartGame"&&heartGameOver&&x>=380&&x<=620&&y>=335&&y<=410){restartHeartGame();return;}
  if(scene==="sayingsComplete"){
   if(performance.now()-sayingsCompletedAt>=6500)advanceHeartChapter();
   return;
