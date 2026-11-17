@@ -165,6 +165,14 @@ function playLoserSound(){
  if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
 }
 
+function playGreenSauceSound(){
+ const audio=new Audio("pfuiteufel.mp3");
+ audio.volume=1;
+ audio.currentTime=0;
+ const playback=audio.play();
+ if(playback&&typeof playback.catch==="function")playback.catch(()=>{});
+}
+
 function playCharacterEatSound(player){
  const source=document.getElementById(player===foodPlayers.jill?"jillEatSound":"hasanEatSound");
  if(!source)return;
@@ -2708,7 +2716,7 @@ function drawFoodGame(){
    for(const player of players){
     if(player.column===item.column){
      item.caught=true;
-     if(item.sauce)greenSauceHits++;
+     if(item.sauce){greenSauceHits++;playGreenSauceSound();}
      else {
       deliciousCount++;player.eatUntil=performance.now()+520;playCharacterEatSound(player);
       if(item.dish&&item.dish.name===foodItems[foodOrderIndex%foodItems.length].name){foodOrderCount++;foodOrderIndex++;if(foodOrderCount%3===0){achievements.add("Feinschmecker:innen");}}
