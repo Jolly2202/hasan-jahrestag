@@ -3216,13 +3216,48 @@ function drawHeartLetter(now){
    "Ich liebe dich.",
    "Deine Jill"
   ];
-  paperCtx.fillStyle="#493b36";paperCtx.font="6.5px 'Cormorant Garamond',serif";
-  let yy=-98;const maxWidth=172,lineHeight=7.1;
+  paperCtx.fillStyle="#493b36";
+  // Schriftgröße automatisch an die vollständige Briefseite anpassen.
+  // So wird der gesamte Text innerhalb des Papiers gesetzt und nicht unten abgeschnitten.
+  const maxWidth=180;
+  const textStartY=-99;
+  const availableHeight=220;
+  let fittedFont=6.5;
+  let fittedLineHeight=0;
+  let fittedParagraphGap=0;
+  let fittedLines=[];
+  while(fittedFont>=3.6){
+   paperCtx.font=fittedFont+"px 'Cormorant Garamond',serif";
+   fittedLineHeight=fittedFont*1.12;
+   fittedParagraphGap=fittedFont*.38;
+   const candidate=[];
+   let totalHeight=0;
+   for(const para of letterParagraphs){
+    const words=para.split(/\s+/);let line="";
+    for(const word of words){
+     const test=line?line+" "+word:word;
+     if(paperCtx.measureText(test).width>maxWidth&&line){
+      candidate.push(line);totalHeight+=fittedLineHeight;line=word;
+     }else line=test;
+    }
+    if(line){candidate.push(line);totalHeight+=fittedLineHeight;}
+    totalHeight+=fittedParagraphGap;
+   }
+   if(totalHeight<=availableHeight){fittedLines=candidate;break;}
+   fittedFont-=.1;
+  }
+  paperCtx.font=fittedFont+"px 'Cormorant Garamond',serif";
+  let yy=textStartY;
   for(const para of letterParagraphs){
    const words=para.split(/\s+/);let line="";
-   for(const word of words){const test=line?line+" "+word:word;if(paperCtx.measureText(test).width>maxWidth&&line){paperCtx.fillText(line,-86,yy);yy+=lineHeight;line=word;}else line=test;}
-   if(line){paperCtx.fillText(line,-86,yy);yy+=lineHeight;}
-   yy+=3.2;
+   for(const word of words){
+    const test=line?line+" "+word:word;
+    if(paperCtx.measureText(test).width>maxWidth&&line){
+     paperCtx.fillText(line,-86,yy);yy+=fittedLineHeight;line=word;
+    }else line=test;
+   }
+   if(line){paperCtx.fillText(line,-86,yy);yy+=fittedLineHeight;}
+   yy+=fittedParagraphGap;
   }
  }
  paperCtx.restore();
@@ -3653,8 +3688,19 @@ function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=hos
 function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
  new GLTFLoader().load("liebeszeichen_25_scharf.glb",asset=>{
   const source=asset.scene;source.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(source);const sz=b.getSize(new THREE.Vector3());const c=b.getCenter(new THREE.Vector3());source.position.sub(c);
-  const base=new THREE.Group();base.add(source);const modelScale=.22/Math.max(sz.x,sz.y,sz.z);
-  for(let i=0;i<20;i++){const clone=base.clone(true);clone.scale.setScalar(modelScale);const a=(i/20)*Math.PI*2;clone.position.set(Math.cos(a)*2.55,Math.sin(a)*1.95,.25+(i%3)*.035);clone.rotation.set((i%4)*.13,0,(i%5)*.11);clone.visible=false;state.scene.add(clone);letterOrbit.models.push({group:clone,speed:.25+(i%7)*.13,phase:i*.37,axis:i%3});}
+  // Genau zwei größere Liebeszeichen: eins links und eins rechts neben dem Brief.
+  // Beide sitzen auf der mittleren Bildschirmhöhe und drehen sich um die eigene Achse.
+  const base=new THREE.Group();base.add(source);
+  const modelScale=1.45/Math.max(sz.x,sz.y,sz.z);
+  [-2.55,2.55].forEach((sideX,i)=>{
+   const clone=base.clone(true);
+   clone.scale.setScalar(modelScale);
+   clone.position.set(sideX,0,.25);
+   clone.rotation.set(0,i===0?.25:-.25,0);
+   clone.visible=false;
+   state.scene.add(clone);
+   letterOrbit.models.push({group:clone,speed:i===0?.48:-.48,phase:i*Math.PI,axis:"y"});
+  });
  },undefined,e=>console.error("Liebeszeichen-Modell konnte nicht geladen werden",e));
  new GLTFLoader().load("veransi7-heart-5159.glb",g=>{
  // Das GLB hat seinen Ursprung nicht in der geometrischen Mitte, sondern nahe
@@ -3719,7 +3765,7 @@ function addFlame(screenX,screenY,hit){
   start:performance.now(),life:950+Math.random()*180,tex,landed:false,hit
  });
 }
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach((m,i)=>{m.group.visible=showOrbit;if(m.axis===0)m.group.rotation.x+=.004*m.speed;else if(m.axis===1)m.group.rotation.y+=.004*m.speed;else m.group.rotation.z+=.004*m.speed;m.group.rotation.y+=.0015*Math.sin(t*.7+m.phase);});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach((m,i)=>{m.group.visible=showOrbit;m.group.rotation.y+=.004*m.speed;m.group.rotation.x=.035*Math.sin(t*.7+m.phase);});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
  const tint=Math.min(.23,(window.heart3DHitCount||0)*.0095);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
