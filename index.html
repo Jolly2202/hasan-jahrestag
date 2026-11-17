@@ -3247,21 +3247,26 @@ function drawHeartLetter(now){
  const scale=heartLetterOpened?2.0:(.28+1.72*travel);
  const unfold=heartLetterOpened?1:Math.min(1,Math.max(0,(elapsed-1.65)/1.0));
  paperCtx.save();paperCtx.translate(x,y);paperCtx.rotate(angle);paperCtx.scale(scale,scale);
- // Papierkörper mit unregelmäßigen, verbrannten Rändern.
- paperCtx.beginPath();paperCtx.moveTo(-112,-132);paperCtx.lineTo(-82,-145);paperCtx.lineTo(-48,-137);paperCtx.lineTo(-12,-148);paperCtx.lineTo(30,-139);paperCtx.lineTo(75,-146);paperCtx.lineTo(112,-126);paperCtx.lineTo(120,-82);paperCtx.lineTo(113,-35);paperCtx.lineTo(122,12);paperCtx.lineTo(111,62);paperCtx.lineTo(118,112);paperCtx.lineTo(86,143);paperCtx.lineTo(43,136);paperCtx.lineTo(4,148);paperCtx.lineTo(-40,137);paperCtx.lineTo(-87,145);paperCtx.lineTo(-119,116);paperCtx.lineTo(-112,70);paperCtx.lineTo(-123,25);paperCtx.lineTo(-113,-20);paperCtx.lineTo(-121,-75);paperCtx.closePath();
- paperCtx.fillStyle="#2a1711";paperCtx.shadowColor="#000";paperCtx.shadowBlur=20;paperCtx.fill();paperCtx.shadowBlur=0;
+ // Unregelmäßige Papierkante mit echten Einbuchtungen und verkohltem Rand.
+ // Die dunklen Brandspuren liegen ausschließlich im äußeren Randbereich.
+ paperCtx.beginPath();
+ paperCtx.moveTo(-112,-132);paperCtx.lineTo(-91,-145);paperCtx.lineTo(-72,-138);paperCtx.lineTo(-51,-147);paperCtx.lineTo(-29,-139);paperCtx.lineTo(-8,-148);paperCtx.lineTo(17,-139);paperCtx.lineTo(43,-146);paperCtx.lineTo(66,-137);paperCtx.lineTo(91,-145);paperCtx.lineTo(112,-126);paperCtx.lineTo(117,-105);paperCtx.lineTo(110,-86);paperCtx.lineTo(121,-66);paperCtx.lineTo(113,-43);paperCtx.lineTo(122,-22);paperCtx.lineTo(114,1);paperCtx.lineTo(123,22);paperCtx.lineTo(113,43);paperCtx.lineTo(120,65);paperCtx.lineTo(111,86);paperCtx.lineTo(119,108);paperCtx.lineTo(100,130);paperCtx.lineTo(79,137);paperCtx.lineTo(57,132);paperCtx.lineTo(36,145);paperCtx.lineTo(13,137);paperCtx.lineTo(-9,148);paperCtx.lineTo(-31,137);paperCtx.lineTo(-54,145);paperCtx.lineTo(-76,135);paperCtx.lineTo(-98,140);paperCtx.lineTo(-119,117);paperCtx.lineTo(-112,94);paperCtx.lineTo(-123,73);paperCtx.lineTo(-114,51);paperCtx.lineTo(-122,29);paperCtx.lineTo(-113,7);paperCtx.lineTo(-122,-15);paperCtx.lineTo(-113,-38);paperCtx.lineTo(-121,-60);paperCtx.lineTo(-112,-82);paperCtx.lineTo(-120,-104);paperCtx.closePath();
+ paperCtx.fillStyle="#2b1711";paperCtx.shadowColor="#000";paperCtx.shadowBlur=20;paperCtx.fill();paperCtx.shadowBlur=0;
  paperCtx.save();paperCtx.clip();
- paperCtx.fillStyle="#9b6842";paperCtx.fillRect(-115,-145,235,295);
- paperCtx.fillStyle="#f0dcb7";paperCtx.fillRect(-104,-132,208,264);
- // Ruß- und Brandspuren an den Kanten und unregelmäßige Brandflecken.
- const scorch=paperCtx.createLinearGradient(0,-140,0,140);scorch.addColorStop(0,"#3a1b13");scorch.addColorStop(.10,"#a35b31");scorch.addColorStop(.24,"#f0dcb7");scorch.addColorStop(.78,"#f0dcb7");scorch.addColorStop(.92,"#a34c29");scorch.addColorStop(1,"#321811");paperCtx.fillStyle=scorch;paperCtx.fillRect(-112,-145,224,290);
- paperCtx.globalAlpha=.45;paperCtx.fillStyle="#54251a";[[ -82,-115,26,15],[-105,82,22,38],[88,-90,25,32],[75,112,31,22],[-10,130,40,14]].forEach(([px,py,rx,ry])=>{paperCtx.beginPath();paperCtx.ellipse(px,py,rx,ry,.3,0,Math.PI*2);paperCtx.fill();});
- paperCtx.globalAlpha=.24;paperCtx.strokeStyle="#6c4030";paperCtx.lineWidth=2;for(let i=0;i<9;i++){paperCtx.beginPath();paperCtx.moveTo(-100+i*24,-125);paperCtx.quadraticCurveTo(-70+i*20,Math.sin(i*3)*40, -80+i*22,130);paperCtx.stroke();}
- paperCtx.globalAlpha=1;
+ // Glimmende und schwarze Brandstellen werden zuerst auf die ganze Papierform gelegt.
+ // Der anschließende helle Innenteil deckt alles außerhalb des Randes wieder ab.
+ const edgeBurns=[[-105,-111,18,25],[-112,-42,11,24],[-108,83,18,28],[-71,137,25,9],[-7,141,23,8],[61,137,25,10],[108,101,12,24],[114,28,9,24],[111,-78,12,27],[76,-137,22,9],[5,-141,20,8]];
+ edgeBurns.forEach(([bx,by,rx,ry],i)=>{const g=paperCtx.createRadialGradient(bx,by,1,bx,by,Math.max(rx,ry));g.addColorStop(0,i%3===0?"#160d09":"#3b1b10");g.addColorStop(.42,"#71351d");g.addColorStop(.78,"#a65c32");g.addColorStop(1,"rgba(166,92,50,0)");paperCtx.fillStyle=g;paperCtx.beginPath();paperCtx.ellipse(bx,by,rx,ry,(i%2?-.3:.25),0,Math.PI*2);paperCtx.fill();});
+ paperCtx.strokeStyle="#160e0a";paperCtx.globalAlpha=.72;paperCtx.lineWidth=3.2;paperCtx.stroke();paperCtx.globalAlpha=1;
+ // Helles, leicht unregelmäßiges Pergament: keine Rußflecken unter oder neben der Schrift.
+ paperCtx.beginPath();
+ paperCtx.moveTo(-103,-124);paperCtx.lineTo(-84,-134);paperCtx.lineTo(-62,-129);paperCtx.lineTo(-43,-136);paperCtx.lineTo(-20,-129);paperCtx.lineTo(2,-137);paperCtx.lineTo(25,-130);paperCtx.lineTo(48,-135);paperCtx.lineTo(70,-128);paperCtx.lineTo(96,-132);paperCtx.lineTo(106,-115);paperCtx.lineTo(102,-91);paperCtx.lineTo(109,-69);paperCtx.lineTo(102,-47);paperCtx.lineTo(110,-25);paperCtx.lineTo(103,-3);paperCtx.lineTo(111,19);paperCtx.lineTo(103,41);paperCtx.lineTo(108,63);paperCtx.lineTo(101,84);paperCtx.lineTo(106,108);paperCtx.lineTo(88,124);paperCtx.lineTo(66,120);paperCtx.lineTo(45,130);paperCtx.lineTo(23,123);paperCtx.lineTo(1,132);paperCtx.lineTo(-22,124);paperCtx.lineTo(-44,131);paperCtx.lineTo(-66,122);paperCtx.lineTo(-88,128);paperCtx.lineTo(-106,109);paperCtx.lineTo(-99,87);paperCtx.lineTo(-108,65);paperCtx.lineTo(-100,43);paperCtx.lineTo(-109,21);paperCtx.lineTo(-101,-1);paperCtx.lineTo(-109,-23);paperCtx.lineTo(-101,-45);paperCtx.lineTo(-108,-67);paperCtx.lineTo(-100,-89);paperCtx.lineTo(-108,-108);paperCtx.closePath();
+ paperCtx.fillStyle="#f1e5cb";paperCtx.fill();paperCtx.strokeStyle="#8c5737";paperCtx.lineWidth=1.5;paperCtx.stroke();
+ paperCtx.restore();
  if(unfold>.15){
   paperCtx.strokeStyle="#cbb18e";paperCtx.lineWidth=1.1;paperCtx.strokeRect(-98,-126,196,252);
   paperCtx.textAlign="left";paperCtx.textBaseline="top";
-  paperCtx.fillStyle="#78494a";paperCtx.font="bold 10px Cormorant Garamond";
+  paperCtx.fillStyle="#111111";paperCtx.font="bold 10px Cormorant Garamond";
   paperCtx.fillText("Mein liebster Hasinator,",-86,-113);
   const letterParagraphs=[
    "manchmal kann ich kaum glauben, dass es dich wirklich gibt. Dass ausgerechnet wir uns gefunden haben. Dass es diesen einen Menschen gibt, auf den ich so lange gehofft, den ich mir so oft vorgestellt und von dem ich manchmal schon fast nicht mehr geglaubt habe, dass ich ihn tatsächlich finden würde.",
@@ -3273,7 +3278,7 @@ function drawHeartLetter(now){
    "Ich liebe dich.",
    "Deine Jill"
   ];
-  paperCtx.fillStyle="#493b36";
+  paperCtx.fillStyle="#111111";
   // Schriftgröße automatisch an die vollständige Briefseite anpassen.
   // So wird der gesamte Text innerhalb des Papiers gesetzt und nicht unten abgeschnitten.
   const maxWidth=180;
@@ -3750,10 +3755,36 @@ function makeEmberTexture(){const c=document.createElement("canvas");c.width=c.h
 function resize(){if(!state.renderer)return;const w=host.clientWidth||1000,h=host.clientHeight||620;state.renderer.setSize(w,h,false);if(state.camera.isOrthographicCamera){const halfH=2.35;state.camera.left=-halfH*(w/h);state.camera.right=halfH*(w/h);state.camera.top=halfH;state.camera.bottom=-halfH;}else{state.camera.aspect=w/h;}state.camera.updateProjectionMatrix();}
 function init(){if(state.renderer||state.ready)return;state.ready=true;state.scene=new THREE.Scene();state.camera=new THREE.OrthographicCamera(-3.79,3.79,2.35,-2.35,.1,100);state.camera.position.set(0,0,10);state.camera.lookAt(0,0,0);state.renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});state.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));state.renderer.setSize(host.clientWidth||1000,host.clientHeight||620,false);state.renderer.setClearColor(0x000000,0);host.appendChild(state.renderer.domElement);state.scene.add(new THREE.AmbientLight(0xffffff,.62));const key=new THREE.DirectionalLight(0xffffff,.78);key.position.set(-3,4,5);state.scene.add(key);state.light=new THREE.PointLight(0xff6a22,0,5);state.light.position.set(0,-.45,1);state.scene.add(state.light);
  new GLTFLoader().load("liebeszeichen_25_scharf.glb",asset=>{
-  const source=asset.scene;source.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(source);const sz=b.getSize(new THREE.Vector3());const c=b.getCenter(new THREE.Vector3());source.position.sub(c);
-  // Genau zwei größere Liebeszeichen: eins links und eins rechts neben dem Brief.
-  // Beide sitzen auf der mittleren Bildschirmhöhe und drehen sich um die eigene Achse.
-  // Die Liebeszeichen erhalten wieder eine silberne Metalloptik.
+  const source=asset.scene;source.updateMatrixWorld(true);
+  // Das Logo wird anhand seiner tatsächlichen 3D-Geometrie ausgerichtet:
+  // die lange Achse der vier Punkte steht senkrecht, der Bogen liegt rechts davon.
+  const initialBounds=new THREE.Box3().setFromObject(source);
+  const initialCenter=initialBounds.getCenter(new THREE.Vector3());
+  const samples=[];let meanX=0,meanY=0;
+  const samplePoint=new THREE.Vector3();
+  source.traverse(o=>{
+   if(!o.isMesh||!o.geometry||!o.geometry.attributes.position)return;
+   const positions=o.geometry.attributes.position;
+   const stride=Math.max(1,Math.floor(positions.count/5000));
+   for(let j=0;j<positions.count;j+=stride){
+    samplePoint.fromBufferAttribute(positions,j).applyMatrix4(o.matrixWorld);
+    samples.push([samplePoint.x,samplePoint.y]);meanX+=samplePoint.x;meanY+=samplePoint.y;
+   }
+  });
+  if(samples.length>8){
+   meanX/=samples.length;meanY/=samples.length;
+   let covXX=0,covXY=0,covYY=0;
+   samples.forEach(([px,py])=>{const dx=px-meanX,dy=py-meanY;covXX+=dx*dx;covXY+=dx*dy;covYY+=dy*dy;});
+   const mainAxisAngle=.5*Math.atan2(2*covXY,covXX-covYY);
+   let orientAngle=Math.PI/2-mainAxisAngle;
+   const offsetX=meanX-initialCenter.x,offsetY=meanY-initialCenter.y;
+   const projectedArcSide=offsetX*Math.cos(orientAngle)-offsetY*Math.sin(orientAngle);
+   if(projectedArcSide<0)orientAngle+=Math.PI;
+   source.rotation.z+=orientAngle;
+  }
+  source.updateMatrixWorld(true);
+  const b=new THREE.Box3().setFromObject(source);const sz=b.getSize(new THREE.Vector3());const c=b.getCenter(new THREE.Vector3());source.position.sub(c);
+  // Silberne Metalloberfläche wie im ursprünglichen Modell.
   source.traverse(o=>{
    if(o.isMesh&&o.material){
     const materials=Array.isArray(o.material)?o.material:[o.material];
@@ -3765,17 +3796,18 @@ function init(){if(state.renderer||state.ready)return;state.ready=true;state.sce
     });
    }
   });
-  const base=new THREE.Group();base.add(source);
+  // Die Drehung liegt in einer eigenen Pivot-Gruppe und erfolgt um die senkrechte
+  // Mittelachse des ausgerichteten Logos – nicht um eine schräge Weltachse.
+  const spinPivot=new THREE.Group();spinPivot.add(source);
+  const base=new THREE.Group();base.add(spinPivot);
   const modelScale=1.45/Math.max(sz.x,sz.y,sz.z);
   [-2.55,2.55].forEach((sideX,i)=>{
    const clone=base.clone(true);
    clone.scale.setScalar(modelScale);
    clone.position.set(sideX,0,.25);
-   // Die vier Punkte stehen senkrecht von oben nach unten.
-   clone.rotation.set(0,0,Math.PI/2);
    clone.visible=false;
    state.scene.add(clone);
-   letterOrbit.models.push({group:clone,speed:i===0?.48:-.48,phase:i*Math.PI,axis:"y"});
+   letterOrbit.models.push({group:clone,spin:clone.children[0],speed:i===0?.48:-.48});
   });
  },undefined,e=>console.error("Liebeszeichen-Modell konnte nicht geladen werden",e));
  new GLTFLoader().load("veransi7-heart-5159.glb",g=>{
@@ -3841,7 +3873,7 @@ function addFlame(screenX,screenY,hit){
   start:performance.now(),life:950+Math.random()*180,tex,landed:false,hit
  });
 }
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach(m=>{m.group.visible=showOrbit;m.group.rotation.y+=.004*m.speed;});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach(m=>{m.group.visible=showOrbit;m.spin.rotation.y+=.004*m.speed;});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
  const tint=Math.min(.23,(window.heart3DHitCount||0)*.0095);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
