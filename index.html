@@ -3078,8 +3078,8 @@ function drawHeartEntering(now){
   }else{heartWalkAudioStarted=true;heartEnteringStartedAt=performance.now();}
  }
  const progress=heartEnteringStartedAt?Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000)):0;
- // Beide Figuren laufen aus dem unteren Bildrand in die Mitte der Halle.
- const y=605-progress*205;
+ // Beide Figuren laufen aus dem unteren Bildrand und stoppen im unteren Drittel der Halle.
+ const y=605-progress*125;
  const scale=.58; // Vogelperspektive: Figuren bleiben während des gesamten Laufwegs gleich groß.
  ctx.save();ctx.translate(0,y);ctx.scale(scale,scale);
  drawCharacter(hasanImages,420/scale,0,"back",true);
@@ -3088,8 +3088,8 @@ function drawHeartEntering(now){
  if(progress>=1){
   const walk=document.getElementById("stadtbadWalk");
   if(walk){walk.pause();walk.currentTime=12;walk.ontimeupdate=null;delete walk.dataset.heartMetadataWait;}
-  hasan.x=420;hasan.y=400;hasan.direction="back";
-  jill.x=580;jill.y=400;jill.direction="back";
+  hasan.x=420;hasan.y=480;hasan.direction="back";
+  jill.x=580;jill.y=480;jill.direction="back";
   scene="heartDialogue";heartDialogueIndex=0;
  }
 }
@@ -3690,13 +3690,26 @@ function init(){if(state.renderer||state.ready)return;state.ready=true;state.sce
   const source=asset.scene;source.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(source);const sz=b.getSize(new THREE.Vector3());const c=b.getCenter(new THREE.Vector3());source.position.sub(c);
   // Genau zwei größere Liebeszeichen: eins links und eins rechts neben dem Brief.
   // Beide sitzen auf der mittleren Bildschirmhöhe und drehen sich um die eigene Achse.
+  // Die Liebeszeichen erhalten wieder eine silberne Metalloptik.
+  source.traverse(o=>{
+   if(o.isMesh&&o.material){
+    const materials=Array.isArray(o.material)?o.material:[o.material];
+    materials.forEach(material=>{
+     material.color.set(0xc6cbd0);
+     material.metalness=.62;
+     material.roughness=.27;
+     material.needsUpdate=true;
+    });
+   }
+  });
   const base=new THREE.Group();base.add(source);
   const modelScale=1.45/Math.max(sz.x,sz.y,sz.z);
   [-2.55,2.55].forEach((sideX,i)=>{
    const clone=base.clone(true);
    clone.scale.setScalar(modelScale);
    clone.position.set(sideX,0,.25);
-   clone.rotation.set(0,i===0?.25:-.25,0);
+   // Die vier Punkte stehen senkrecht von oben nach unten.
+   clone.rotation.set(0,0,Math.PI/2);
    clone.visible=false;
    state.scene.add(clone);
    letterOrbit.models.push({group:clone,speed:i===0?.48:-.48,phase:i*Math.PI,axis:"y"});
@@ -3765,7 +3778,7 @@ function addFlame(screenX,screenY,hit){
   start:performance.now(),life:950+Math.random()*180,tex,landed:false,hit
  });
 }
-function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach((m,i)=>{m.group.visible=showOrbit;m.group.rotation.y+=.004*m.speed;m.group.rotation.x=.035*Math.sin(t*.7+m.phase);});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
+function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const showOrbit=document.body.dataset.scene==="heartLetter"||window.currentGameScene==="heartLetter";letterOrbit.models.forEach(m=>{m.group.visible=showOrbit;m.group.rotation.y+=.004*m.speed;});if(state.heart){state.heart.position.set(0,0,0);state.heart.rotation.y=.10*Math.sin(t*.4)+t*.10;state.heart.rotation.x=.035*Math.sin(t*.33);const beat=1+Math.sin(t*(1.7+state.fire*2.4))*(.008+state.fire*.012);state.heart.scale.setScalar((state.baseScale||1)*beat);
  // Mit jedem Treffer wird das Originalmodell nur minimal rot-orange getönt; Textur und Form bleiben sichtbar.
  const tint=Math.min(.23,(window.heart3DHitCount||0)*.0095);
  state.baseMaterials.forEach(({material,baseColor,baseOpacity})=>{material.color.copy(baseColor).lerp(new THREE.Color(0xff5426),tint);material.transparent=true;material.opacity=Math.max(.88,baseOpacity-.025);});
