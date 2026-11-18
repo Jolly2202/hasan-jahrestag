@@ -18,7 +18,7 @@ body.sayings-celebrating canvas{border-color:transparent;background:transparent}
 header{display:none}
 h1{margin:5px;color:#f3cf91;font-family:"Cormorant Garamond",serif;font-size:clamp(23px,4vw,36px)}
 header p{color:#d6c1b3;margin:5px}
-#game{width:min(100%,1100px);margin:auto;position:relative}#heart3d{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:3;pointer-events:none}#heart3d canvas{width:100%;height:100%;border:0;display:block}#letterOverlay{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:4;pointer-events:none;border:0}
+#game{width:min(100%,1100px);margin:auto;position:relative}#heart3d{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:3;pointer-events:none}#heart3d canvas{width:100%;height:100%;border:0;display:block}#finalMessage{display:none;position:absolute;left:22px;bottom:18px;z-index:5;color:#f28ab8;font:700 13px/1.2 "DM Sans",sans-serif;letter-spacing:.035em;text-align:left;pointer-events:none}#letterOverlay{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:4;pointer-events:none;border:0}
 canvas{display:block;width:100%;height:auto;border-top:3px solid #cda66c;border-bottom:3px solid #cda66c;touch-action:none}
 #help{padding:12px;color:#e6d5bd;font:13px/1.7 "DM Sans",sans-serif}
 #popup,#finale,#dialogue,#foodIntro,#result{
@@ -50,7 +50,7 @@ button:hover{background:#6d3048}
 </header>
 
 <video id="sayingsVideo" src="sayings-celebration-video.mp4" muted loop playsinline preload="auto"></video>
-<div id="game"><canvas id="world" width="1000" height="620"></canvas><div id="heart3d" aria-hidden="true"></div><canvas id="letterOverlay" width="1000" height="620" aria-hidden="true"></canvas></div>
+<div id="game"><canvas id="world" width="1000" height="620"></canvas><div id="heart3d" aria-hidden="true"></div><div id="finalMessage">AUF VIELE WEITERE GEMEINSAME JAHRE!</div><canvas id="letterOverlay" width="1000" height="620" aria-hidden="true"></canvas></div>
 <audio id="bikeMusic" src="nastelbom-cinematic-cinematic-music-623748.mp3" preload="auto" loop></audio>
 <audio id="museumMusic" src="museum-music.mp3" preload="auto" loop></audio>
 <audio id="weinblattMusic" src="aurec-restaurant-music-616478.mp3" preload="auto" loop></audio>
@@ -134,6 +134,12 @@ button:hover{background:#6d3048}
 const canvas=document.getElementById("world");
 const ctx=canvas.getContext("2d");
 const W=canvas.width,H=canvas.height;
+// HiDPI-Rendering: Die logische Spielfläche bleibt 1000 × 620,
+// der Canvas erhält auf Retina-/HiDPI-Bildschirmen zusätzliche echte Pixel.
+const renderScale=Math.min(window.devicePixelRatio||1,2);
+canvas.width=Math.round(W*renderScale);
+canvas.height=Math.round(H*renderScale);
+ctx.setTransform(renderScale,0,0,renderScale,0,0);
 
 // Märchenbuch-Illustrationen für die 17 falschen Redewendungen.
 // Die PNG-Dateien liegen im selben Verzeichnis wie index.html.
@@ -261,30 +267,12 @@ function loadImage(filename){
  return img;
 }
 
-// Erstellt für die drei Museumsfotos echte Graustufen-Bilddaten.
-// Dadurch sind sie unabhängig von der Canvas-Filterunterstützung immer schwarz-weiß.
-function loadGrayscaleMuseumPhoto(filename){
- const source=new Image();
- const grayCanvas=document.createElement("canvas");
- const grayCtx=grayCanvas.getContext("2d",{willReadFrequently:true});
- source.onload=()=>{
-  grayCanvas.width=source.naturalWidth;
-  grayCanvas.height=source.naturalHeight;
-  grayCtx.imageSmoothingEnabled=true;
-  grayCtx.imageSmoothingQuality="high";
-  grayCtx.drawImage(source,0,0,grayCanvas.width,grayCanvas.height);
-  const pixels=grayCtx.getImageData(0,0,grayCanvas.width,grayCanvas.height);
-  const data=pixels.data;
-  for(let p=0;p<data.length;p+=4){
-   const luminance=Math.round(data[p]*0.2126+data[p+1]*0.7152+data[p+2]*0.0722);
-   data[p]=luminance;
-   data[p+1]=luminance;
-   data[p+2]=luminance;
-  }
-  grayCtx.putImageData(pixels,0,0);
- };
- source.src=filename;
- return grayCanvas;
+// Die drei Museumsfotos werden direkt aus den hochgeladenen Farb-Originalen geladen.
+function loadMuseumPhoto(filename){
+ const photo=new Image();
+ photo.decoding="async";
+ photo.src=filename;
+ return photo;
 }
 
 const hasanImages={
@@ -300,9 +288,9 @@ const jillImages={
  right:loadImage("jill-right.png")
 };
 const museumPhotos=[
- loadGrayscaleMuseumPhoto("museum-photo-02.jpg"),
- loadGrayscaleMuseumPhoto("museum-photo-01.jpg"),
- loadGrayscaleMuseumPhoto("museum-photo-03.jpg")
+ loadMuseumPhoto("museum-photo-02.jpg"),
+ loadMuseumPhoto("museum-photo-01.jpg"),
+ loadMuseumPhoto("museum-photo-03.jpg")
 ];
 
 const hasan={x:500,y:460,speed:3.2,direction:"front"};
@@ -599,9 +587,9 @@ function drawExhibit(exhibit,i){
  ctx.strokeStyle="#9d7044";ctx.lineWidth=3;
  ctx.strokeRect(exhibit.x-118,exhibit.y-124,236,288);
 
- // Bereits beim Laden in echte Graustufen umgewandeltes Originalfoto
+ // Farb-Original in möglichst großer Fläche innerhalb des vorhandenen Rahmens.
  const photo=museumPhotos[i];
- const px=exhibit.x-102,py=exhibit.y-98,pw=204,ph=236;
+ const px=exhibit.x-112,py=exhibit.y-118,pw=224,ph=266;
  box(px,py,pw,ph,"#2a2027");
  if(photo&&photo.width>0&&photo.height>0){
   const scale=Math.max(pw/photo.width,ph/photo.height);
@@ -3320,9 +3308,9 @@ function drawHeartLetter(now){
  // Der zerknüllte, angekokelte Brief löst sich aus dem Feuer und flattert nach vorne.
  const flutter=heartLetterOpened?0:(1-travel);
  const x=heartLetterOpened?500:500+Math.sin(elapsed*10)*30*(1-travel);
- const y=heartLetterOpened?282:265-55*Math.sin(travel*Math.PI*.72)+45*travel;
+ const y=heartLetterOpened?310:265-55*Math.sin(travel*Math.PI*.72)+90*travel;
  const angle=heartLetterOpened?0:(-.42*(1-travel)+Math.sin(elapsed*12)*.16*(1-travel));
- const scale=heartLetterOpened?1.55:(.28+1.72*travel);
+ const scale=heartLetterOpened?1.95:(.28+1.67*travel);
  const unfold=heartLetterOpened?1:Math.min(1,Math.max(0,(elapsed-1.65)/1.0));
  paperCtx.save();paperCtx.translate(x,y);paperCtx.rotate(angle);paperCtx.scale(scale,scale);
  // Unregelmäßige Papierkante mit echten Einbuchtungen und verkohltem Rand.
@@ -3409,11 +3397,11 @@ function drawHeartLetter(now){
   paperCtx.save();
   paperCtx.shadowColor="rgba(15,8,30,.28)";paperCtx.shadowBlur=9;paperCtx.shadowOffsetY=3;
   paperCtx.fillStyle="#e9a2c4";
-  paperCtx.beginPath();paperCtx.roundRect(444,540,112,36,15);paperCtx.fill();
+  paperCtx.beginPath();paperCtx.roundRect(850,552,126,48,18);paperCtx.fill();
   paperCtx.shadowColor="transparent";paperCtx.shadowBlur=0;paperCtx.shadowOffsetY=0;
   paperCtx.fillStyle="#fff8fc";paperCtx.textAlign="center";paperCtx.textBaseline="middle";
-  paperCtx.font='italic 17px "Cormorant Garamond", cursive';
-  paperCtx.fillText("Fertig",500,558);
+  paperCtx.font='italic 20px "Cormorant Garamond", cursive';
+  paperCtx.fillText("Fertig",913,576);
   paperCtx.restore();
  }
 }
@@ -3722,8 +3710,8 @@ document.addEventListener("pointerdown",e=>{
 
 canvas.addEventListener("click",e=>{
  const r=canvas.getBoundingClientRect();
- const x=(e.clientX-r.left)*canvas.width/r.width;
- const y=(e.clientY-r.top)*canvas.height/r.height;
+ const x=(e.clientX-r.left)*W/r.width;
+ const y=(e.clientY-r.top)*H/r.height;
 
  // Skip-Buttons zuerst prüfen, damit sie auch während des Straßendialogs funktionieren.
  if(scene==="streetStory"&&x>=8&&x<=62&&y>=552&&y<=605){startSayingsLevel();return;}
@@ -3740,7 +3728,7 @@ canvas.addEventListener("click",e=>{
  if(scene==="heartGame"){collectHeartSpark(x,y);return;}
  if(scene==="heartLetter"){
   if(!heartLetterOpened){heartLetterOpened=true;return;}
-  if(x>=438&&x<=562&&y>=534&&y<=582){revealHeartSymbol();return;}
+  if(x>=842&&x<=984&&y>=544&&y<=608){revealHeartSymbol();return;}
   return;
  }
 
@@ -3840,8 +3828,8 @@ canvas.addEventListener("click",e=>{
 
 canvas.addEventListener("mousemove",e=>{
  const r=canvas.getBoundingClientRect();
- const x=(e.clientX-r.left)*canvas.width/r.width;
- const y=(e.clientY-r.top)*canvas.height/r.height;
+ const x=(e.clientX-r.left)*W/r.width;
+ const y=(e.clientY-r.top)*H/r.height;
  const overHeart=x>=8&&x<=75&&y>=552&&y<=610;
  heartPointer.x=x;heartPointer.y=y;
 
@@ -3978,6 +3966,7 @@ function addFlame(screenX,screenY,hit){
 function animate(){requestAnimationFrame(animate);const t=performance.now()/1000;const reveal=window.currentGameScene==="heartSymbolReveal";
  if(state.revealActive!==reveal){
   state.revealActive=reveal;
+  document.getElementById("finalMessage").style.display=reveal?"block":"none";
   state.scene.background=reveal?state.royalBlue:null;
   state.renderer.setClearColor(0x2445a4,reveal?1:0);
   if(reveal){state.camera.position.set(0,.82,10);state.camera.lookAt(0,0,0);}
