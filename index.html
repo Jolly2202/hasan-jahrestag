@@ -3177,7 +3177,7 @@ function drawHeartEntering(now){
  }
  const progress=heartEnteringStartedAt?Math.min(1,Math.max(0,(now-heartEnteringStartedAt)/4000)):0;
  // Beide Figuren laufen aus dem unteren Bildrand und stoppen im unteren Drittel der Halle.
- const y=605-progress*125;
+ const y=605-progress*50;
  const scale=.58; // Vogelperspektive: Figuren bleiben während des gesamten Laufwegs gleich groß.
  ctx.save();ctx.translate(0,y);ctx.scale(scale,scale);
  drawCharacter(hasanImages,420/scale,0,"back",true);
@@ -3186,8 +3186,8 @@ function drawHeartEntering(now){
  if(progress>=1){
   const walk=document.getElementById("stadtbadWalk");
   if(walk){walk.pause();walk.currentTime=12;walk.ontimeupdate=null;delete walk.dataset.heartMetadataWait;}
-  hasan.x=420;hasan.y=480;hasan.direction="back";
-  jill.x=580;jill.y=480;jill.direction="back";
+  hasan.x=420;hasan.y=555;hasan.direction="back";
+  jill.x=580;jill.y=555;jill.direction="back";
   scene="heartDialogue";heartDialogueIndex=0;
  }
 }
@@ -3234,6 +3234,8 @@ function launchHeartCountdown(){
 }
 function drawHeartIntro(){
  drawHeartInterior();
+ // Nach dem Klick verschwindet die Erklärung sofort; das 3D-Herz kann nun frei erscheinen.
+ if(heartCountdownStarted)return;
  ctx.fillStyle="#09080bdc";ctx.fillRect(0,0,W,H);
  ctx.textAlign="center";ctx.fillStyle="#f4d49c";ctx.font="bold 32px Cormorant Garamond";ctx.fillText("ENTFACHE MEIN HERZ",500,160);
  ctx.fillStyle="#fff0dc";ctx.font="17px Cormorant Garamond";
@@ -3243,7 +3245,7 @@ function drawHeartIntro(){
   "Sammle schnelle Treffer-Serien für Komboboni und erreiche 24 Punkte.",
   "Je länger du spielst, desto schneller und unberechenbarer werden die Funken."].forEach((t,i)=>ctx.fillText(t,500,210+i*31));
  ctx.fillStyle="#e7c58c";ctx.fillRect(420,445,160,58);ctx.strokeStyle="#fff0c2";ctx.lineWidth=2;ctx.strokeRect(420,445,160,58);
- ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText(heartCountdownStarted?"":"START",500,482);
+ ctx.fillStyle="#3b2830";ctx.font="bold 23px DM Sans";ctx.fillText("START",500,482);
 }
 function spawnHeartSpark(now){
  if(heartTotalHits>=24||heartGameOver)return;
