@@ -3047,45 +3047,89 @@ function enterHeartBuilding(){
  if(walk){walk.pause();walk.ontimeupdate=null;walk.onended=null;walk.volume=.8;walk.playbackRate=1;}
 }
 function drawHeartInterior(){
- // Recreated two-storey Stadtbad hall, deliberately without the original ceiling projection.
- const wall=ctx.createLinearGradient(0,0,0,390);wall.addColorStop(0,"#29252a");wall.addColorStop(1,"#51433e");
- box(0,0,W,H,"#17161a");ctx.fillStyle=wall;ctx.fillRect(0,0,W,405);
- // tall pale ceiling with only a very faint central glow
- ctx.fillStyle="#81786d";ctx.beginPath();ctx.moveTo(125,0);ctx.lineTo(875,0);ctx.lineTo(770,180);ctx.lineTo(230,180);ctx.closePath();ctx.fill();
- const dim=ctx.createRadialGradient(500,110,10,500,110,330);dim.addColorStop(0,"#f3d9a822");dim.addColorStop(1,"#f3d9a800");ctx.fillStyle=dim;ctx.fillRect(100,0,800,220);
- // side windows and pilasters
- for(let side of [0,1]){
-  const base=side?760:65;
-  for(let i=0;i<4;i++){
-   const x=base+(side?-1:1)*i*52;
-   box(x,62,38,166,"#171c22");box(x+4,66,30,158,"#8da0a0");
-   line(x+19,66,x+19,224,"#d2c9b5",3);line(x+4,145,x+34,145,"#d2c9b5",3);
-  }
-  // Monumentale, fast 15 Meter hohe Wandpfeiler ziehen den Blick bis zur Decke.
-  box(side?720:0,28,22,372,"#6a5b50");
-  box(side?690:285,35,9,360,"#857365");
-  box(side?660:520,35,9,360,"#857365");
+ // Monumentale, perspektivische Innenansicht des Stadtbads Lichtenberg nach dem Referenzfoto.
+ // Die Halle wirkt bewusst sehr hoch; Galerien laufen an den Seiten bis zur Rückwand.
+ box(0,0,W,H,"#17171a");
+ // Tiefe Seitenwände und hohe, helle Rückwand
+ const sideL=ctx.createLinearGradient(0,0,260,0);sideL.addColorStop(0,"#302b29");sideL.addColorStop(1,"#77695c");
+ const sideR=ctx.createLinearGradient(1000,0,740,0);sideR.addColorStop(0,"#302b29");sideR.addColorStop(1,"#77695c");
+ ctx.fillStyle=sideL;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(205,0);ctx.lineTo(285,420);ctx.lineTo(0,420);ctx.closePath();ctx.fill();
+ ctx.fillStyle=sideR;ctx.beginPath();ctx.moveTo(795,0);ctx.lineTo(1000,0);ctx.lineTo(1000,420);ctx.lineTo(715,420);ctx.closePath();ctx.fill();
+ const back=ctx.createLinearGradient(0,155,0,420);back.addColorStop(0,"#c0b5a1");back.addColorStop(.55,"#9b8d7a");back.addColorStop(1,"#65574d");
+ ctx.fillStyle=back;ctx.beginPath();ctx.moveTo(205,0);ctx.lineTo(795,0);ctx.lineTo(715,420);ctx.lineTo(285,420);ctx.closePath();ctx.fill();
+ // Sehr hohe gewölbte Decke mit farbiger Lichtprojektion wie auf dem Foto
+ const ceiling=ctx.createLinearGradient(0,0,0,205);ceiling.addColorStop(0,"#252536");ceiling.addColorStop(.52,"#635c72");ceiling.addColorStop(1,"#b8aa96");
+ ctx.fillStyle=ceiling;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(1000,0);ctx.lineTo(795,205);ctx.lineTo(205,205);ctx.closePath();ctx.fill();
+ ctx.save();ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(1000,0);ctx.lineTo(795,205);ctx.lineTo(205,205);ctx.closePath();ctx.clip();
+ const projection=ctx.createRadialGradient(510,30,12,510,48,510);projection.addColorStop(0,"#211b2b");projection.addColorStop(.18,"#8c74b4");projection.addColorStop(.38,"#d2a9d7");projection.addColorStop(.57,"#777bd0");projection.addColorStop(.76,"#8b75c2");projection.addColorStop(1,"#2b2940");ctx.globalAlpha=.82;ctx.fillStyle=projection;ctx.fillRect(0,0,1000,210);
+ // konzentrische Lichtbögen und feine Lichtpunkte der Projektion
+ for(let i=0;i<17;i++){ctx.beginPath();ctx.ellipse(500,25,85+i*25,32+i*10,-.05,0,Math.PI*2);ctx.strokeStyle=i%3===0?"#f0c8ed":"#a9b5ff";ctx.globalAlpha=.10+(i%4)*.025;ctx.lineWidth=3+(i%3);ctx.stroke();}
+ for(let i=0;i<180;i++){const x=(i*137)%1000,y=(i*71)%205;ctx.fillStyle=i%3===0?"#ffe3f5":"#c7d2ff";ctx.globalAlpha=.22+(i%5)*.06;ctx.beginPath();ctx.arc(x,y,1+(i%3)*.65,0,Math.PI*2);ctx.fill();}
+ ctx.restore();
+ // Deckenränder und hohe Gesimse betonen die enorme Raumhöhe
+ ctx.strokeStyle="#d2c5b0";ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(0,7);ctx.lineTo(205,205);ctx.moveTo(1000,7);ctx.lineTo(795,205);ctx.stroke();
+ ctx.strokeStyle="#776c60";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,22);ctx.lineTo(205,215);ctx.moveTo(1000,22);ctx.lineTo(795,215);ctx.stroke();
+ // Hohe Seitenfenster: mehrere schmale, sprossengeteilte Fensterachsen weit oben
+ function tallSideWindow(x,y,w,h,side){
+  ctx.save();ctx.fillStyle="#332f31";ctx.fillRect(x-5,y-5,w+10,h+10);ctx.fillStyle="#a9c3c8";ctx.fillRect(x,y,w,h);
+  const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,"#d3e3e3");g.addColorStop(.55,"#819eaa");g.addColorStop(1,"#455d69");ctx.fillStyle=g;ctx.fillRect(x+3,y+3,w-6,h-6);
+  ctx.strokeStyle="#e0d5c2";ctx.lineWidth=3;for(let k=1;k<3;k++){ctx.beginPath();ctx.moveTo(x+3,y+h*k/3);ctx.lineTo(x+w-3,y+h*k/3);ctx.stroke();}ctx.beginPath();ctx.moveTo(x+w/2,y+2);ctx.lineTo(x+w/2,y+h-2);ctx.stroke();
+  ctx.strokeStyle="#4a4641";ctx.lineWidth=4;ctx.strokeRect(x-2,y-2,w+4,h+4);ctx.restore();
  }
- // upper gallery / balcony
- box(0,275,W,18,"#352c2b");box(0,293,W,9,"#9a8065");
- for(let x=15;x<W;x+=42){box(x,235,5,42,"#a18b75");line(x,235,x+28,235,"#bba58a",3);}
- // lower walls, old changing-room doors and stone floor
- box(0,300,W,100,"#66574b");
- for(let x=35;x<970;x+=118){
-  box(x,315,82,76,"#423b38");box(x+6,321,70,64,"#79695b");
-  ctx.strokeStyle="#b49a7b";ctx.lineWidth=2;ctx.strokeRect(x,315,82,76);
-  ctx.fillStyle="#d3b98c";ctx.beginPath();ctx.arc(x+68,355,3,0,Math.PI*2);ctx.fill();
+ for(let i=0;i<5;i++){
+  const yy=42+i*3, hh=116-i*7, ww=37-i*2;
+  tallSideWindow(18+i*34,yy,ww,hh,0);
+  tallSideWindow(945-i*34-ww,yy,ww,hh,1);
  }
- const floor=ctx.createLinearGradient(0,400,0,H);floor.addColorStop(0,"#6e6255");floor.addColorStop(1,"#211f20");ctx.fillStyle=floor;ctx.fillRect(0,400,W,220);
- for(let x=-250;x<1300;x+=110)line(500,400,x,620,"#a08b72",1);
- for(let y=450;y<620;y+=45)line(0,y,W,y,"#8b7967",1);
- // oversized beanbag in foreground
- ctx.save();ctx.translate(500,535);ctx.rotate(-.06);
- ctx.fillStyle="#11151d";ctx.beginPath();ctx.ellipse(0,0,105,31,0,0,Math.PI*2);ctx.fill();
- ctx.fillStyle="#222a35";ctx.beginPath();ctx.ellipse(-4,-8,100,27,0,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle="#566071";ctx.lineWidth=2;ctx.stroke();ctx.restore();
- // faint pool of light on ceiling, nothing projected
- ctx.fillStyle="#f4dca51b";ctx.beginPath();ctx.ellipse(500,80,165,32,0,0,Math.PI*2);ctx.fill();
+ // Wandpfeiler und horizontale Gesimse an beiden Längsseiten
+ for(let i=0;i<5;i++){
+  const lx=4+i*39,rx=996-i*39, top=15+i*8, bottom=405-i*3;
+  ctx.fillStyle="#b4a48f";ctx.beginPath();ctx.moveTo(lx,top);ctx.lineTo(lx+13,top+2);ctx.lineTo(lx+30,bottom);ctx.lineTo(lx+10,bottom);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#8d7d6c";ctx.beginPath();ctx.moveTo(rx-13,top+2);ctx.lineTo(rx,top);ctx.lineTo(rx-10,bottom);ctx.lineTo(rx-30,bottom);ctx.closePath();ctx.fill();
+ }
+ // Rückwand: große runde Uhr / Zierelement zentral über der Galerie
+ ctx.save();ctx.translate(500,253);
+ ctx.fillStyle="#665b56";ctx.beginPath();ctx.arc(0,0,48,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#d0c4ad";ctx.beginPath();ctx.arc(0,0,42,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#35394b";ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,35,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle="#4a4d60";ctx.beginPath();ctx.arc(0,0,29,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#d9d2c1";ctx.lineWidth=2;for(let i=0;i<12;i++){const a=i*Math.PI/6;ctx.beginPath();ctx.moveTo(Math.cos(a)*23,Math.sin(a)*23);ctx.lineTo(Math.cos(a)*29,Math.sin(a)*29);ctx.stroke();}
+ ctx.strokeStyle="#f1e6d2";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-2,-17);ctx.moveTo(0,0);ctx.lineTo(15,4);ctx.stroke();ctx.fillStyle="#e8ddc9";ctx.beginPath();ctx.arc(0,0,3,0,Math.PI*2);ctx.fill();ctx.restore();
+ // Rückwandgliederung und dunkle Öffnungen hinter dem oberen Balkon
+ for(let i=0;i<7;i++){
+  const x=235+i*77;ctx.fillStyle="#62574f";ctx.fillRect(x,300,61,68);ctx.fillStyle="#29282a";ctx.fillRect(x+5,305,51,59);
+  ctx.strokeStyle="#c0b29a";ctx.lineWidth=3;ctx.strokeRect(x,300,61,68);
+  ctx.beginPath();ctx.moveTo(x+5,310);ctx.lineTo(x+30,291);ctx.lineTo(x+56,310);ctx.stroke();
+ }
+ // Umlaufende obere Galerie: Seitenläufe perspektivisch bis zur Rückwand
+ ctx.fillStyle="#292629";ctx.beginPath();ctx.moveTo(0,260);ctx.lineTo(285,295);ctx.lineTo(715,295);ctx.lineTo(1000,260);ctx.lineTo(1000,321);ctx.lineTo(715,351);ctx.lineTo(285,351);ctx.lineTo(0,321);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#8f7a64";ctx.beginPath();ctx.moveTo(0,260);ctx.lineTo(285,295);ctx.lineTo(715,295);ctx.lineTo(1000,260);ctx.lineTo(1000,274);ctx.lineTo(715,309);ctx.lineTo(285,309);ctx.lineTo(0,274);ctx.closePath();ctx.fill();
+ // Galeriegeländer vorne und entlang beider Seiten – mit vielen senkrechten Stäben
+ ctx.strokeStyle="#c5b59b";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,274);ctx.lineTo(285,309);ctx.lineTo(715,309);ctx.lineTo(1000,274);ctx.stroke();
+ ctx.strokeStyle="#9e8a72";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,315);ctx.lineTo(285,348);ctx.lineTo(715,348);ctx.lineTo(1000,315);ctx.stroke();
+ for(let i=0;i<=24;i++){const t=i/24,x=285+430*t;line(x,309,x,348,"#b9a68d",2);}
+ for(let i=0;i<=14;i++){const t=i/14;line(t*285,274+t*35,t*285,315+t*33,"#b9a68d",2);line(715+t*285,309-t*35,715+t*285,348-t*33,"#b9a68d",2);}
+ // Untere Galerie / Balkon läuft ebenfalls an beiden Längsseiten entlang
+ ctx.fillStyle="#302b29";ctx.beginPath();ctx.moveTo(0,385);ctx.lineTo(285,370);ctx.lineTo(715,370);ctx.lineTo(1000,385);ctx.lineTo(1000,418);ctx.lineTo(715,405);ctx.lineTo(285,405);ctx.lineTo(0,418);ctx.closePath();ctx.fill();
+ ctx.fillStyle="#a18a70";ctx.beginPath();ctx.moveTo(0,385);ctx.lineTo(285,370);ctx.lineTo(715,370);ctx.lineTo(1000,385);ctx.lineTo(1000,393);ctx.lineTo(715,379);ctx.lineTo(285,379);ctx.lineTo(0,393);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#c4b397";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,393);ctx.lineTo(285,379);ctx.lineTo(715,379);ctx.lineTo(1000,393);ctx.stroke();
+ for(let i=0;i<=20;i++){const t=i/20;line(t*285,393-t*14,t*285,418-t*13,"#a99378",2);line(715+t*285,379+t*14,715+t*285,405+t*13,"#a99378",2);}
+ // Erdgeschoss mit hohen Türen, dunklen Nischen und warmen Wandlampen
+ const lower=ctx.createLinearGradient(0,410,0,510);lower.addColorStop(0,"#6f5d4d");lower.addColorStop(1,"#393332");ctx.fillStyle=lower;ctx.fillRect(0,410,W,100);
+ for(let i=0;i<8;i++){
+  const x=26+i*122;ctx.fillStyle="#2a2929";ctx.fillRect(x,421,78,81);ctx.fillStyle="#8d7964";ctx.fillRect(x+5,426,68,71);ctx.fillStyle="#393536";ctx.fillRect(x+11,432,56,65);
+  ctx.strokeStyle="#c0a77f";ctx.lineWidth=2;ctx.strokeRect(x+5,426,68,71);
+  ctx.fillStyle="#e9c77e";ctx.beginPath();ctx.arc(x+65,465,2.5,0,Math.PI*2);ctx.fill();
+  // kleine warme Wandleuchte
+  ctx.fillStyle="#e5bd75";ctx.globalAlpha=.7;ctx.fillRect(x-7,440,4,17);ctx.globalAlpha=1;
+ }
+ // Boden: weitläufige Steinfläche mit deutlich sichtbarer Flucht zur Rückwand
+ const floor=ctx.createLinearGradient(0,500,0,H);floor.addColorStop(0,"#8b7c69");floor.addColorStop(.35,"#65594e");floor.addColorStop(1,"#292729");ctx.fillStyle=floor;ctx.fillRect(0,500,W,120);
+ for(let x=-400;x<1500;x+=100)line(500,500,x,620,"#a4937d",1);
+ for(let y=520;y<620;y+=25){const t=(y-500)/120;line(500-500*t,y,500+500*t,y,"#927f69",1);}
+ // Sitzsack im Vordergrund, wie im Referenzfoto
+ ctx.save();ctx.translate(500,535);ctx.rotate(-.06);ctx.fillStyle="#11151d";ctx.beginPath();ctx.ellipse(0,0,105,31,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#222a35";ctx.beginPath();ctx.ellipse(-4,-8,100,27,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#566071";ctx.lineWidth=2;ctx.stroke();ctx.restore();
+ // Figuren bleiben vor der Architektur und auf dem Hallenboden
  if(scene==="heartInterior"||scene==="heartDialogue"){
   drawCharacter(hasanImages,hasan.x,hasan.y,hasan.direction,false);
   drawCharacter(jillImages,jill.x,jill.y,jill.direction,false);
