@@ -1220,11 +1220,12 @@ function drawObstacle(o){
   ctx.moveTo(20,11);ctx.lineTo(25,3);ctx.lineTo(22,12);ctx.fill();
  }else if(o.type==="scooter"){
   ctx.rotate(-.18);
-  ctx.fillStyle="#20262b";
+  // Auffälliges Lime-Grün wie bei einem LIME-Leih-E-Scooter
+  ctx.fillStyle="#C6F000";
   ctx.beginPath();
   ctx.roundRect(-20,-5,39,10,4);
   ctx.fill();
-  ctx.fillStyle="#aeb9bd";
+  ctx.fillStyle="#C6F000";
   ctx.fillRect(12,-17,4,15);
   ctx.fillRect(8,-19,12,3);
   ctx.fillStyle="#15191e";
@@ -3642,7 +3643,7 @@ function interact(){
  if(scene==="streetStory"&&streetStoryPhase==="dialogue"){advanceStreetStory();return;}
  if(scene==="sayings"){interactSayings();}
  if(scene==="sayingsComplete"){
-  if(performance.now()-sayingsCompletedAt>=6500)advanceHeartChapter();
+  advanceHeartChapter();
   return;
  }
  if(scene==="heartExterior"){if(heartExteriorEntered.hasan&&heartExteriorEntered.jill)enterHeartBuilding();return;}
@@ -3677,7 +3678,7 @@ document.getElementById("noButton").addEventListener("click",dodgeNoButton);
 
 document.addEventListener("keydown",e=>{
  if(scene==="sayingsComplete"){
-  if(performance.now()-sayingsCompletedAt>=6500){advanceHeartChapter();}
+  advanceHeartChapter();
   return;
  }
  if(scene==="museum"&&["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){
@@ -3703,7 +3704,7 @@ document.addEventListener("keyup",e=>{
 });
 
 document.addEventListener("pointerdown",e=>{
- if(scene==="sayingsComplete"&&e.target!==canvas&&performance.now()-sayingsCompletedAt>=6500){
+ if(scene==="sayingsComplete"&&e.target!==canvas){
   advanceHeartChapter();
  }
 });
@@ -3718,7 +3719,7 @@ canvas.addEventListener("click",e=>{
  if(scene==="heartGame"&&x>=8&&x<=62&&y>=552&&y<=605){skipHeartGameToLetter();return;}
  if(scene==="heartGame"&&heartGameOver&&x>=380&&x<=620&&y>=335&&y<=410){restartHeartGame();return;}
  if(scene==="sayingsComplete"){
-  if(performance.now()-sayingsCompletedAt>=6500)advanceHeartChapter();
+  advanceHeartChapter();
   return;
  }
  if(scene==="heartExterior"){if(heartExteriorEntered.hasan&&heartExteriorEntered.jill)enterHeartBuilding();return;}
@@ -3841,7 +3842,7 @@ canvas.addEventListener("mousemove",e=>{
 // Auch Klicks außerhalb der Spielfläche dürfen die bestandene Sprachprüfung verlassen.
 document.addEventListener("click",e=>{
  if(e.target===canvas)return;
- if(scene==="sayingsComplete"&&performance.now()-sayingsCompletedAt>=6500){advanceHeartChapter();return;}
+ if(scene==="sayingsComplete"){advanceHeartChapter();return;}
  if(scene==="heartInterior"){scene="heartDialogue";return;}
  if(scene==="heartDialogue"){advanceHeartChapter();return;}
 });
