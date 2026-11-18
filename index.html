@@ -3191,13 +3191,28 @@ function drawHeartEntering(now){
   scene="heartDialogue";heartDialogueIndex=0;
  }
 }
+function drawHeartSpeechBubble(speaker,text){
+ // Helle, comicartige Sprechblase über den Figuren; die Stadtbadhalle bleibt sichtbar.
+ const x=125,y=38,w=750,h=164;
+ const tailX=speaker==="Hasan"?405:595;
+ ctx.save();
+ ctx.shadowColor="#09070b88";ctx.shadowBlur=13;ctx.shadowOffsetY=5;
+ ctx.fillStyle="#fff7e9";ctx.strokeStyle="#754d55";ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(x+22,y);ctx.lineTo(x+w-22,y);ctx.quadraticCurveTo(x+w,y,x+w,y+22);ctx.lineTo(x+w,y+112);ctx.quadraticCurveTo(x+w,y+134,x+w-22,y+134);ctx.lineTo(tailX+19,y+134);ctx.lineTo(tailX,y+158);ctx.lineTo(tailX-8,y+134);ctx.lineTo(x+22,y+134);ctx.quadraticCurveTo(x,y+134,x,y+112);ctx.lineTo(x,y+22);ctx.quadraticCurveTo(x,y,x+22,y);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.shadowColor="transparent";ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+ ctx.textAlign="left";ctx.fillStyle="#9a4d62";ctx.font="bold 16px DM Sans";ctx.fillText(speaker, x+27,y+31);
+ ctx.fillStyle="#302631";ctx.font="bold 21px Cormorant Garamond";
+ const words=text.split(" ");let lineText="",lines=[];
+ for(const word of words){const test=lineText?lineText+" "+word:word;if(ctx.measureText(test).width>w-56){lines.push(lineText);lineText=word;}else lineText=test;}
+ if(lineText)lines.push(lineText);
+ const shown=lines.slice(0,3);shown.forEach((lineText,i)=>ctx.fillText(lineText,x+27,y+70+i*27));
+ ctx.textAlign="right";ctx.fillStyle="#9a4d62";ctx.font="12px DM Sans";ctx.fillText("KLICKEN ODER E / LEERTASTE – WEITER",x+w-22,y+120);
+ ctx.restore();
+}
 function drawHeartDialogue(){
  drawHeartInterior();
- ctx.fillStyle="#09080bd9";ctx.fillRect(0,0,W,H);
- ctx.fillStyle="#f3d6a5";ctx.textAlign="center";ctx.font="bold 13px DM Sans";ctx.fillText(heartDialogueLines[heartDialogueIndex].speaker.toUpperCase(),500,435);
- ctx.fillStyle="#fff1dc";ctx.font="21px Cormorant Garamond";
- wrapSayingsText(heartDialogueLines[heartDialogueIndex].text,500,475,800,30);
- ctx.fillStyle="#d7b47b";ctx.font="12px DM Sans";ctx.fillText("KLICKEN ODER E / LEERTASTE",500,565);
+ const line=heartDialogueLines[heartDialogueIndex];
+ if(line)drawHeartSpeechBubble(line.speaker,line.text);
 }
 function beginHeartGame(){
  document.getElementById("letterOverlay").style.display="none";
